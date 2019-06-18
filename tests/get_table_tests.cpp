@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_SUITE(get_table_tests)
 
 transaction_trace_ptr
 issue_tokens( TESTER& t, account_name issuer, account_name to, const asset& amount,
-              std::string memo = "", account_name token_contract = N(eosio.token) )
+              std::string memo = "", account_name token_contract = N(remme.token) )
 {
    signed_transaction trx;
 
@@ -69,22 +69,22 @@ issue_tokens( TESTER& t, account_name issuer, account_name to, const asset& amou
 BOOST_FIXTURE_TEST_CASE( get_scope_test, TESTER ) try {
    produce_blocks(2);
 
-   create_accounts({ N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
-      N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names) });
+   create_accounts({ N(remme.token), N(remme.ram), N(remme.ramfee), N(remme.stake),
+      N(remme.bpay), N(remme.vpay), N(remme.saving), N(remme.names) });
 
    std::vector<account_name> accs{N(inita), N(initb), N(initc), N(initd)};
    create_accounts(accs);
    produce_block();
 
-   set_code( N(eosio.token), contracts::eosio_token_wasm() );
-   set_abi( N(eosio.token), contracts::eosio_token_abi().data() );
+   set_code( N(remme.token), contracts::remme_token_wasm() );
+   set_abi( N(remme.token), contracts::remme_token_abi().data() );
    produce_blocks(1);
 
    // create currency
    auto act = mutable_variant_object()
          ("issuer",       "eosio")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 SYS"));
-   push_action(N(eosio.token), N(create), N(eosio.token), act );
+   push_action(N(remme.token), N(create), N(remme.token), act );
 
    // issue
    for (account_name a: accs) {
@@ -94,13 +94,13 @@ BOOST_FIXTURE_TEST_CASE( get_scope_test, TESTER ) try {
 
    // iterate over scope
    eosio::chain_apis::read_only plugin(*(this->control), fc::microseconds::maximum());
-   eosio::chain_apis::read_only::get_table_by_scope_params param{N(eosio.token), N(accounts), "inita", "", 10};
+   eosio::chain_apis::read_only::get_table_by_scope_params param{N(remme.token), N(accounts), "inita", "", 10};
    eosio::chain_apis::read_only::get_table_by_scope_result result = plugin.read_only::get_table_by_scope(param);
 
    BOOST_REQUIRE_EQUAL(4u, result.rows.size());
    BOOST_REQUIRE_EQUAL("", result.more);
    if (result.rows.size() >= 4) {
-      BOOST_REQUIRE_EQUAL(name(N(eosio.token)), result.rows[0].code);
+      BOOST_REQUIRE_EQUAL(name(N(remme.token)), result.rows[0].code);
       BOOST_REQUIRE_EQUAL(name(N(inita)), result.rows[0].scope);
       BOOST_REQUIRE_EQUAL(name(N(accounts)), result.rows[0].table);
       BOOST_REQUIRE_EQUAL(name(N(eosio)), result.rows[0].payer);
@@ -141,22 +141,22 @@ BOOST_FIXTURE_TEST_CASE( get_scope_test, TESTER ) try {
 BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
    produce_blocks(2);
 
-   create_accounts({ N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
-      N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names) });
+   create_accounts({ N(remme.token), N(remme.ram), N(remme.ramfee), N(remme.stake),
+      N(remme.bpay), N(remme.vpay), N(remme.saving), N(remme.names) });
 
    std::vector<account_name> accs{N(inita), N(initb)};
    create_accounts(accs);
    produce_block();
 
-   set_code( N(eosio.token), contracts::eosio_token_wasm() );
-   set_abi( N(eosio.token), contracts::eosio_token_abi().data() );
+   set_code( N(remme.token), contracts::remme_token_wasm() );
+   set_abi( N(remme.token), contracts::remme_token_abi().data() );
    produce_blocks(1);
 
    // create currency
    auto act = mutable_variant_object()
          ("issuer",       "eosio")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 SYS"));
-   push_action(N(eosio.token), N(create), N(eosio.token), act );
+   push_action(N(remme.token), N(create), N(remme.token), act );
 
    // issue
    for (account_name a: accs) {
@@ -168,7 +168,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
    act = mutable_variant_object()
          ("issuer",       "eosio")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 AAA"));
-   push_action(N(eosio.token), N(create), N(eosio.token), act );
+   push_action(N(remme.token), N(create), N(remme.token), act );
    // issue
    for (account_name a: accs) {
       issue_tokens( *this, config::system_account_name, a, eosio::chain::asset::from_string("9999.0000 AAA") );
@@ -179,7 +179,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
    act = mutable_variant_object()
          ("issuer",       "eosio")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 CCC"));
-   push_action(N(eosio.token), N(create), N(eosio.token), act );
+   push_action(N(remme.token), N(create), N(remme.token), act );
    // issue
    for (account_name a: accs) {
       issue_tokens( *this, config::system_account_name, a, eosio::chain::asset::from_string("7777.0000 CCC") );
@@ -190,7 +190,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
    act = mutable_variant_object()
          ("issuer",       "eosio")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 BBB"));
-   push_action(N(eosio.token), N(create), N(eosio.token), act );
+   push_action(N(remme.token), N(create), N(remme.token), act );
    // issue
    for (account_name a: accs) {
       issue_tokens( *this, config::system_account_name, a, eosio::chain::asset::from_string("8888.0000 BBB") );
@@ -200,7 +200,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
    // get table: normal case
    eosio::chain_apis::read_only plugin(*(this->control), fc::microseconds::maximum());
    eosio::chain_apis::read_only::get_table_rows_params p;
-   p.code = N(eosio.token);
+   p.code = N(remme.token);
    p.scope = "inita";
    p.table = N(accounts);
    p.json = true;
@@ -320,22 +320,22 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
 BOOST_FIXTURE_TEST_CASE( get_table_by_seckey_test, TESTER ) try {
    produce_blocks(2);
 
-   create_accounts({ N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
-      N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names) });
+   create_accounts({ N(remme.token), N(remme.ram), N(remme.ramfee), N(remme.stake),
+      N(remme.bpay), N(remme.vpay), N(remme.saving), N(remme.names) });
 
    std::vector<account_name> accs{N(inita), N(initb), N(initc), N(initd)};
    create_accounts(accs);
    produce_block();
 
-   set_code( N(eosio.token), contracts::eosio_token_wasm() );
-   set_abi( N(eosio.token), contracts::eosio_token_abi().data() );
+   set_code( N(remme.token), contracts::remme_token_wasm() );
+   set_abi( N(remme.token), contracts::remme_token_abi().data() );
    produce_blocks(1);
 
    // create currency
    auto act = mutable_variant_object()
          ("issuer",       "eosio")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 SYS"));
-   push_action(N(eosio.token), N(create), N(eosio.token), act );
+   push_action(N(remme.token), N(create), N(remme.token), act );
 
    // issue
    for (account_name a: accs) {
@@ -343,8 +343,8 @@ BOOST_FIXTURE_TEST_CASE( get_table_by_seckey_test, TESTER ) try {
    }
    produce_blocks(1);
 
-   set_code( config::system_account_name, contracts::eosio_system_wasm() );
-   set_abi( config::system_account_name, contracts::eosio_system_abi().data() );
+   set_code( config::system_account_name, contracts::remme_system_wasm() );
+   set_abi( config::system_account_name, contracts::remme_system_abi().data() );
 
    base_tester::push_action(config::system_account_name, N(init),
                             config::system_account_name,  mutable_variant_object()

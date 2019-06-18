@@ -24,8 +24,8 @@ const static auto default_state_guard_size      =    128*1024*1024ll;
 
 
 const static uint64_t system_account_name    = N(eosio);
-const static uint64_t null_account_name      = N(eosio.null);
-const static uint64_t producers_account_name = N(eosio.prods);
+const static uint64_t null_account_name      = N(remme.null);
+const static uint64_t producers_account_name = N(remme.prods);
 
 // Active permission of producers account requires greater than 2/3 of the producers to authorize
 const static uint64_t majority_producers_permission_name = N(prod.major); // greater than 1/2 of producers needed to authorize

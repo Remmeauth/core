@@ -324,11 +324,11 @@ try {
 
 
    // Creating account with eosio. prefix with privileged account
-   chain.create_account("eosio.test1");
+   chain.create_account("remme.test1");
 
-   // Creating account with eosio. prefix with non-privileged account, should fail
-   BOOST_CHECK_EXCEPTION(chain.create_account("eosio.test2", "joe"), action_validate_exception,
-                         fc_exception_message_is("only privileged accounts can have names that start with 'eosio.'"));
+   // Creating account with remme. prefix with non-privileged account, should fail
+   BOOST_CHECK_EXCEPTION(chain.create_account("remme.test2", "joe"), action_validate_exception,
+                         fc_exception_message_is("only privileged accounts can have names that start with 'remme.'"));
 
 } FC_LOG_AND_RETHROW() }
 

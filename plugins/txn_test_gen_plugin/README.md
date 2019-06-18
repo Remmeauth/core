@@ -63,7 +63,7 @@ $ ./nodeos -d ~/eos.data/generator_node --config-dir ~/eos.data/generator_node -
 ```bash
 $ ./cleos wallet create --to-console
 $ ./cleos wallet import --private-key 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
-$ ./cleos set contract eosio ~/eos/build.release/contracts/eosio.bios/ 
+$ ./cleos set contract eosio ~/eos/build.release/contracts/remme.bios/ 
 ```
 
 ### Initialize the accounts txn_test_gen_plugin uses

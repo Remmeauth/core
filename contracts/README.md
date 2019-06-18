@@ -1,18 +1,18 @@
-# eosio.contracts
+# remme.contracts
 
-## Version : 1.7.0-rc1
+## Version : 1.0.0-x
 
 The design of the EOSIO blockchain calls for a number of smart contracts that are run at a privileged permission level in order to support functions such as block producer registration and voting, token staking for CPU and network bandwidth, RAM purchasing, multi-sig, etc.  These smart contracts are referred to as the bios, system, msig, wrap (formerly known as sudo) and token contracts.
 
 This repository contains examples of these privileged contracts that are useful when deploying, managing, and/or using an EOSIO blockchain.  They are provided for reference purposes:
 
-   * [eosio.bios](https://github.com/EOSIO/eosio.contracts/tree/master/contracts/eosio.bios)
-   * [eosio.system](https://github.com/EOSIO/eosio.contracts/tree/master/contracts/eosio.system)
-   * [eosio.msig](https://github.com/EOSIO/eosio.contracts/tree/master/contracts/eosio.msig)
-   * [eosio.wrap](https://github.com/EOSIO/eosio.contracts/tree/master/contracts/eosio.wrap)
+   * [remme.bios](https://github.com/Remmeauth/remchain/tree/develop/contracts/contracts/remme.bios)
+   * [remme.system](https://github.com/Remmeauth/remchain/tree/develop/contracts/contracts/remme.system)
+   * [remme.msig](https://github.com/Remmeauth/remchain/tree/develop/contracts/contracts/remme.msig)
+   * [remme.wrap](https://github.com/Remmeauth/remchain/tree/develop/contracts/contracts/remme.wrap)
 
 The following unprivileged contract(s) are also part of the system.
-   * [eosio.token](https://github.com/EOSIO/eosio.contracts/tree/master/contracts/eosio.token)
+   * [remme.token](https://github.com/Remmeauth/remchain/tree/develop/contracts/contracts/remme.token)
 
 Dependencies:
 * [eosio.cdt v1.6.x](https://github.com/EOSIO/eosio.cdt/releases/tag/v1.6.1)

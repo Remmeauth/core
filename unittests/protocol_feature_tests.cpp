@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE( activate_preactivate_feature ) try {
    c.produce_block();
 
    // Cannot set latest bios contract since it requires intrinsics that have not yet been whitelisted.
-   BOOST_CHECK_EXCEPTION( c.set_code( config::system_account_name, contracts::eosio_bios_wasm() ),
+   BOOST_CHECK_EXCEPTION( c.set_code( config::system_account_name, contracts::remme_bios_wasm() ),
                           wasm_exception, fc_exception_message_is("env.is_feature_activated unresolveable")
    );
 
@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_CASE( activate_preactivate_feature ) try {
    c.produce_block();
 
    // Now the latest bios contract can be set.
-   c.set_code( config::system_account_name, contracts::eosio_bios_wasm() );
-   c.set_abi( config::system_account_name, contracts::eosio_bios_abi().data() );
+   c.set_code( config::system_account_name, contracts::remme_bios_wasm() );
+   c.set_abi( config::system_account_name, contracts::remme_bios_abi().data() );
 
    c.produce_block();
 

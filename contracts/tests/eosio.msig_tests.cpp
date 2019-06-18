@@ -20,20 +20,20 @@ using mvo = fc::mutable_variant_object;
 class eosio_msig_tester : public tester {
 public:
    eosio_msig_tester() {
-      create_accounts( { N(eosio.msig), N(eosio.stake), N(eosio.ram), N(eosio.ramfee), N(alice), N(bob), N(carol) } );
+      create_accounts( { N(remme.msig), N(remme.stake), N(remme.ram), N(remme.ramfee), N(alice), N(bob), N(carol) } );
       produce_block();
 
       auto trace = base_tester::push_action(config::system_account_name, N(setpriv),
                                             config::system_account_name,  mutable_variant_object()
-                                            ("account", "eosio.msig")
+                                            ("account", "remme.msig")
                                             ("is_priv", 1)
       );
 
-      set_code( N(eosio.msig), contracts::msig_wasm() );
-      set_abi( N(eosio.msig), contracts::msig_abi().data() );
+      set_code( N(remme.msig), contracts::msig_wasm() );
+      set_abi( N(remme.msig), contracts::msig_abi().data() );
 
       produce_blocks();
-      const auto& accnt = control->db().get<account_object,by_name>( N(eosio.msig) );
+      const auto& accnt = control->db().get<account_object,by_name>( N(remme.msig) );
       abi_def abi;
       BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi), true);
       abi_ser.set_abi(abi, abi_serializer_max_time);
@@ -89,14 +89,14 @@ public:
       base_tester::push_action(contract, N(create), contract, act );
    }
    void issue( name to, const asset& amount, name manager = config::system_account_name ) {
-      base_tester::push_action( N(eosio.token), N(issue), manager, mutable_variant_object()
+      base_tester::push_action( N(remme.token), N(issue), manager, mutable_variant_object()
                                 ("to",      to )
                                 ("quantity", amount )
                                 ("memo", "")
                                 );
    }
    void transfer( name from, name to, const string& amount, name manager = config::system_account_name ) {
-      base_tester::push_action( N(eosio.token), N(transfer), manager, mutable_variant_object()
+      base_tester::push_action( N(remme.token), N(transfer), manager, mutable_variant_object()
                                 ("from",    from)
                                 ("to",      to )
                                 ("quantity", asset::from_string(amount) )
@@ -108,7 +108,7 @@ public:
       //temporary code. current get_currency_balancy uses table name N(accounts) from currency.h
       //generic_currency table name is N(account).
       const auto& db  = control->db();
-      const auto* tbl = db.find<table_id_object, by_code_scope_table>(boost::make_tuple(N(eosio.token), act, N(accounts)));
+      const auto* tbl = db.find<table_id_object, by_code_scope_table>(boost::make_tuple(N(remme.token), act, N(accounts)));
       share_type result = 0;
 
       // the balance is implied to be 0 if either the table or row does not exist
@@ -127,7 +127,7 @@ public:
       vector<account_name> accounts;
       if( auth )
          accounts.push_back( signer );
-      auto trace = base_tester::push_action( N(eosio.msig), name, accounts, data );
+      auto trace = base_tester::push_action( N(remme.msig), name, accounts, data );
       produce_block();
       BOOST_REQUIRE_EQUAL( true, chain_has_transaction(trace->id) );
       return trace;
@@ -136,7 +136,7 @@ public:
          string action_type_name = abi_ser.get_action_type(name);
 
          action act;
-         act.account = N(eosio.msig);
+         act.account = N(remme.msig);
          act.name = name;
          act.data = abi_ser.variant_to_binary( action_type_name, data, abi_serializer_max_time );
          //std::cout << "test:\n" << fc::to_hex(act.data.data(), act.data.size()) << " size = " << act.data.size() << std::endl;
@@ -398,30 +398,30 @@ BOOST_FIXTURE_TEST_CASE( big_transaction, eosio_msig_tester ) try {
 
 BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester ) try {
 
-   // required to set up the link between (eosio active) and (eosio.prods active)
+   // required to set up the link between (eosio active) and (remme.prods active)
    //
    //                  eosio active
    //                       |
-   //             eosio.prods active (2/3 threshold)
+   //             remme.prods active (2/3 threshold)
    //             /         |        \             <--- implicitly updated in onblock action
    // alice active     bob active   carol active
 
    set_authority(N(eosio), "active", authority(1,
       vector<key_weight>{{get_private_key("eosio", "active").get_public_key(), 1}},
-      vector<permission_level_weight>{{{N(eosio.prods), config::active_name}, 1}}), "owner",
+      vector<permission_level_weight>{{{N(remme.prods), config::active_name}, 1}}), "owner",
       { { N(eosio), "active" } }, { get_private_key( N(eosio), "active" ) });
 
    set_producers( {N(alice),N(bob),N(carol)} );
    produce_blocks(50);
 
-   create_accounts( { N(eosio.token) } );
-   set_code( N(eosio.token), contracts::token_wasm() );
-   set_abi( N(eosio.token), contracts::token_abi().data() );
+   create_accounts( { N(remme.token) } );
+   set_code( N(remme.token), contracts::token_wasm() );
+   set_abi( N(remme.token), contracts::token_abi().data() );
 
-   create_currency( N(eosio.token), config::system_account_name, core_sym::from_string("10000000000.0000") );
+   create_currency( N(remme.token), config::system_account_name, core_sym::from_string("10000000000.0000") );
    issue(config::system_account_name, core_sym::from_string("1000000000.0000"));
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"),
-                        get_balance("eosio") + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+                        get_balance("eosio") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
 
    set_code( config::system_account_name, contracts::system_wasm() );
    set_abi( config::system_account_name, contracts::system_abi().data() );
@@ -436,7 +436,7 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester )
    create_account_with_resources( N(carol1111111), N(eosio), core_sym::from_string("1.0000"), false );
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"),
-                        get_balance("eosio") + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+                        get_balance("eosio") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
 
    vector<permission_level> perm = { { N(alice), config::active_name }, { N(bob), config::active_name },
       {N(carol), config::active_name} };
@@ -523,21 +523,21 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester )
 
 BOOST_FIXTURE_TEST_CASE( update_system_contract_major_approve, eosio_msig_tester ) try {
 
-   // set up the link between (eosio active) and (eosio.prods active)
+   // set up the link between (eosio active) and (remme.prods active)
    set_authority(N(eosio), "active", authority(1,
       vector<key_weight>{{get_private_key("eosio", "active").get_public_key(), 1}},
-      vector<permission_level_weight>{{{N(eosio.prods), config::active_name}, 1}}), "owner",
+      vector<permission_level_weight>{{{N(remme.prods), config::active_name}, 1}}), "owner",
       { { N(eosio), "active" } }, { get_private_key( N(eosio), "active" ) });
 
    create_accounts( { N(apple) } );
    set_producers( {N(alice),N(bob),N(carol), N(apple)} );
    produce_blocks(50);
 
-   create_accounts( { N(eosio.token) } );
-   set_code( N(eosio.token), contracts::token_wasm() );
-   set_abi( N(eosio.token), contracts::token_abi().data() );
+   create_accounts( { N(remme.token) } );
+   set_code( N(remme.token), contracts::token_wasm() );
+   set_abi( N(remme.token), contracts::token_abi().data() );
 
-   create_currency( N(eosio.token), config::system_account_name, core_sym::from_string("10000000000.0000") );
+   create_currency( N(remme.token), config::system_account_name, core_sym::from_string("10000000000.0000") );
    issue(config::system_account_name, core_sym::from_string("1000000000.0000"));
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance( "eosio" ) );
 
@@ -555,7 +555,7 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_major_approve, eosio_msig_tester
    create_account_with_resources( N(carol1111111), N(eosio), core_sym::from_string("1.0000"), false );
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"),
-                        get_balance("eosio") + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+                        get_balance("eosio") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
 
    vector<permission_level> perm = { { N(alice), config::active_name }, { N(bob), config::active_name },
       {N(carol), config::active_name}, {N(apple), config::active_name}};
@@ -747,11 +747,11 @@ BOOST_FIXTURE_TEST_CASE( propose_invalidate_approve, eosio_msig_tester ) try {
 } FC_LOG_AND_RETHROW()
 
 BOOST_FIXTURE_TEST_CASE( approve_execute_old, eosio_msig_tester ) try {
-   set_code( N(eosio.msig), contracts::util::msig_wasm_old() );
-   set_abi( N(eosio.msig), contracts::util::msig_abi_old().data() );
+   set_code( N(remme.msig), contracts::util::msig_wasm_old() );
+   set_abi( N(remme.msig), contracts::util::msig_abi_old().data() );
    produce_blocks();
 
-   //propose with old version of eosio.msig
+   //propose with old version of remme.msig
    auto trx = reqauth("alice", {permission_level{N(alice), config::active_name}}, abi_serializer_max_time );
    push_action( N(alice), N(propose), mvo()
                   ("proposer",      "alice")
@@ -760,8 +760,8 @@ BOOST_FIXTURE_TEST_CASE( approve_execute_old, eosio_msig_tester ) try {
                   ("requested", vector<permission_level>{{ N(alice), config::active_name }})
    );
 
-   set_code( N(eosio.msig), contracts::msig_wasm() );
-   set_abi( N(eosio.msig), contracts::msig_abi().data() );
+   set_code( N(remme.msig), contracts::msig_wasm() );
+   set_abi( N(remme.msig), contracts::msig_abi().data() );
    produce_blocks();
 
    //approve and execute with new version
@@ -792,11 +792,11 @@ BOOST_FIXTURE_TEST_CASE( approve_execute_old, eosio_msig_tester ) try {
 
 
 BOOST_FIXTURE_TEST_CASE( approve_unapprove_old, eosio_msig_tester ) try {
-   set_code( N(eosio.msig), contracts::util::msig_wasm_old() );
-   set_abi( N(eosio.msig), contracts::util::msig_abi_old().data() );
+   set_code( N(remme.msig), contracts::util::msig_wasm_old() );
+   set_abi( N(remme.msig), contracts::util::msig_abi_old().data() );
    produce_blocks();
 
-   //propose with old version of eosio.msig
+   //propose with old version of remme.msig
    auto trx = reqauth("alice", {permission_level{N(alice), config::active_name}}, abi_serializer_max_time );
    push_action( N(alice), N(propose), mvo()
                   ("proposer",      "alice")
@@ -812,8 +812,8 @@ BOOST_FIXTURE_TEST_CASE( approve_unapprove_old, eosio_msig_tester ) try {
                   ("level",         permission_level{ N(alice), config::active_name })
    );
 
-   set_code( N(eosio.msig), contracts::msig_wasm() );
-   set_abi( N(eosio.msig), contracts::msig_abi().data() );
+   set_code( N(remme.msig), contracts::msig_wasm() );
+   set_abi( N(remme.msig), contracts::msig_abi().data() );
    produce_blocks();
 
    //unapprove with old version
@@ -835,8 +835,8 @@ BOOST_FIXTURE_TEST_CASE( approve_unapprove_old, eosio_msig_tester ) try {
 } FC_LOG_AND_RETHROW()
 
 BOOST_FIXTURE_TEST_CASE( approve_by_two_old, eosio_msig_tester ) try {
-   set_code( N(eosio.msig), contracts::util::msig_wasm_old() );
-   set_abi( N(eosio.msig), contracts::util::msig_abi_old().data() );
+   set_code( N(remme.msig), contracts::util::msig_wasm_old() );
+   set_abi( N(remme.msig), contracts::util::msig_abi_old().data() );
    produce_blocks();
 
    auto trx = reqauth("alice", vector<permission_level>{ { N(alice), config::active_name }, { N(bob), config::active_name } }, abi_serializer_max_time );
@@ -854,8 +854,8 @@ BOOST_FIXTURE_TEST_CASE( approve_by_two_old, eosio_msig_tester ) try {
                   ("level",         permission_level{ N(alice), config::active_name })
    );
 
-   set_code( N(eosio.msig), contracts::msig_wasm() );
-   set_abi( N(eosio.msig), contracts::msig_abi().data() );
+   set_code( N(remme.msig), contracts::msig_wasm() );
+   set_abi( N(remme.msig), contracts::msig_abi().data() );
    produce_blocks();
 
    //fail because approval by bob is missing

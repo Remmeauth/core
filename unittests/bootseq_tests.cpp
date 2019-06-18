@@ -70,8 +70,8 @@ std::vector<genesis_account> test_genesis( {
 class bootseq_tester : public TESTER {
 public:
    void deploy_contract( bool call_init = true ) {
-      set_code( config::system_account_name, contracts::eosio_system_wasm() );
-      set_abi( config::system_account_name, contracts::eosio_system_abi().data() );
+      set_code( config::system_account_name, contracts::remme_system_wasm() );
+      set_abi( config::system_account_name, contracts::remme_system_abi().data() );
       if( call_init ) {
          base_tester::push_action(config::system_account_name, N(init),
                                   config::system_account_name,  mutable_variant_object()
@@ -176,7 +176,7 @@ public:
     }
 
     asset get_balance( const account_name& act ) {
-         return get_currency_balance(N(eosio.token), symbol(CORE_SYMBOL), act);
+         return get_currency_balance(N(remme.token), symbol(CORE_SYMBOL), act);
     }
 
     void set_code_abi(const account_name& account, const vector<uint8_t>& wasm, const char* abi, const private_key_type* signer = nullptr) {
@@ -201,39 +201,39 @@ BOOST_AUTO_TEST_SUITE(bootseq_tests)
 BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
     try {
 
-        // Create eosio.msig and eosio.token
-        create_accounts({N(eosio.msig), N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake), N(eosio.vpay), N(eosio.bpay), N(eosio.saving) });
+        // Create remme.msig and remme.token
+        create_accounts({N(remme.msig), N(remme.token), N(remme.ram), N(remme.ramfee), N(remme.stake), N(remme.vpay), N(remme.bpay), N(remme.saving) });
         // Set code for the following accounts:
-        //  - eosio (code: eosio.bios) (already set by tester constructor)
-        //  - eosio.msig (code: eosio.msig)
-        //  - eosio.token (code: eosio.token)
-        // set_code_abi(N(eosio.msig), contracts::eosio_msig_wasm(), contracts::eosio_msig_abi().data());//, &eosio_active_pk);
-        // set_code_abi(N(eosio.token), contracts::eosio_token_wasm(), contracts::eosio_token_abi().data()); //, &eosio_active_pk);
+        //  - eosio (code: remme.bios) (already set by tester constructor)
+        //  - remme.msig (code: remme.msig)
+        //  - remme.token (code: remme.token)
+        // set_code_abi(N(remme.msig), contracts::remme_msig_wasm(), contracts::remme_msig_abi().data());//, &eosio_active_pk);
+        // set_code_abi(N(remme.token), contracts::remme_token_wasm(), contracts::remme_token_abi().data()); //, &eosio_active_pk);
 
-        set_code_abi(N(eosio.msig),
-                     contracts::eosio_msig_wasm(),
-                     contracts::eosio_msig_abi().data());//, &eosio_active_pk);
-        set_code_abi(N(eosio.token),
-                     contracts::eosio_token_wasm(),
-                     contracts::eosio_token_abi().data()); //, &eosio_active_pk);
+        set_code_abi(N(remme.msig),
+                     contracts::remme_msig_wasm(),
+                     contracts::remme_msig_abi().data());//, &eosio_active_pk);
+        set_code_abi(N(remme.token),
+                     contracts::remme_token_wasm(),
+                     contracts::remme_token_abi().data()); //, &eosio_active_pk);
 
-        // Set privileged for eosio.msig and eosio.token
-        set_privileged(N(eosio.msig));
-        set_privileged(N(eosio.token));
+        // Set privileged for remme.msig and remme.token
+        set_privileged(N(remme.msig));
+        set_privileged(N(remme.token));
 
-        // Verify eosio.msig and eosio.token is privileged
-        const auto& eosio_msig_acc = get<account_metadata_object, by_name>(N(eosio.msig));
-        BOOST_TEST(eosio_msig_acc.is_privileged() == true);
-        const auto& eosio_token_acc = get<account_metadata_object, by_name>(N(eosio.token));
-        BOOST_TEST(eosio_token_acc.is_privileged() == true);
+        // Verify remme.msig and remme.token is privileged
+        const auto& remme_msig_acc = get<account_metadata_object, by_name>(N(remme.msig));
+        BOOST_TEST(remme_msig_acc.is_privileged() == true);
+        const auto& remme_token_acc = get<account_metadata_object, by_name>(N(remme.token));
+        BOOST_TEST(remme_token_acc.is_privileged() == true);
 
 
-        // Create SYS tokens in eosio.token, set its manager as eosio
+        // Create SYS tokens in remme.token, set its manager as eosio
         auto max_supply = core_from_string("10000000000.0000"); /// 1x larger than 1B initial tokens
         auto initial_supply = core_from_string("1000000000.0000"); /// 1x larger than 1B initial tokens
-        create_currency(N(eosio.token), config::system_account_name, max_supply);
-        // Issue the genesis supply of 1 billion SYS tokens to eosio.system
-        issue(N(eosio.token), config::system_account_name, config::system_account_name, initial_supply);
+        create_currency(N(remme.token), config::system_account_name, max_supply);
+        // Issue the genesis supply of 1 billion SYS tokens to remme.system
+        issue(N(remme.token), config::system_account_name, config::system_account_name, initial_supply);
 
         auto actual = get_balance(config::system_account_name);
         BOOST_REQUIRE_EQUAL(initial_supply, actual);
@@ -255,7 +255,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
            auto r = buyram(config::system_account_name, a.aname, asset(ram));
            BOOST_REQUIRE( !r->except_ptr );
 
-           r = delegate_bandwidth(N(eosio.stake), a.aname, asset(net), asset(cpu));
+           r = delegate_bandwidth(N(remme.stake), a.aname, asset(net), asset(cpu));
            BOOST_REQUIRE( !r->except_ptr );
         }
 
@@ -337,9 +337,9 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         BOOST_REQUIRE_THROW(torewards(N(b1), config::system_account_name, core_from_string("100.0000")), missing_auth_exception);
         torewards(config::system_account_name, config::system_account_name, core_from_string("100.0000"));
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.saving)).get_amount(), 10'0000);
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.bpay)).get_amount(), 20'0000);
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.vpay)).get_amount(), 70'0000);
+        BOOST_REQUIRE_EQUAL(get_balance(N(remme.saving)).get_amount(), 10'0000);
+        BOOST_REQUIRE_EQUAL(get_balance(N(remme.bpay)).get_amount(), 20'0000);
+        BOOST_REQUIRE_EQUAL(get_balance(N(remme.vpay)).get_amount(), 70'0000);
 
         // Since the total activated stake is larger than 150,000,000, pool should be filled reward should be bigger than zero
         claim_rewards(N(runnerup1));

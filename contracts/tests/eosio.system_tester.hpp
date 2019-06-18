@@ -28,7 +28,7 @@ using mvo = fc::mutable_variant_object;
 #endif
 
 
-namespace eosio_system {
+namespace remme_system {
 
 class eosio_system_tester : public TESTER {
 public:
@@ -36,15 +36,15 @@ public:
    void basic_setup() {
       produce_blocks( 2 );
 
-      create_accounts({ N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
-               N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names), N(eosio.rex) });
+      create_accounts({ N(remme.token), N(remme.ram), N(remme.ramfee), N(remme.stake),
+               N(remme.bpay), N(remme.vpay), N(remme.saving), N(remme.names), N(remme.rex) });
 
 
       produce_blocks( 100 );
-      set_code( N(eosio.token), contracts::token_wasm());
-      set_abi( N(eosio.token), contracts::token_abi().data() );
+      set_code( N(remme.token), contracts::token_wasm());
+      set_abi( N(remme.token), contracts::token_abi().data() );
       {
-         const auto& accnt = control->db().get<account_object,by_name>( N(eosio.token) );
+         const auto& accnt = control->db().get<account_object,by_name>( N(remme.token) );
          abi_def abi;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi), true);
          token_abi_ser.set_abi(abi, abi_serializer_max_time);
@@ -53,7 +53,7 @@ public:
 
    void create_core_token( symbol core_symbol = symbol{CORE_SYM} ) {
       FC_ASSERT( core_symbol.precision() != 4, "create_core_token assumes precision of core token is 4" );
-      create_currency( N(eosio.token), config::system_account_name, asset(100000000000000, core_symbol) );
+      create_currency( N(remme.token), config::system_account_name, asset(100000000000000, core_symbol) );
       issue( asset(10000000000000, core_symbol) );
       BOOST_REQUIRE_EQUAL( asset(10000000000000, core_symbol), get_balance( "eosio", core_symbol ) );
    }
@@ -85,7 +85,7 @@ public:
       create_account_with_resources( N(bob111111111), config::system_account_name, core_sym::from_string("0.4500"), false );
       create_account_with_resources( N(carol1111111), config::system_account_name, core_sym::from_string("1.0000"), false );
 
-      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
    }
 
    enum class setup_level {
@@ -720,7 +720,7 @@ public:
    }
 
    asset get_balance( const account_name& act, symbol balance_symbol = symbol{CORE_SYM} ) {
-      vector<char> data = get_row_by_account( N(eosio.token), act, N(accounts), balance_symbol.to_symbol_code().value );
+      vector<char> data = get_row_by_account( N(remme.token), act, N(accounts), balance_symbol.to_symbol_code().value );
       return data.empty() ? asset(0, balance_symbol) : token_abi_ser.binary_to_variant("account", data, abi_serializer_max_time)["balance"].as<asset>();
    }
 
@@ -753,7 +753,7 @@ public:
    }
 
    void issue( const asset& amount, const name& manager = config::system_account_name ) {
-      base_tester::push_action( N(eosio.token), N(issue), manager, mutable_variant_object()
+      base_tester::push_action( N(remme.token), N(issue), manager, mutable_variant_object()
                                 ("to",       manager )
                                 ("quantity", amount )
                                 ("memo",     "")
@@ -761,7 +761,7 @@ public:
    }
 
    void transfer( const name& from, const name& to, const asset& amount, const name& manager = config::system_account_name ) {
-      base_tester::push_action( N(eosio.token), N(transfer), manager, mutable_variant_object()
+      base_tester::push_action( N(remme.token), N(transfer), manager, mutable_variant_object()
                                 ("from",    from)
                                 ("to",      to )
                                 ("quantity", amount)
@@ -771,7 +771,7 @@ public:
 
    void issue_and_transfer( const name& to, const asset& amount, const name& manager = config::system_account_name ) {
       signed_transaction trx;
-      trx.actions.emplace_back( get_action( N(eosio.token), N(issue),
+      trx.actions.emplace_back( get_action( N(remme.token), N(issue),
                                             vector<permission_level>{{manager, config::active_name}},
                                             mutable_variant_object()
                                             ("to",       manager )
@@ -780,7 +780,7 @@ public:
                                             )
                                 );
       if ( to != manager ) {
-         trx.actions.emplace_back( get_action( N(eosio.token), N(transfer),
+         trx.actions.emplace_back( get_action( N(remme.token), N(transfer),
                                                vector<permission_level>{{manager, config::active_name}},
                                                mutable_variant_object()
                                                ("from",     manager)
@@ -807,7 +807,7 @@ public:
    fc::variant get_stats( const string& symbolname ) {
       auto symb = eosio::chain::symbol::from_string(symbolname);
       auto symbol_code = symb.to_symbol_code().value;
-      vector<char> data = get_row_by_account( N(eosio.token), symbol_code, N(stat), symbol_code );
+      vector<char> data = get_row_by_account( N(remme.token), symbol_code, N(stat), symbol_code );
       return data.empty() ? fc::variant() : token_abi_ser.binary_to_variant( "currency_stats", data, abi_serializer_max_time );
    }
 
@@ -843,21 +843,21 @@ public:
    abi_serializer initialize_multisig() {
       abi_serializer msig_abi_ser;
       {
-         create_account_with_resources( N(eosio.msig), config::system_account_name );
-         BOOST_REQUIRE_EQUAL( success(), buyram( "eosio", "eosio.msig", core_sym::from_string("5000.0000") ) );
+         create_account_with_resources( N(remme.msig), config::system_account_name );
+         BOOST_REQUIRE_EQUAL( success(), buyram( "eosio", "remme.msig", core_sym::from_string("5000.0000") ) );
          produce_block();
 
          auto trace = base_tester::push_action(config::system_account_name, N(setpriv),
                                                config::system_account_name,  mutable_variant_object()
-                                               ("account", "eosio.msig")
+                                               ("account", "remme.msig")
                                                ("is_priv", 1)
          );
 
-         set_code( N(eosio.msig), contracts::msig_wasm() );
-         set_abi( N(eosio.msig), contracts::msig_abi().data() );
+         set_code( N(remme.msig), contracts::msig_wasm() );
+         set_abi( N(remme.msig), contracts::msig_abi().data() );
 
          produce_blocks();
-         const auto& accnt = control->db().get<account_object,by_name>( N(eosio.msig) );
+         const auto& accnt = control->db().get<account_object,by_name>( N(remme.msig) );
          abi_def msig_abi;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, msig_abi), true);
          msig_abi_ser.set_abi(msig_abi, abi_serializer_max_time);
