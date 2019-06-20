@@ -210,7 +210,7 @@ def proxyVotes(b, e):
         retry(args.cleos + 'system voteproducer proxy ' + voter + ' ' + proxy)
 
 def updateAuth(account, permission, parent, controller):
-    run(args.cleos + 'push action eosio updateauth' + jsonArg({
+    run(args.cleos + 'push action remme updateauth' + jsonArg({
         'account': account,
         'permission': permission,
         'parent': parent,
@@ -257,7 +257,7 @@ def msigExecReplaceSystem(proposer, proposalName):
     retry(args.cleos + 'multisig exec ' + proposer + ' ' + proposalName + ' -p ' + proposer)
 
 def msigReplaceSystem():
-    run(args.cleos + 'push action eosio buyrambytes' + jsonArg(['eosio', accounts[0]['name'], 200000]) + '-p eosio')
+    run(args.cleos + 'push action remme buyrambytes' + jsonArg(['eosio', accounts[0]['name'], 200000]) + '-p eosio')
     sleep(1)
     msigProposeReplaceSystem(accounts[0]['name'], 'fast.unstake')
     sleep(1)
@@ -288,16 +288,16 @@ def stepInstallSystemContracts():
     run(args.cleos + 'set contract remme.token ' + args.contracts_dir + '/remme.token/')
     run(args.cleos + 'set contract remme.msig ' + args.contracts_dir + '/remme.msig/')
 def stepCreateTokens():
-    run(args.cleos + 'push action remme.token create \'["eosio", "10000000000.0000 %s"]\' -p remme.token' % (args.symbol))
+    run(args.cleos + 'push action remme.token create \'["remme", "10000000000.0000 %s"]\' -p remme.token' % (args.symbol))
     totalAllocation = allocateFunds(0, len(accounts))
-    run(args.cleos + 'push action remme.token issue \'["eosio", "%s", "memo"]\' -p eosio' % intToCurrency(totalAllocation))
+    run(args.cleos + 'push action remme.token issue \'["remme", "%s", "memo"]\' -p eosio' % intToCurrency(totalAllocation))
     sleep(1)
 def stepSetSystemContract():
     retry(args.cleos + 'set contract eosio ' + args.contracts_dir + '/remme.system/')
     sleep(1)
-    run(args.cleos + 'push action eosio setpriv' + jsonArg(['remme.msig', 1]) + '-p eosio@active')
+    run(args.cleos + 'push action remme setpriv' + jsonArg(['remme.msig', 1]) + '-p remme@active')
 def stepInitSystemContract():
-    run(args.cleos + 'push action eosio init' + jsonArg(['0', '4,SYS']) + '-p eosio@active')
+    run(args.cleos + 'push action remme init' + jsonArg(['0', '4,SYS']) + '-p remme@active')
     sleep(1)
 def stepCreateStakedAccounts():
     createStakedAccounts(0, len(accounts))
@@ -344,7 +344,7 @@ commands = [
     ('v', 'vote',               stepVote,                   True,    "Vote for producers"),
     ('R', 'claim',              claimRewards,               True,    "Claim rewards"),
     ('x', 'proxy',              stepProxyVotes,             True,    "Proxy votes"),
-    ('q', 'resign',             stepResign,                 True,    "Resign eosio"),
+    ('q', 'resign',             stepResign,                 True,    "Resign remme"),
     ('m', 'msg-replace',        msigReplaceSystem,          False,   "Replace system contract using msig"),
     ('X', 'xfer',               stepTransfer,               False,   "Random transfer tokens (infinite loop)"),
     ('l', 'log',                stepLog,                    True,    "Show tail of node's log"),

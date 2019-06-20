@@ -56,7 +56,7 @@ public:
 
       create_currency( N(remme.token), config::system_account_name, core_from_string("10000000000.0000") );
       issue(config::system_account_name,      core_from_string("1000000000.0000"));
-      BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance( "eosio" ) );
+      BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance( "remme" ) );
 
       set_code( config::system_account_name, contracts::remme_system_wasm() );
       set_abi( config::system_account_name, contracts::remme_system_abi().data() );
@@ -79,7 +79,7 @@ public:
       create_account_with_resources( N(bob111111111), config::system_account_name, core_from_string("0.4500"), false );
       create_account_with_resources( N(carol1111111), config::system_account_name, core_from_string("1.0000"), false );
 
-      BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance("eosio")  + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
+      BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance("remme")  + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
    }
 
    action_result open( account_name  owner,
@@ -414,7 +414,7 @@ public:
       abi_serializer msig_abi_ser;
       {
          create_account_with_resources( N(remme.msig), config::system_account_name );
-         BOOST_REQUIRE_EQUAL( success(), buyram( "eosio", "remme.msig", core_from_string("5000.0000") ) );
+         BOOST_REQUIRE_EQUAL( success(), buyram( "remme", "remme.msig", core_from_string("5000.0000") ) );
          produce_block();
 
          auto trace = base_tester::push_action(config::system_account_name, N(setpriv),
@@ -437,7 +437,7 @@ public:
 
    vector<name> active_and_vote_producers() {
       //stake more than 15% of total EOS supply to activate chain
-      transfer( "eosio", "alice1111111", core_from_string("650000000.0000"), "eosio" );
+      transfer( "remme", "alice1111111", core_from_string("650000000.0000"), "remme" );
       BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_from_string("300000000.0000"), core_from_string("300000000.0000") ) );
 
       // create accounts {defproducera, defproducerb, ..., defproducerz} and register as producers
@@ -461,7 +461,7 @@ public:
                                             ("permission", name(config::active_name).to_string())
                                             ("parent", name(config::owner_name).to_string())
                                             ("auth",  authority(1, {key_weight{get_public_key( config::system_account_name, "active" ), 1}}, {
-                                                  permission_level_weight{{config::system_account_name, config::eosio_code_name}, 1},
+                                                  permission_level_weight{{config::system_account_name, config::remme_code_name}, 1},
                                                      permission_level_weight{{config::producers_account_name,  config::active_name}, 1}
                                                }
                                             ))

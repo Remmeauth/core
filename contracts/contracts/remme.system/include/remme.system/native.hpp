@@ -233,8 +233,8 @@ namespace eosiosystem {
           * This is useful because when doing authorization checks, the EOSIO based blockchain starts with the 
           * action needed to be authorized (and the contract belonging to), and looks up which permission 
           * is needed to pass authorization validation. If a link is set, that permission is used for authoraization 
-          * validation otherwise then active is the default, with the exception of `eosio.any`.
-          * `eosio.any` is an implicit permission which exists on every account; you can link actions to `eosio.any`
+          * validation otherwise then active is the default, with the exception of `remme.any`.
+          * `remme.any` is an implicit permission which exists on every account; you can link actions to `remme.any`
           * and that will make it so linked actions are accessible to any permissions defined for the account. 
           * 
           * @param account - the permission's owner to be linked and the payer of the RAM needed to store this link,

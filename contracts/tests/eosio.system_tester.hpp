@@ -55,7 +55,7 @@ public:
       FC_ASSERT( core_symbol.precision() != 4, "create_core_token assumes precision of core token is 4" );
       create_currency( N(remme.token), config::system_account_name, asset(100000000000000, core_symbol) );
       issue( asset(10000000000000, core_symbol) );
-      BOOST_REQUIRE_EQUAL( asset(10000000000000, core_symbol), get_balance( "eosio", core_symbol ) );
+      BOOST_REQUIRE_EQUAL( asset(10000000000000, core_symbol), get_balance( "remme", core_symbol ) );
    }
 
    void deploy_contract( bool call_init = true ) {
@@ -85,7 +85,7 @@ public:
       create_account_with_resources( N(bob111111111), config::system_account_name, core_sym::from_string("0.4500"), false );
       create_account_with_resources( N(carol1111111), config::system_account_name, core_sym::from_string("1.0000"), false );
 
-      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("eosio")  + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
+      BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance("remme")  + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
    }
 
    enum class setup_level {
@@ -844,7 +844,7 @@ public:
       abi_serializer msig_abi_ser;
       {
          create_account_with_resources( N(remme.msig), config::system_account_name );
-         BOOST_REQUIRE_EQUAL( success(), buyram( "eosio", "remme.msig", core_sym::from_string("5000.0000") ) );
+         BOOST_REQUIRE_EQUAL( success(), buyram( "remme", "remme.msig", core_sym::from_string("5000.0000") ) );
          produce_block();
 
          auto trace = base_tester::push_action(config::system_account_name, N(setpriv),
@@ -867,7 +867,7 @@ public:
 
    vector<name> active_and_vote_producers() {
       //stake more than 15% of total EOS supply to activate chain
-      transfer( "eosio", "alice1111111", core_sym::from_string("650000000.0000"), "eosio" );
+      transfer( "remme", "alice1111111", core_sym::from_string("650000000.0000"), "remme" );
       BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_sym::from_string("300000000.0000"), core_sym::from_string("300000000.0000") ) );
 
       // create accounts {defproducera, defproducerb, ..., defproducerz} and register as producers
@@ -891,7 +891,7 @@ public:
                                             ("permission", name(config::active_name).to_string())
                                             ("parent", name(config::owner_name).to_string())
                                             ("auth",  authority(1, {key_weight{get_public_key( config::system_account_name, "active" ), 1}}, {
-                                                  permission_level_weight{{config::system_account_name, config::eosio_code_name}, 1},
+                                                  permission_level_weight{{config::system_account_name, config::remme_code_name}, 1},
                                                      permission_level_weight{{config::producers_account_name,  config::active_name}, 1}
                                                }
                                             ))
@@ -963,7 +963,7 @@ public:
    }
 
    action_result setinflation( int64_t annual_rate, int64_t inflation_pay_factor, int64_t votepay_factor ) {
-      return push_action( N(eosio), N(setinflation), mvo()
+      return push_action( N(remme), N(setinflation), mvo()
                ("annual_rate",     annual_rate)
                ("inflation_pay_factor", inflation_pay_factor)
                ("votepay_factor", votepay_factor)

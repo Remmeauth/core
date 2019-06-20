@@ -79,7 +79,7 @@ public:
       BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi), true);
       abi_ser.set_abi(abi, abi_serializer_max_time);
 
-      while( control->pending_block_producer().to_string() == "eosio" ) {
+      while( control->pending_block_producer().to_string() == "remme" ) {
          produce_block();
       }
    }
@@ -194,7 +194,7 @@ BOOST_FIXTURE_TEST_CASE( wrap_exec_direct, eosio_wrap_tester ) try {
 
    BOOST_REQUIRE( bool(trace) );
    BOOST_REQUIRE_EQUAL( 1, trace->action_traces.size() );
-   BOOST_REQUIRE_EQUAL( "eosio", name{trace->action_traces[0].act.account} );
+   BOOST_REQUIRE_EQUAL( "remme", name{trace->action_traces[0].act.account} );
    BOOST_REQUIRE_EQUAL( "reqauth", name{trace->action_traces[0].act.name} );
    BOOST_REQUIRE_EQUAL( transaction_receipt::executed, trace->receipt->status );
 
@@ -243,7 +243,7 @@ BOOST_FIXTURE_TEST_CASE( wrap_with_msig, eosio_wrap_tester ) try {
    BOOST_REQUIRE_EQUAL( transaction_receipt::executed, traces[0]->receipt->status );
 
    BOOST_REQUIRE_EQUAL( 1, traces[1]->action_traces.size() );
-   BOOST_REQUIRE_EQUAL( "eosio", name{traces[1]->action_traces[0].act.account} );
+   BOOST_REQUIRE_EQUAL( "remme", name{traces[1]->action_traces[0].act.account} );
    BOOST_REQUIRE_EQUAL( "reqauth", name{traces[1]->action_traces[0].act.name} );
    BOOST_REQUIRE_EQUAL( transaction_receipt::executed, traces[1]->receipt->status );
 
@@ -359,7 +359,7 @@ BOOST_FIXTURE_TEST_CASE( wrap_with_msig_producers_change, eosio_wrap_tester ) tr
    BOOST_REQUIRE_EQUAL( transaction_receipt::executed, traces[0]->receipt->status );
 
    BOOST_REQUIRE_EQUAL( 1, traces[1]->action_traces.size() );
-   BOOST_REQUIRE_EQUAL( "eosio", name{traces[1]->action_traces[0].act.account} );
+   BOOST_REQUIRE_EQUAL( "remme", name{traces[1]->action_traces[0].act.account} );
    BOOST_REQUIRE_EQUAL( "reqauth", name{traces[1]->action_traces[0].act.name} );
    BOOST_REQUIRE_EQUAL( transaction_receipt::executed, traces[1]->receipt->status );
 

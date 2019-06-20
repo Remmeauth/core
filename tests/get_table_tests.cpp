@@ -82,7 +82,7 @@ BOOST_FIXTURE_TEST_CASE( get_scope_test, TESTER ) try {
 
    // create currency
    auto act = mutable_variant_object()
-         ("issuer",       "eosio")
+         ("issuer",       "remme")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 SYS"));
    push_action(N(remme.token), N(create), N(remme.token), act );
 
@@ -97,13 +97,15 @@ BOOST_FIXTURE_TEST_CASE( get_scope_test, TESTER ) try {
    eosio::chain_apis::read_only::get_table_by_scope_params param{N(remme.token), N(accounts), "inita", "", 10};
    eosio::chain_apis::read_only::get_table_by_scope_result result = plugin.read_only::get_table_by_scope(param);
 
-   BOOST_REQUIRE_EQUAL(4u, result.rows.size());
+   //TODO: why we had 4 before? As I see we do issue first to system remme account and transfer to speficic accounts, so
+   //we should have 5 records.
+   BOOST_REQUIRE_EQUAL(5u, result.rows.size());
    BOOST_REQUIRE_EQUAL("", result.more);
    if (result.rows.size() >= 4) {
       BOOST_REQUIRE_EQUAL(name(N(remme.token)), result.rows[0].code);
       BOOST_REQUIRE_EQUAL(name(N(inita)), result.rows[0].scope);
       BOOST_REQUIRE_EQUAL(name(N(accounts)), result.rows[0].table);
-      BOOST_REQUIRE_EQUAL(name(N(eosio)), result.rows[0].payer);
+      BOOST_REQUIRE_EQUAL(name(N(remme)), result.rows[0].payer);
       BOOST_REQUIRE_EQUAL(1u, result.rows[0].count);
 
       BOOST_REQUIRE_EQUAL(name(N(initb)), result.rows[1].scope);
@@ -154,7 +156,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
 
    // create currency
    auto act = mutable_variant_object()
-         ("issuer",       "eosio")
+         ("issuer",       "remme")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 SYS"));
    push_action(N(remme.token), N(create), N(remme.token), act );
 
@@ -166,7 +168,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
 
    // create currency 2
    act = mutable_variant_object()
-         ("issuer",       "eosio")
+         ("issuer",       "remme")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 AAA"));
    push_action(N(remme.token), N(create), N(remme.token), act );
    // issue
@@ -177,7 +179,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
 
    // create currency 3
    act = mutable_variant_object()
-         ("issuer",       "eosio")
+         ("issuer",       "remme")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 CCC"));
    push_action(N(remme.token), N(create), N(remme.token), act );
    // issue
@@ -188,7 +190,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
 
    // create currency 3
    act = mutable_variant_object()
-         ("issuer",       "eosio")
+         ("issuer",       "remme")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 BBB"));
    push_action(N(remme.token), N(create), N(remme.token), act );
    // issue
@@ -238,10 +240,10 @@ BOOST_FIXTURE_TEST_CASE( get_table_test, TESTER ) try {
       BOOST_REQUIRE_EQUAL("8888.0000 BBB", result.rows[2]["data"]["balance"].as_string());
       BOOST_REQUIRE_EQUAL("7777.0000 CCC", result.rows[1]["data"]["balance"].as_string());
       BOOST_REQUIRE_EQUAL("10000.0000 SYS", result.rows[0]["data"]["balance"].as_string());
-      BOOST_REQUIRE_EQUAL("eosio", result.rows[0]["payer"].as_string());
-      BOOST_REQUIRE_EQUAL("eosio", result.rows[1]["payer"].as_string());
-      BOOST_REQUIRE_EQUAL("eosio", result.rows[2]["payer"].as_string());
-      BOOST_REQUIRE_EQUAL("eosio", result.rows[3]["payer"].as_string());
+      BOOST_REQUIRE_EQUAL("remme", result.rows[0]["payer"].as_string());
+      BOOST_REQUIRE_EQUAL("remme", result.rows[1]["payer"].as_string());
+      BOOST_REQUIRE_EQUAL("remme", result.rows[2]["payer"].as_string());
+      BOOST_REQUIRE_EQUAL("remme", result.rows[3]["payer"].as_string());
    }
    p.show_payer = false;
 
@@ -333,7 +335,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_by_seckey_test, TESTER ) try {
 
    // create currency
    auto act = mutable_variant_object()
-         ("issuer",       "eosio")
+         ("issuer",       "remme")
          ("maximum_supply", eosio::chain::asset::from_string("1000000000.0000 SYS"));
    push_action(N(remme.token), N(create), N(remme.token), act );
 
@@ -353,7 +355,7 @@ BOOST_FIXTURE_TEST_CASE( get_table_by_seckey_test, TESTER ) try {
 
    // bidname
    auto bidname = [this]( const account_name& bidder, const account_name& newname, const asset& bid ) {
-      return push_action( N(eosio), N(bidname), bidder, fc::mutable_variant_object()
+      return push_action( N(remme), N(bidname), bidder, fc::mutable_variant_object()
                           ("bidder",  bidder)
                           ("newname", newname)
                           ("bid", bid)
@@ -369,8 +371,8 @@ BOOST_FIXTURE_TEST_CASE( get_table_by_seckey_test, TESTER ) try {
    // get table: normal case
    eosio::chain_apis::read_only plugin(*(this->control), fc::microseconds::maximum());
    eosio::chain_apis::read_only::get_table_rows_params p;
-   p.code = N(eosio);
-   p.scope = "eosio";
+   p.code = N(remme);
+   p.scope = "remme";
    p.table = N(namebids);
    p.json = true;
    p.index_position = "secondary"; // ordered by high_bid

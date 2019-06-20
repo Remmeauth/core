@@ -63,7 +63,7 @@ wcmd () {
 }
 
 cacmd () {
-    programs/cleos/cleos  --wallet-url $wdurl --url http://$bioshost:$biosport system newaccount --transfer --stake-net "10000000.0000 SYS" --stake-cpu "10000000.0000 SYS"  --buy-ram "10000000.0000 SYS" eosio $* >> $logfile 2>&1
+    programs/cleos/cleos  --wallet-url $wdurl --url http://$bioshost:$biosport system newaccount --transfer --stake-net "10000000.0000 SYS" --stake-cpu "10000000.0000 SYS"  --buy-ram "10000000.0000 SYS" remme $* >> $logfile 2>&1
     ecmd system regproducer $1 $2
     ecmd system voteproducer prods $1 $1
 }
@@ -82,46 +82,46 @@ wcmd create --to-console -n ignition
 # ------ DO NOT ALTER THE NEXT LINE -------
 ###INSERT prodkeys
 
-ecmd set contract eosio $bioscontractpath remme.bios.wasm remme.bios.abi
+ecmd set contract remme $bioscontractpath remme.bios.wasm remme.bios.abi
 
 # Preactivate all digests
 for digest in $FEATURE_DIGESTS;
 do
-ecmd push action eosio activate "{\"feature_digest\":\"$digest\"}" -p eosio
+ecmd push action remme activate "{\"feature_digest\":\"$digest\"}" -p remme
 done
 
 # Create required system accounts
 ecmd create key --to-console
 pubsyskey=`grep "^Public key:" $logfile | tail -1 | sed "s/^Public key://"`
 prisyskey=`grep "^Private key:" $logfile | tail -1 | sed "s/^Private key://"`
-echo eosio.* keys: $prisyskey $pubsyskey >> $logfile
+echo remme.* keys: $prisyskey $pubsyskey >> $logfile
 wcmd import -n ignition --private-key $prisyskey
-ecmd create account eosio remme.bpay $pubsyskey $pubsyskey
-ecmd create account eosio remme.msig $pubsyskey $pubsyskey
-ecmd create account eosio remme.names $pubsyskey $pubsyskey
-ecmd create account eosio remme.ram $pubsyskey $pubsyskey
-ecmd create account eosio remme.ramfee $pubsyskey $pubsyskey
-ecmd create account eosio remme.saving $pubsyskey $pubsyskey
-ecmd create account eosio remme.stake $pubsyskey $pubsyskey
-ecmd create account eosio remme.token $pubsyskey $pubsyskey
-ecmd create account eosio remme.vpay $pubsyskey $pubsyskey
-ecmd create account eosio remme.wrap $pubsyskey $pubsyskey
+ecmd create account remme remme.bpay $pubsyskey $pubsyskey
+ecmd create account remme remme.msig $pubsyskey $pubsyskey
+ecmd create account remme remme.names $pubsyskey $pubsyskey
+ecmd create account remme remme.ram $pubsyskey $pubsyskey
+ecmd create account remme remme.ramfee $pubsyskey $pubsyskey
+ecmd create account remme remme.saving $pubsyskey $pubsyskey
+ecmd create account remme remme.stake $pubsyskey $pubsyskey
+ecmd create account remme remme.token $pubsyskey $pubsyskey
+ecmd create account remme remme.vpay $pubsyskey $pubsyskey
+ecmd create account remme remme.wrap $pubsyskey $pubsyskey
 
 ecmd set contract remme.token contracts/contracts/remme.token remme.token.wasm remme.token.abi
 ecmd set contract remme.msig contracts/contracts/remme.msig remme.msig.wasm remme.msig.abi
 ecmd set contract remme.wrap contracts/contracts/remme.wrap remme.wrap.wasm remme.wrap.abi
 
 echo ===== Start: $step ============ >> $logfile
-echo executing: cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token create '[ "eosio", "10000000000.0000 SYS" ]' -p remme.token | tee -a $logfile
-echo executing: cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio | tee -a $logfile
+echo executing: cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token create '[ "remme", "10000000000.0000 SYS" ]' -p remme.token | tee -a $logfile
+echo executing: cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token issue '[ "remme", "1000000000.0000 SYS", "memo" ]' -p remme | tee -a $logfile
 echo ----------------------- >> $logfile
-programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token create '[ "eosio", "10000000000.0000 SYS" ]' -p remme.token >> $logfile 2>&1
-programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio >> $logfile 2>&1
+programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token create '[ "remme", "10000000000.0000 SYS" ]' -p remme.token >> $logfile 2>&1
+programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme.token issue '[ "remme", "1000000000.0000 SYS", "memo" ]' -p remme >> $logfile 2>&1
 echo ==== End: $step ============== >> $logfile
 step=$(($step + 1))
 
-ecmd set contract eosio contracts/contracts/remme.system remme.system.wasm remme.system.abi
-programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio init '[0, "4,SYS"]' -p eosio >> $logfile 2>&1
+ecmd set contract remme contracts/contracts/remme.system remme.system.wasm remme.system.abi
+programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action remme init '[0, "4,SYS"]' -p remme >> $logfile 2>&1
 
 # Manual deployers, add a series of lines below this block that looks like:
 #    cacmd $PRODNAME[0] $OWNERKEY[0] $ACTIVEKEY[0]

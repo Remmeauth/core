@@ -1269,7 +1269,7 @@ BOOST_FIXTURE_TEST_CASE(deferred_transaction_tests, TESTER) { try {
       dtt_act2.delay_sec = 5;
 
       auto auth = authority(get_public_key("testapi", name(dtt_act2.permission_name).to_string()), 10);
-      auth.accounts.push_back( permission_level_weight{{N(testapi), config::eosio_code_name}, 1} );
+      auth.accounts.push_back( permission_level_weight{{N(testapi), config::remme_code_name}, 1} );
 
       push_action(config::system_account_name, updateauth::get_name(), "testapi", fc::mutable_variant_object()
               ("account", "testapi")
@@ -1290,7 +1290,7 @@ BOOST_FIXTURE_TEST_CASE(deferred_transaction_tests, TESTER) { try {
 
       // If the deferred tx receiver == this tx receiver, the authorization checking would originally be bypassed.
       // But not anymore. With the RESTRICT_ACTION_TO_SELF protocol feature activated, it should now objectively
-      // fail because testapi@additional permission is not unilaterally satisfied by testapi@eosio.code.
+      // fail because testapi@additional permission is not unilaterally satisfied by testapi@remme.code.
       dtt_action dtt_act3;
       dtt_act3.deferred_account = N(testapi);
       dtt_act3.permission_name = N(additional);
@@ -2139,7 +2139,7 @@ BOOST_FIXTURE_TEST_CASE(permission_usage_tests, TESTER) { try {
 
    push_action(config::system_account_name, linkauth::get_name(), N(bob), fc::mutable_variant_object()
            ("account", "bob")
-           ("code", "eosio")
+           ("code", "remme")
            ("type", "reqauth")
            ("requirement", "perm1")
    );

@@ -295,7 +295,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         auto active_schedule = control->head_block_state()->active_schedule;
         BOOST_TEST(active_schedule.producers.size() == 1u);
-        BOOST_TEST(active_schedule.producers.front().producer_name == "eosio");
+        BOOST_TEST(active_schedule.producers.front().producer_name == "remme");
 
         // Spend some time so the producer pay pool is filled by the inflation rate
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days

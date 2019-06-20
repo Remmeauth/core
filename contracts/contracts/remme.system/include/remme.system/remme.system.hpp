@@ -535,7 +535,7 @@ namespace eosiosystem {
           *
           * @param system_account - the system account to get the core symbol for.
           */
-         static symbol get_core_symbol( name system_account = "eosio"_n ) {
+         static symbol get_core_symbol( name system_account = "remme"_n ) {
             rammarket rm(system_account, system_account.value);
             const static auto sym = get_core_symbol( rm );
             return sym;

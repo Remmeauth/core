@@ -364,7 +364,7 @@ void print_action( const fc::variant& at ) {
    auto console = at["console"].as_string();
 
    /*
-   if( code == "eosio" && func == "setcode" )
+   if( code == "remme" && func == "setcode" )
       args = args.substr(40)+"...";
    if( name(code) == config::system_account_name && func == "setabi" )
       args = args.substr(40)+"...";
@@ -713,8 +713,8 @@ struct set_account_permission_subcommand {
       permissions->add_option("permission", permission, localized("The permission name to set/delete an authority for"))->required();
       permissions->add_option("authority", authority_json_or_file, localized("[delete] NULL, [create/update] public key, JSON string or filename defining the authority, [code] contract name"));
       permissions->add_option("parent", parent, localized("[create] The permission name of this parents permission, defaults to 'active'"));
-      permissions->add_flag("--add-code", add_code, localized("[code] add '${code}' permission to specified permission authority", ("code", name(config::eosio_code_name))));
-      permissions->add_flag("--remove-code", remove_code, localized("[code] remove '${code}' permission from specified permission authority", ("code", name(config::eosio_code_name))));
+      permissions->add_flag("--add-code", add_code, localized("[code] add '${code}' permission to specified permission authority", ("code", name(config::remme_code_name))));
+      permissions->add_flag("--remove-code", remove_code, localized("[code] remove '${code}' permission from specified permission authority", ("code", name(config::remme_code_name))));
 
       add_standard_transaction_options(permissions, "account@active");
 
@@ -751,7 +751,7 @@ struct set_account_permission_subcommand {
 
             if ( need_auth ) {
                auto actor = (authority_json_or_file.empty()) ? account : name(authority_json_or_file);
-               auto code_name = name(config::eosio_code_name);
+               auto code_name = name(config::remme_code_name);
 
                if ( itr != res.permissions.end() ) {
                   // fetch existing authority
@@ -1459,7 +1459,7 @@ struct bidname_info_subcommand {
       list_producers->add_option("newname", newname, localized("The bidding name"))->required();
       list_producers->set_callback([this] {
          auto rawResult = call(get_table_func, fc::mutable_variant_object("json", true)
-                               ("code", "eosio")("scope", "eosio")("table", "namebids")
+                               ("code", "remme")("scope", "remme")("table", "namebids")
                                ("lower_bound", newname.value)
                                ("upper_bound", newname.value + 1)
                                // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions

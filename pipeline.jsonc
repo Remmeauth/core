@@ -1,5 +1,5 @@
 {
-    "eosio": {
+    "remme": {
         "environment": {
             "IMAGE_TAG": "1.8.0-rc2",
             "HELPER_ENABLED": true

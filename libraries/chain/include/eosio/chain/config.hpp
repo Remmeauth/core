@@ -23,7 +23,7 @@ const static auto default_state_size            = 1*1024*1024*1024ll;
 const static auto default_state_guard_size      =    128*1024*1024ll;
 
 
-const static uint64_t system_account_name    = N(eosio);
+const static uint64_t system_account_name    = N(remme);
 const static uint64_t null_account_name      = N(remme.null);
 const static uint64_t producers_account_name = N(remme.prods);
 
@@ -36,8 +36,8 @@ const static uint64_t eosio_all_scope        = N(eosio.all);
 
 const static uint64_t active_name = N(active);
 const static uint64_t owner_name  = N(owner);
-const static uint64_t eosio_any_name = N(eosio.any);
-const static uint64_t eosio_code_name = N(eosio.code);
+const static uint64_t remme_any_name = N(remme.any);
+const static uint64_t remme_code_name = N(remme.code);
 
 const static int      block_interval_ms = 500;
 const static int      block_interval_us = block_interval_ms*1000;

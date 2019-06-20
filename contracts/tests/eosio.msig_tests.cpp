@@ -60,14 +60,14 @@ public:
                                    .active   = authority( get_public_key( a, "active" ) )
                                 });
 
-      trx.actions.emplace_back( get_action( N(eosio), N(buyram), vector<permission_level>{{creator,config::active_name}},
+      trx.actions.emplace_back( get_action( N(remme), N(buyram), vector<permission_level>{{creator,config::active_name}},
                                             mvo()
                                             ("payer", creator)
                                             ("receiver", a)
                                             ("quant", ramfunds) )
                               );
 
-      trx.actions.emplace_back( get_action( N(eosio), N(delegatebw), vector<permission_level>{{creator,config::active_name}},
+      trx.actions.emplace_back( get_action( N(remme), N(delegatebw), vector<permission_level>{{creator,config::active_name}},
                                             mvo()
                                             ("from", creator)
                                             ("receiver", a)
@@ -406,10 +406,10 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester )
    //             /         |        \             <--- implicitly updated in onblock action
    // alice active     bob active   carol active
 
-   set_authority(N(eosio), "active", authority(1,
-      vector<key_weight>{{get_private_key("eosio", "active").get_public_key(), 1}},
+   set_authority(N(remme), "active", authority(1,
+      vector<key_weight>{{get_private_key("remme", "active").get_public_key(), 1}},
       vector<permission_level_weight>{{{N(remme.prods), config::active_name}, 1}}), "owner",
-      { { N(eosio), "active" } }, { get_private_key( N(eosio), "active" ) });
+      { { N(remme), "active" } }, { get_private_key( N(remme), "active" ) });
 
    set_producers( {N(alice),N(bob),N(carol)} );
    produce_blocks(50);
@@ -421,7 +421,7 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester )
    create_currency( N(remme.token), config::system_account_name, core_sym::from_string("10000000000.0000") );
    issue(config::system_account_name, core_sym::from_string("1000000000.0000"));
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"),
-                        get_balance("eosio") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
+                        get_balance("remme") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
 
    set_code( config::system_account_name, contracts::system_wasm() );
    set_abi( config::system_account_name, contracts::system_abi().data() );
@@ -431,17 +431,17 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester )
                               ("core", CORE_SYM_STR)
    );
    produce_blocks();
-   create_account_with_resources( N(alice1111111), N(eosio), core_sym::from_string("1.0000"), false );
-   create_account_with_resources( N(bob111111111), N(eosio), core_sym::from_string("0.4500"), false );
-   create_account_with_resources( N(carol1111111), N(eosio), core_sym::from_string("1.0000"), false );
+   create_account_with_resources( N(alice1111111), N(remme), core_sym::from_string("1.0000"), false );
+   create_account_with_resources( N(bob111111111), N(remme), core_sym::from_string("0.4500"), false );
+   create_account_with_resources( N(carol1111111), N(remme), core_sym::from_string("1.0000"), false );
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"),
-                        get_balance("eosio") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
+                        get_balance("remme") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
 
    vector<permission_level> perm = { { N(alice), config::active_name }, { N(bob), config::active_name },
       {N(carol), config::active_name} };
 
-   vector<permission_level> action_perm = {{N(eosio), config::active_name}};
+   vector<permission_level> action_perm = {{N(remme), config::active_name}};
 
    auto wasm = contracts::util::reject_all_wasm();
 
@@ -515,7 +515,7 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester )
 
    // can't create account because system contract was replaced by the reject_all contract
 
-   BOOST_REQUIRE_EXCEPTION( create_account_with_resources( N(alice1111112), N(eosio), core_sym::from_string("1.0000"), false ),
+   BOOST_REQUIRE_EXCEPTION( create_account_with_resources( N(alice1111112), N(remme), core_sym::from_string("1.0000"), false ),
                             eosio_assert_message_exception, eosio_assert_message_is("rejecting all actions")
 
    );
@@ -524,10 +524,10 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_all_approve, eosio_msig_tester )
 BOOST_FIXTURE_TEST_CASE( update_system_contract_major_approve, eosio_msig_tester ) try {
 
    // set up the link between (eosio active) and (remme.prods active)
-   set_authority(N(eosio), "active", authority(1,
-      vector<key_weight>{{get_private_key("eosio", "active").get_public_key(), 1}},
+   set_authority(N(remme), "active", authority(1,
+      vector<key_weight>{{get_private_key("remme", "active").get_public_key(), 1}},
       vector<permission_level_weight>{{{N(remme.prods), config::active_name}, 1}}), "owner",
-      { { N(eosio), "active" } }, { get_private_key( N(eosio), "active" ) });
+      { { N(remme), "active" } }, { get_private_key( N(remme), "active" ) });
 
    create_accounts( { N(apple) } );
    set_producers( {N(alice),N(bob),N(carol), N(apple)} );
@@ -539,7 +539,7 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_major_approve, eosio_msig_tester
 
    create_currency( N(remme.token), config::system_account_name, core_sym::from_string("10000000000.0000") );
    issue(config::system_account_name, core_sym::from_string("1000000000.0000"));
-   BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance( "eosio" ) );
+   BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"), get_balance( "remme" ) );
 
    set_code( config::system_account_name, contracts::system_wasm() );
    set_abi( config::system_account_name, contracts::system_abi().data() );
@@ -550,17 +550,17 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_major_approve, eosio_msig_tester
    );
    produce_blocks();
 
-   create_account_with_resources( N(alice1111111), N(eosio), core_sym::from_string("1.0000"), false );
-   create_account_with_resources( N(bob111111111), N(eosio), core_sym::from_string("0.4500"), false );
-   create_account_with_resources( N(carol1111111), N(eosio), core_sym::from_string("1.0000"), false );
+   create_account_with_resources( N(alice1111111), N(remme), core_sym::from_string("1.0000"), false );
+   create_account_with_resources( N(bob111111111), N(remme), core_sym::from_string("0.4500"), false );
+   create_account_with_resources( N(carol1111111), N(remme), core_sym::from_string("1.0000"), false );
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000000000.0000"),
-                        get_balance("eosio") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
+                        get_balance("remme") + get_balance("remme.ramfee") + get_balance("remme.stake") + get_balance("remme.ram") );
 
    vector<permission_level> perm = { { N(alice), config::active_name }, { N(bob), config::active_name },
       {N(carol), config::active_name}, {N(apple), config::active_name}};
 
-   vector<permission_level> action_perm = {{N(eosio), config::active_name}};
+   vector<permission_level> action_perm = {{N(remme), config::active_name}};
 
    auto wasm = contracts::util::reject_all_wasm();
 
@@ -646,7 +646,7 @@ BOOST_FIXTURE_TEST_CASE( update_system_contract_major_approve, eosio_msig_tester
 
    // can't create account because system contract was replaced by the reject_all contract
 
-   BOOST_REQUIRE_EXCEPTION( create_account_with_resources( N(alice1111112), N(eosio), core_sym::from_string("1.0000"), false ),
+   BOOST_REQUIRE_EXCEPTION( create_account_with_resources( N(alice1111112), N(remme), core_sym::from_string("1.0000"), false ),
                             eosio_assert_message_exception, eosio_assert_message_is("rejecting all actions")
 
    );

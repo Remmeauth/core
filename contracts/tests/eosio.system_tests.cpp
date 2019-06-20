@@ -25,8 +25,8 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("0.0000"), get_balance( "alice1111111" ) );
 
-   transfer( "eosio", "alice1111111", core_sym::from_string("1000.0000"), "eosio" );
-   BOOST_REQUIRE_EQUAL( success(), stake( "eosio", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
+   transfer( "remme", "alice1111111", core_sym::from_string("1000.0000"), "remme" );
+   BOOST_REQUIRE_EQUAL( success(), stake( "remme", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
 
    auto total = get_total_stake( "alice1111111" );
    auto init_bytes =  total["ram_bytes"].as_uint64();
@@ -50,7 +50,7 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    total = get_total_stake( "alice1111111" );
    BOOST_REQUIRE_EQUAL( true, total["ram_bytes"].as_uint64() == init_bytes );
 
-   transfer( "eosio", "alice1111111", core_sym::from_string("100000000.0000"), "eosio" );
+   transfer( "remme", "alice1111111", core_sym::from_string("100000000.0000"), "remme" );
    BOOST_REQUIRE_EQUAL( core_sym::from_string("100000998.0049"), get_balance( "alice1111111" ) );
    // alice buys ram for 10000000.0000, 0.5% = 50000.0000 go to ramfee
    // after fee 9950000.0000 go to bought bytes
@@ -128,10 +128,10 @@ BOOST_FIXTURE_TEST_CASE( stake_unstake, eosio_system_tester ) try {
    produce_block( fc::hours(3*24) );
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("0.0000"), get_balance( "alice1111111" ) );
-   transfer( "eosio", "alice1111111", core_sym::from_string("1000.0000"), "eosio" );
+   transfer( "remme", "alice1111111", core_sym::from_string("1000.0000"), "remme" );
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("1000.0000"), get_balance( "alice1111111" ) );
-   BOOST_REQUIRE_EQUAL( success(), stake( "eosio", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
+   BOOST_REQUIRE_EQUAL( success(), stake( "remme", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
 
    auto total = get_total_stake("alice1111111");
    BOOST_REQUIRE_EQUAL( core_sym::from_string("210.0000"), total["net_weight"].as<asset>());
@@ -193,7 +193,7 @@ BOOST_FIXTURE_TEST_CASE( stake_unstake_with_transfer, eosio_system_tester ) try 
 
    //eosio stakes for alice with transfer flag
 
-   transfer( "eosio", "bob111111111", core_sym::from_string("1000.0000"), "eosio" );
+   transfer( "remme", "bob111111111", core_sym::from_string("1000.0000"), "remme" );
    BOOST_REQUIRE_EQUAL( success(), stake_with_transfer( "bob111111111", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
 
    //check that alice has both bandwidth and voting power
@@ -205,7 +205,7 @@ BOOST_FIXTURE_TEST_CASE( stake_unstake_with_transfer, eosio_system_tester ) try 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("0.0000"), get_balance( "alice1111111" ) );
 
    //alice stakes for herself
-   transfer( "eosio", "alice1111111", core_sym::from_string("1000.0000"), "eosio" );
+   transfer( "remme", "alice1111111", core_sym::from_string("1000.0000"), "remme" );
    BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
    //now alice's stake should be equal to transfered from eosio + own stake
    total = get_total_stake("alice1111111");
@@ -243,7 +243,7 @@ BOOST_FIXTURE_TEST_CASE( stake_to_self_with_transfer, eosio_system_tester ) try 
    cross_15_percent_threshold();
 
    BOOST_REQUIRE_EQUAL( core_sym::from_string("0.0000"), get_balance( "alice1111111" ) );
-   transfer( "eosio", "alice1111111", core_sym::from_string("1000.0000"), "eosio" );
+   transfer( "remme", "alice1111111", core_sym::from_string("1000.0000"), "remme" );
 
    BOOST_REQUIRE_EQUAL( wasm_assert_msg("cannot use transfer flag if delegating to self"),
                         stake_with_transfer( "alice1111111", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") )
@@ -257,7 +257,7 @@ BOOST_FIXTURE_TEST_CASE( stake_while_pending_refund, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( core_sym::from_string("0.0000"), get_balance( "alice1111111" ) );
 
    //eosio stakes for alice with transfer flag
-   transfer( "eosio", "bob111111111", core_sym::from_string("1000.0000"), "eosio" );
+   transfer( "remme", "bob111111111", core_sym::from_string("1000.0000"), "remme" );
    BOOST_REQUIRE_EQUAL( success(), stake_with_transfer( "bob111111111", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
 
    //check that alice has both bandwidth and voting power
@@ -269,7 +269,7 @@ BOOST_FIXTURE_TEST_CASE( stake_while_pending_refund, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( core_sym::from_string("0.0000"), get_balance( "alice1111111" ) );
 
    //alice stakes for herself
-   transfer( "eosio", "alice1111111", core_sym::from_string("1000.0000"), "eosio" );
+   transfer( "remme", "alice1111111", core_sym::from_string("1000.0000"), "remme" );
    BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
    //now alice's stake should be equal to transfered from eosio + own stake
    total = get_total_stake("alice1111111");
@@ -308,7 +308,7 @@ BOOST_FIXTURE_TEST_CASE( fail_without_auth, eosio_system_tester ) try {
 
    issue_and_transfer( "alice1111111", core_sym::from_string("1000.0000"),  config::system_account_name );
 
-   BOOST_REQUIRE_EQUAL( success(), stake( "eosio", "alice1111111", core_sym::from_string("2000.0000"), core_sym::from_string("1000.0000") ) );
+   BOOST_REQUIRE_EQUAL( success(), stake( "remme", "alice1111111", core_sym::from_string("2000.0000"), core_sym::from_string("1000.0000") ) );
    BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "bob111111111", core_sym::from_string("10.0000"), core_sym::from_string("10.0000") ) );
 
    BOOST_REQUIRE_EQUAL( error("missing authority of alice1111111"),
@@ -1725,9 +1725,9 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
       BOOST_REQUIRE( info["is_active"].as<bool>() );
       BOOST_REQUIRE( fc::crypto::public_key() != fc::crypto::public_key(info["producer_key"].as_string()) );
 
-      BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
+      BOOST_REQUIRE_EQUAL( error("missing authority of remme"),
                            push_action(prod_name, N(rmvproducer), mvo()("producer", prod_name)));
-      BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
+      BOOST_REQUIRE_EQUAL( error("missing authority of remme"),
                            push_action(producer_names[rmv_index + 2], N(rmvproducer), mvo()("producer", prod_name) ) );
       BOOST_REQUIRE_EQUAL( success(),
                            push_action(config::system_account_name, N(rmvproducer), mvo()("producer", prod_name) ) );
@@ -1771,7 +1771,7 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
    // switch to new producer pay metric
    {
       BOOST_REQUIRE_EQUAL( 0, get_global_state2()["revision"].as<uint8_t>() );
-      BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
+      BOOST_REQUIRE_EQUAL( error("missing authority of remme"),
                            push_action(producer_names[1], N(updtrevision), mvo()("revision", 1) ) );
       BOOST_REQUIRE_EQUAL( success(),
                            push_action(config::system_account_name, N(updtrevision), mvo()("revision", 1) ) );
@@ -2866,7 +2866,7 @@ BOOST_FIXTURE_TEST_CASE( elect_producers /*_and_parameters*/, eosio_system_teste
    BOOST_REQUIRE_EQUAL( success(), regproducer( "defproducer3", 3) );
 
    //stake more than 15% of total EOS supply to activate chain
-   transfer( "eosio", "alice1111111", core_sym::from_string("600000000.0000"), "eosio" );
+   transfer( "remme", "alice1111111", core_sym::from_string("600000000.0000"), "remme" );
    BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_sym::from_string("300000000.0000"), core_sym::from_string("300000000.0000") ) );
    //vote for producers
    BOOST_REQUIRE_EQUAL( success(), vote( N(alice1111111), { N(defproducer1) } ) );
@@ -2954,7 +2954,7 @@ BOOST_FIXTURE_TEST_CASE( buyname, eosio_system_tester ) try {
    //wlog( "verify sam can create nofail" );
    create_accounts_with_resources( { N(nofail) }, N(sam) ); // sam should be able to do this, he won the bid
    //wlog( "verify nofail can create test.nofail" );
-   transfer( "eosio", "nofail", core_sym::from_string( "1000.0000" ) );
+   transfer( "remme", "nofail", core_sym::from_string( "1000.0000" ) );
    create_accounts_with_resources( { N(test.nofail) }, N(nofail) ); // only nofail can create test.nofail
    //wlog( "verify dan cannot create test.fail" );
    BOOST_REQUIRE_EXCEPTION( create_accounts_with_resources( { N(test.fail) }, N(dan) ), // dan shouldn't be able to do this
@@ -3342,7 +3342,7 @@ BOOST_FIXTURE_TEST_CASE( setram_effect, eosio_system_tester ) try {
       // increase max_ram_size, ram bought by name_b loses part of its value
       BOOST_REQUIRE_EQUAL( wasm_assert_msg("ram may only be increased"),
                            push_action(config::system_account_name, N(setram), mvo()("max_ram_size", 64ll*1024 * 1024 * 1024)) );
-      BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
+      BOOST_REQUIRE_EQUAL( error("missing authority of remme"),
                            push_action(name_b, N(setram), mvo()("max_ram_size", 80ll*1024 * 1024 * 1024)) );
       BOOST_REQUIRE_EQUAL( success(),
                            push_action(config::system_account_name, N(setram), mvo()("max_ram_size", 80ll*1024 * 1024 * 1024)) );
@@ -3387,7 +3387,7 @@ BOOST_FIXTURE_TEST_CASE( ram_inflation, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( success(), buyrambytes( "alice1111111", "alice1111111", 100 ) );
    BOOST_REQUIRE_EQUAL( cur_ram_size + 2 * rate, get_global_state()["max_ram_size"].as_uint64() );
 
-   BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
+   BOOST_REQUIRE_EQUAL( error("missing authority of remme"),
                         push_action( "alice1111111", N(setramrate), mvo()("bytes_per_block", rate) ) );
 
    cur_ram_size = get_global_state()["max_ram_size"].as_uint64();
@@ -3404,8 +3404,8 @@ BOOST_FIXTURE_TEST_CASE( ram_inflation, eosio_system_tester ) try {
 
 BOOST_FIXTURE_TEST_CASE( eosioram_ramusage, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( core_sym::from_string("0.0000"), get_balance( "alice1111111" ) );
-   transfer( "eosio", "alice1111111", core_sym::from_string("1000.0000"), "eosio" );
-   BOOST_REQUIRE_EQUAL( success(), stake( "eosio", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
+   transfer( "remme", "alice1111111", core_sym::from_string("1000.0000"), "remme" );
+   BOOST_REQUIRE_EQUAL( success(), stake( "remme", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
 
    const asset initial_ram_balance = get_balance(N(remme.ram));
    const asset initial_ramfee_balance = get_balance(N(remme.ramfee));
@@ -3451,13 +3451,13 @@ BOOST_FIXTURE_TEST_CASE( ram_gift, eosio_system_tester ) try {
    */
 
    //check that stake/unstake keeps the gift
-   transfer( "eosio", "alice1111111", core_sym::from_string("1000.0000"), "eosio" );
-   BOOST_REQUIRE_EQUAL( success(), stake( "eosio", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
+   transfer( "remme", "alice1111111", core_sym::from_string("1000.0000"), "remme" );
+   BOOST_REQUIRE_EQUAL( success(), stake( "remme", "alice1111111", core_sym::from_string("200.0000"), core_sym::from_string("100.0000") ) );
    int64_t ram_bytes_after_stake;
    rlm.get_account_limits( N(alice1111111), ram_bytes_after_stake, net_weight, cpu_weight );
    BOOST_REQUIRE_EQUAL( ram_bytes_orig, ram_bytes_after_stake );
 
-   BOOST_REQUIRE_EQUAL( success(), unstake( "eosio", "alice1111111", core_sym::from_string("20.0000"), core_sym::from_string("10.0000") ) );
+   BOOST_REQUIRE_EQUAL( success(), unstake( "remme", "alice1111111", core_sym::from_string("20.0000"), core_sym::from_string("10.0000") ) );
    int64_t ram_bytes_after_unstake;
    rlm.get_account_limits( N(alice1111111), ram_bytes_after_unstake, net_weight, cpu_weight );
    BOOST_REQUIRE_EQUAL( ram_bytes_orig, ram_bytes_after_unstake );
@@ -3510,7 +3510,7 @@ BOOST_FIXTURE_TEST_CASE( rex_auth, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( error(error_msg), push_action( bob, N(mvfrsavings), mvo()("owner", alice)("rex", one_rex) ) );
    BOOST_REQUIRE_EQUAL( error(error_msg), push_action( bob, N(closerex), mvo()("owner", alice) ) );
 
-   BOOST_REQUIRE_EQUAL( error("missing authority of eosio"), push_action( alice, N(setrex), mvo()("balance", one_eos) ) );
+   BOOST_REQUIRE_EQUAL( error("missing authority of remme"), push_action( alice, N(setrex), mvo()("balance", one_eos) ) );
 
 } FC_LOG_AND_RETHROW()
 
@@ -4898,9 +4898,9 @@ BOOST_FIXTURE_TEST_CASE( set_rex, eosio_system_tester ) try {
    const asset set_total_rent   = core_sym::from_string("10000.0000");
    const asset negative_balance = core_sym::from_string("-10000.0000");
    const asset different_symbol = asset::from_string("10000.0000 RND");
-   BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
+   BOOST_REQUIRE_EQUAL( error("missing authority of remme"),
                         push_action( alice, act_name, mvo()("balance", set_total_rent) ) );
-   BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
+   BOOST_REQUIRE_EQUAL( error("missing authority of remme"),
                         push_action( bob, act_name, mvo()("balance", set_total_rent) ) );
    BOOST_REQUIRE_EQUAL( wasm_assert_msg("rex system is not initialized"),
                         push_action( config::system_account_name, act_name, mvo()("balance", set_total_rent) ) );
@@ -5068,11 +5068,11 @@ BOOST_FIXTURE_TEST_CASE( setabi, eosio_system_tester ) try {
 } FC_LOG_AND_RETHROW()
 
 BOOST_FIXTURE_TEST_CASE( change_limited_account_back_to_unlimited, eosio_system_tester ) try {
-   BOOST_REQUIRE( get_total_stake( "eosio" ).is_null() );
+   BOOST_REQUIRE( get_total_stake( "remme" ).is_null() );
 
-   transfer( N(eosio), N(alice1111111), core_sym::from_string("1.0000") );
+   transfer( N(remme), N(alice1111111), core_sym::from_string("1.0000") );
 
-   auto error_msg = stake( N(alice1111111), N(eosio), core_sym::from_string("0.0000"), core_sym::from_string("1.0000") );
+   auto error_msg = stake( N(alice1111111), N(remme), core_sym::from_string("0.0000"), core_sym::from_string("1.0000") );
    auto semicolon_pos = error_msg.find(';');
 
    BOOST_REQUIRE_EQUAL( error("account eosio has insufficient ram"),
@@ -5086,25 +5086,25 @@ BOOST_FIXTURE_TEST_CASE( change_limited_account_back_to_unlimited, eosio_system_
       ram_bytes_needed += 256; // enough room to cover total_resources_table
    }
 
-   push_action( N(eosio), N(setalimits), mvo()
-                                          ("account", "eosio")
+   push_action( N(remme), N(setalimits), mvo()
+                                          ("account", "remme")
                                           ("ram_bytes", ram_bytes_needed)
                                           ("net_weight", -1)
                                           ("cpu_weight", -1)
               );
 
-   stake( N(alice1111111), N(eosio), core_sym::from_string("0.0000"), core_sym::from_string("1.0000") );
+   stake( N(alice1111111), N(remme), core_sym::from_string("0.0000"), core_sym::from_string("1.0000") );
 
-   REQUIRE_MATCHING_OBJECT( get_total_stake( "eosio" ), mvo()
-      ("owner", "eosio")
+   REQUIRE_MATCHING_OBJECT( get_total_stake( "remme" ), mvo()
+      ("owner", "remme")
       ("net_weight", core_sym::from_string("0.0000"))
       ("cpu_weight", core_sym::from_string("1.0000"))
       ("ram_bytes",  0)
    );
 
    BOOST_REQUIRE_EQUAL( wasm_assert_msg( "only supports unlimited accounts" ),
-                        push_action( N(eosio), N(setalimits), mvo()
-                                          ("account", "eosio")
+                        push_action( N(remme), N(setalimits), mvo()
+                                          ("account", "remme")
                                           ("ram_bytes", ram_bytes_needed)
                                           ("net_weight", -1)
                                           ("cpu_weight", -1)
@@ -5112,7 +5112,7 @@ BOOST_FIXTURE_TEST_CASE( change_limited_account_back_to_unlimited, eosio_system_
    );
 
    BOOST_REQUIRE_EQUAL( error( "transaction net usage is too high: 128 > 0" ),
-                        push_action( N(eosio), N(setalimits), mvo()
+                        push_action( N(remme), N(setalimits), mvo()
                            ("account", "remme.saving")
                            ("ram_bytes", -1)
                            ("net_weight", -1)
@@ -5121,22 +5121,22 @@ BOOST_FIXTURE_TEST_CASE( change_limited_account_back_to_unlimited, eosio_system_
    );
 
    BOOST_REQUIRE_EQUAL( success(),
-                        push_action( N(eosio), N(setacctnet), mvo()
-                           ("account", "eosio")
+                        push_action( N(remme), N(setacctnet), mvo()
+                           ("account", "remme")
                            ("net_weight", -1)
                         )
    );
 
    BOOST_REQUIRE_EQUAL( success(),
-                        push_action( N(eosio), N(setacctcpu), mvo()
-                           ("account", "eosio")
+                        push_action( N(remme), N(setacctcpu), mvo()
+                           ("account", "remme")
                            ("cpu_weight", -1)
 
                         )
    );
 
    BOOST_REQUIRE_EQUAL( success(),
-                        push_action( N(eosio), N(setalimits), mvo()
+                        push_action( N(remme), N(setalimits), mvo()
                                           ("account", "remme.saving")
                                           ("ram_bytes", ram_bytes_needed)
                                           ("net_weight", -1)
@@ -5147,11 +5147,11 @@ BOOST_FIXTURE_TEST_CASE( change_limited_account_back_to_unlimited, eosio_system_
 } FC_LOG_AND_RETHROW()
 
 BOOST_FIXTURE_TEST_CASE( buy_pin_sell_ram, eosio_system_tester ) try {
-   BOOST_REQUIRE( get_total_stake( "eosio" ).is_null() );
+   BOOST_REQUIRE( get_total_stake( "remme" ).is_null() );
 
-   transfer( N(eosio), N(alice1111111), core_sym::from_string("1020.0000") );
+   transfer( N(remme), N(alice1111111), core_sym::from_string("1020.0000") );
 
-   auto error_msg = stake( N(alice1111111), N(eosio), core_sym::from_string("10.0000"), core_sym::from_string("10.0000") );
+   auto error_msg = stake( N(alice1111111), N(remme), core_sym::from_string("10.0000"), core_sym::from_string("10.0000") );
    auto semicolon_pos = error_msg.find(';');
 
    BOOST_REQUIRE_EQUAL( error("account eosio has insufficient ram"),
@@ -5167,22 +5167,22 @@ BOOST_FIXTURE_TEST_CASE( buy_pin_sell_ram, eosio_system_tester ) try {
 
    auto alice_original_balance = get_balance( N(alice1111111) );
 
-   BOOST_REQUIRE_EQUAL( success(), buyrambytes( N(alice1111111), N(eosio), static_cast<uint32_t>(ram_bytes_needed) ) );
+   BOOST_REQUIRE_EQUAL( success(), buyrambytes( N(alice1111111), N(remme), static_cast<uint32_t>(ram_bytes_needed) ) );
 
    auto tokens_paid_for_ram = alice_original_balance - get_balance( N(alice1111111) );
 
-   auto total_res = get_total_stake( "eosio" );
+   auto total_res = get_total_stake( "remme" );
 
    REQUIRE_MATCHING_OBJECT( total_res, mvo()
-      ("owner", "eosio")
+      ("owner", "remme")
       ("net_weight", core_sym::from_string("0.0000"))
       ("cpu_weight", core_sym::from_string("0.0000"))
       ("ram_bytes",  total_res["ram_bytes"].as_int64() )
    );
 
    BOOST_REQUIRE_EQUAL( wasm_assert_msg( "only supports unlimited accounts" ),
-                        push_action( N(eosio), N(setalimits), mvo()
-                                          ("account", "eosio")
+                        push_action( N(remme), N(setalimits), mvo()
+                                          ("account", "remme")
                                           ("ram_bytes", ram_bytes_needed)
                                           ("net_weight", -1)
                                           ("cpu_weight", -1)
@@ -5190,17 +5190,17 @@ BOOST_FIXTURE_TEST_CASE( buy_pin_sell_ram, eosio_system_tester ) try {
    );
 
    BOOST_REQUIRE_EQUAL( success(),
-                        push_action( N(eosio), N(setacctram), mvo()
-                           ("account", "eosio")
+                        push_action( N(remme), N(setacctram), mvo()
+                           ("account", "remme")
                            ("ram_bytes", total_res["ram_bytes"].as_int64() )
                         )
    );
 
-   auto eosio_original_balance = get_balance( N(eosio) );
+   auto eosio_original_balance = get_balance( N(remme) );
 
-   BOOST_REQUIRE_EQUAL( success(), sellram( N(eosio), total_res["ram_bytes"].as_int64() ) );
+   BOOST_REQUIRE_EQUAL( success(), sellram( N(remme), total_res["ram_bytes"].as_int64() ) );
 
-   auto tokens_received_by_selling_ram = get_balance( N(eosio) ) - eosio_original_balance;
+   auto tokens_received_by_selling_ram = get_balance( N(remme) ) - eosio_original_balance;
 
    BOOST_REQUIRE( double(tokens_paid_for_ram.get_amount() - tokens_received_by_selling_ram.get_amount()) / tokens_paid_for_ram.get_amount() < 0.01 );
 
