@@ -257,7 +257,7 @@ namespace eosiosystem {
          av.last_vote_weight       = new_vote_weight;
          av.producers              = producers;
          av.proxy                  = proxy;
-         av.last_reassertion_time = ct;
+         av.last_reassertion_point = ct;
       });
    }
 
