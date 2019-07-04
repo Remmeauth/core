@@ -254,9 +254,10 @@ namespace eosiosystem {
       }
 
       _voters.modify( voter, same_payer, [&]( auto& av ) {
-         av.last_vote_weight = new_vote_weight;
-         av.producers = producers;
-         av.proxy     = proxy;
+         av.last_vote_weight       = new_vote_weight;
+         av.producers              = producers;
+         av.proxy                  = proxy;
+         av.last_reassertion_point = ct;
       });
    }
 
@@ -332,6 +333,11 @@ namespace eosiosystem {
 
    bool system_contract::is_block_producer( const name& producer ) const {
       return _producers.find( producer.value ) != _producers.end();
+   }
+   
+   bool voter_info::should_reassert_bp_status() const {
+         const auto reassertion_threshold = last_reassertion_point + microseconds( 7 * useconds_per_day );
+         return reassertion_threshold >= current_time_point();
    }
 
 } /// namespace eosiosystem

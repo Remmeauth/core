@@ -447,14 +447,16 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         }
         BOOST_TEST(get_expected_produced_blocks(N(runnerup1)) == 36);
 
-        BOOST_TEST(get_balance(N(runnerup1)).get_amount() == 0);
-        BOOST_TEST(get_balance(N(proda)).get_amount() == 0);
+        // Since the total activated stake is larger than 150,000,000, pool should be filled reward should be bigger than zero
+        // We have voted to reassertion period is `now`
+        votepro( N(runnerup1), {N(runnerup1)} );
         claim_rewards(N(runnerup1));
-        //runnerup should not get any pervote rewards because he wasn`t on schedule when torewards was called
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.vpay)).get_amount(), vpay_balance);
-        claim_rewards(N(proda));
         BOOST_TEST(get_balance(N(runnerup1)).get_amount() > 0);
-        BOOST_TEST(get_balance(N(proda)).get_amount() > 0);
+
+        // Spend 7 days to invalidate BP status
+        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(7 * 24 * 3600)); // 7 days
+        // Should throw as we didn't reassert BP status for 7 days
+        BOOST_REQUIRE_THROW( claim_rewards(N(runnerup1)), eosio_assert_message_exception );
 
         const auto first_june_2018 = fc::seconds(1527811200); // 2018-06-01
         const auto first_june_2028 = fc::seconds(1843430400); // 2028-06-01

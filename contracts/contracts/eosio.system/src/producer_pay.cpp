@@ -168,6 +168,9 @@ namespace eosiosystem {
    void system_contract::claimrewards( const name& owner ) {
       require_auth( owner );
 
+      const auto& voter = _voters.get( owner.value );
+      check( voter.should_reassert_bp_status(), "producer did not reasserted status for 7 days");
+
       const auto& prod = _producers.get( owner.value );
       check( prod.active(), "producer does not have an active key" );
 

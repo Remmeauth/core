@@ -241,6 +241,7 @@ namespace eosiosystem {
       double          votepay_share = 0;
       time_point      last_votepay_share_update;
 
+
       uint64_t primary_key()const { return owner.value; }
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
@@ -291,8 +292,12 @@ namespace eosiosystem {
          cpu_managed = 4
       };
 
+      time_point          last_reassertion_point;
+
+      bool should_reassert_bp_status() const;
+
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(vote_mature_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3) )
+      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(vote_mature_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_point) )
    };
 
    struct [[eosio::table, eosio::contract("eosio.system")]] user_resources {
