@@ -448,7 +448,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         BOOST_TEST(get_expected_produced_blocks(N(runnerup1)) == 36);
 
         // Since the total activated stake is larger than 150,000,000, pool should be filled reward should be bigger than zero
-        // We have voted to reassertion period is `now`
+        // We have voted so last_reassertion_time is `now`
         votepro( N(runnerup1), {N(runnerup1)} );
         claim_rewards(N(runnerup1));
         BOOST_TEST(get_balance(N(runnerup1)).get_amount() > 0);

@@ -257,7 +257,7 @@ namespace eosiosystem {
          av.last_vote_weight       = new_vote_weight;
          av.producers              = producers;
          av.proxy                  = proxy;
-         av.last_reassertion_point = ct;
+         av.last_reassertion_time = ct;
       });
    }
 
@@ -335,9 +335,8 @@ namespace eosiosystem {
       return _producers.find( producer.value ) != _producers.end();
    }
    
-   bool voter_info::should_reassert_bp_status() const {
-         const auto reassertion_threshold = last_reassertion_point + microseconds( voter_info::reassertion_period * useconds_per_day );
-         return reassertion_threshold >= current_time_point();
+   bool voter_info::bp_status_active() const {
+         return current_time_point() - last_reassertion_time < microseconds( voter_info::reassertion_period * useconds_per_day );
    }
 
 } /// namespace eosiosystem

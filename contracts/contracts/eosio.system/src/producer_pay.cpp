@@ -172,8 +172,9 @@ namespace eosiosystem {
 
       const auto& voter = _voters.get( owner.value );
 
+      // TODO fix coupling in voter-producer entities
       static const auto reassert_err = "producer did not reasserted status for "s + std::to_string( voter_info::reassertion_period ) + " days"s;
-      check( voter.should_reassert_bp_status(), reassert_err );
+      check( voter.bp_status_active(), reassert_err );
 
       const auto& prod = _producers.get( owner.value );
       check( prod.active(), "producer does not have an active key" );

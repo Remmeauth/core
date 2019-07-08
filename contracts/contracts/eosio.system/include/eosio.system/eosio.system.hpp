@@ -258,7 +258,6 @@ namespace eosiosystem {
     */
    struct [[eosio::table, eosio::contract("eosio.system")]] voter_info {
    public:
-      // Block producer should reassert its status (via voting) every 7 days
       static constexpr auto reassertion_period = 7;
    
    public:
@@ -296,9 +295,10 @@ namespace eosiosystem {
          cpu_managed = 4
       };
 
-      time_point          last_reassertion_point;
+      time_point          last_reassertion_time;
 
-      bool should_reassert_bp_status() const;
+      // Block producer should reassert its status (via voting) every voter_info::reassertion_period days
+      bool bp_status_active() const;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(vote_mature_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_point) )
