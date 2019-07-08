@@ -241,7 +241,6 @@ namespace eosiosystem {
       double          votepay_share = 0;
       time_point      last_votepay_share_update;
 
-
       uint64_t primary_key()const { return owner.value; }
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
@@ -258,6 +257,11 @@ namespace eosiosystem {
     * - `staked` the amount staked
     */
    struct [[eosio::table, eosio::contract("eosio.system")]] voter_info {
+   public:
+      // Block producer should reassert it's status (via voting) every 7 days
+      static constexpr auto reassertion_period = 7;
+   
+   public:
       name                owner;     /// the voter
       name                proxy;     /// the proxy set by the voter, if any
       std::vector<name>   producers; /// the producers approved by this voter if no proxy set

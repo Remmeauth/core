@@ -5,6 +5,7 @@
 #include <eosio.system/eosio.system.hpp>
 #include <eosio.token/eosio.token.hpp>
 
+
 namespace eosiosystem {
 
    const int64_t  min_pervote_daily_pay = 100'0000;
@@ -166,10 +167,13 @@ namespace eosiosystem {
 
    using namespace eosio;
    void system_contract::claimrewards( const name& owner ) {
+      using namespace std::literals::string_literals;
       require_auth( owner );
 
       const auto& voter = _voters.get( owner.value );
-      check( voter.should_reassert_bp_status(), "producer did not reasserted status for 7 days");
+
+      static const auto reassert_err = "producer did not reasserted status for "s + std::to_string( voter_info::reassertion_period ) + " days"s;
+      check( voter.should_reassert_bp_status(), reassert_err );
 
       const auto& prod = _producers.get( owner.value );
       check( prod.active(), "producer does not have an active key" );

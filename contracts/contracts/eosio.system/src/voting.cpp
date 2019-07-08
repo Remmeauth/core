@@ -336,7 +336,7 @@ namespace eosiosystem {
    }
    
    bool voter_info::should_reassert_bp_status() const {
-         const auto reassertion_threshold = last_reassertion_point + microseconds( 7 * useconds_per_day );
+         const auto reassertion_threshold = last_reassertion_point + microseconds( voter_info::reassertion_period * useconds_per_day );
          return reassertion_threshold >= current_time_point();
    }
 
