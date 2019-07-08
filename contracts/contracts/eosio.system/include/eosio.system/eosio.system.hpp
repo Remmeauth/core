@@ -258,7 +258,7 @@ namespace eosiosystem {
     */
    struct [[eosio::table, eosio::contract("eosio.system")]] voter_info {
    public:
-      // Block producer should reassert it's status (via voting) every 7 days
+      // Block producer should reassert its status (via voting) every 7 days
       static constexpr auto reassertion_period = 7;
    
    public:
