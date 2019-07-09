@@ -413,8 +413,8 @@ namespace eosiosystem {
       auto voter_itr = _voters.find( voter.value );
       if( voter_itr == _voters.end() ) {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
-            v.owner  = voter;
-            v.staked = total_update.amount;
+            v.owner            = voter;
+            v.staked           = total_update.amount;
             v.vote_mature_time = current_time_point();
          });
       } else {
