@@ -415,6 +415,7 @@ namespace eosiosystem {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
             v.owner  = voter;
             v.staked = total_update.amount;
+            v.vote_mature_time = current_time_point();
          });
       } else {
          _voters.modify( voter_itr, same_payer, [&]( auto& v ) {

@@ -116,9 +116,19 @@ namespace eosiosystem {
       }
    }
 
-   double stake2vote( int64_t staked ) {
+   double stake2vote( int64_t staked, time_point vote_mature_point ) {
       /// TODO subtract 2080 brings the large numbers closer to this decade
-      double weight = int64_t( (current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7) )  / double( 52 );
+      // double weight = int64_t( (current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7) )  / double( 52 );
+
+      //                  (vote_mature_time - current_time)
+      // vote_scale = 1 - ---------------------------------
+      //                          6_month
+      //
+      // initial_scale = 0.1
+      // rem_vote_weight = eos_vote_weight * max( vote_scale, initial_scale )
+
+      const double useconds_to_mature = (vote_mature_point - current_time_point()).count();
+      double weight = 1 - fmin( useconds_to_mature / ( 180  * useconds_per_day ), 0.1 );
       return double(staked) * std::pow( 2, weight );
    }
 
@@ -214,7 +224,7 @@ namespace eosiosystem {
          }
       }
 
-      auto new_vote_weight = stake2vote( voter->staked );
+      auto new_vote_weight = stake2vote( voter->staked, voter->vote_mature_time );
       if( voter->is_proxy ) {
          new_vote_weight += voter->proxied_vote_weight;
       }
@@ -332,7 +342,7 @@ namespace eosiosystem {
 
    void system_contract::propagate_weight_change( const voter_info& voter ) {
       check( !voter.proxy || !voter.is_proxy, "account registered as a proxy is not allowed to use a proxy" );
-      double new_weight = stake2vote( voter.staked );
+      double new_weight = stake2vote( voter.staked, voter.vote_mature_time );
       if ( voter.is_proxy ) {
          new_weight += voter.proxied_vote_weight;
       }

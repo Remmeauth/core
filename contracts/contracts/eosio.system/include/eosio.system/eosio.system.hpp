@@ -252,6 +252,8 @@ namespace eosiosystem {
        *  stated.amount * 2 ^ ( weeks_since_launch/weeks_per_year)
        */
       double              last_vote_weight = 0; /// the vote weight cast the last time the vote was updated
+      time_point          vote_mature_time;
+      
 
       /**
        * Total vote weight delegated to this voter.
