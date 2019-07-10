@@ -336,7 +336,7 @@ namespace eosiosystem {
    }
    
    bool voter_info::bp_status_active() const {
-         return current_time_point() - last_reassertion_time < microseconds( voter_info::reassertion_period * useconds_per_day );
+         return (current_time_point() - last_reassertion_time) < microseconds( voter_info::reassertion_period * useconds_per_day );
    }
 
 } /// namespace eosiosystem

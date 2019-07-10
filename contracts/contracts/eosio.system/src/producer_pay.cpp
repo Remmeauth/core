@@ -167,7 +167,7 @@ namespace eosiosystem {
 
    using namespace eosio;
    void system_contract::claimrewards( const name& owner ) {
-      using namespace std::literals::string_literals;
+      using namespace std::string_literals;
       require_auth( owner );
 
       const auto& voter = _voters.get( owner.value );
