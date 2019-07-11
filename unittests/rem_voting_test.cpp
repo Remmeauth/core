@@ -116,6 +116,15 @@ public:
         return r;
     }
 
+   auto torewards( name caller, name payer, asset amount ) {
+        auto r = base_tester::push_action(config::system_account_name, N(torewards), caller, mvo()
+                ("payer", payer)
+                ("amount", amount)
+        );
+        produce_block();
+        return r;
+    }
+
     auto claim_rewards( name owner ) {
        auto r = base_tester::push_action( config::system_account_name, N(claimrewards), owner, mvo()("owner",  owner ));
        produce_block();
@@ -326,7 +335,24 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
         BOOST_TEST(active_schedule.producers.at(18).producer_name == "prods");
         BOOST_TEST(active_schedule.producers.at(19).producer_name == "prodt");
         BOOST_TEST(active_schedule.producers.at(20).producer_name == "produ");
-        return;
+
+        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
+        torewards(config::system_account_name, config::system_account_name, core_from_string("100.0000"));
+        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.saving)).get_amount(), 10'0000);
+        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.bpay)).get_amount(), 20'0000);
+        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.vpay)).get_amount(), 70'0000);
+
+        // Since the total activated stake is larger than 150,000,000, pool should be filled reward should be bigger than zero
+        // We have voted so last_reassertion_time is `now`
+        votepro( N(whale1), {N(proda)} );
+        claim_rewards(N(whale1));
+        BOOST_TEST(get_balance(N(whale1)).get_amount() > 0);
+
+        // Spend 7 days to invalidate BP status
+        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(7 * 24 * 3600)); // 7 days
+        // Should throw as we didn't reassert BP status for 7 days
+        BOOST_REQUIRE_THROW( claim_rewards(N(whale1)), eosio_assert_message_exception );
+
     } FC_LOG_AND_RETHROW()
 }
 

@@ -453,11 +453,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         claim_rewards(N(runnerup1));
         BOOST_TEST(get_balance(N(runnerup1)).get_amount() > 0);
 
-        // Spend 7 days to invalidate BP status
-        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(7 * 24 * 3600)); // 7 days
-        // Should throw as we didn't reassert BP status for 7 days
-        BOOST_REQUIRE_THROW( claim_rewards(N(runnerup1)), eosio_assert_message_exception );
-
         const auto first_june_2018 = fc::seconds(1527811200); // 2018-06-01
         const auto first_june_2028 = fc::seconds(1843430400); // 2028-06-01
         // Ensure that now is yet 10 years after 2018-06-01 yet
