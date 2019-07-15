@@ -25,6 +25,7 @@ namespace eosiosystem {
    
    using std::map;
    using std::pair;
+   using namespace std::string_literals;
 
    static constexpr uint32_t refund_delay_sec = 3*24*3600;
    static constexpr int64_t  ram_gift_bytes = 1400;
@@ -410,16 +411,21 @@ namespace eosiosystem {
 
    void system_contract::update_voting_power( const name& voter, const asset& total_update )
    {
+      const auto vote_mature_time = current_time_point() + eosio::days( 180 );
+
       auto voter_itr = _voters.find( voter.value );
       if( voter_itr == _voters.end() ) {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
             v.owner            = voter;
             v.staked           = total_update.amount;
-            v.vote_mature_time = current_time_point();
+            v.vote_mature_time = vote_mature_time;
          });
       } else {
          _voters.modify( voter_itr, same_payer, [&]( auto& v ) {
             v.staked += total_update.amount;
+            if ( v.vote_mature_time == time_point() ) {
+               v.vote_mature_time = vote_mature_time;
+            }
          });
       }
 
