@@ -116,15 +116,15 @@ namespace eosiosystem {
       }
    }
 
-   double stake2vote( int64_t staked, time_point vote_mature_time ) {
-      check( vote_mature_time != time_point(), "vote should have mature time" );
+   double stake2vote(int64_t staked, time_point vote_mature_time) {
+      check(vote_mature_time != time_point(), "vote should have mature time");
 
-      const double useconds_to_mature = fmax( (vote_mature_time - current_time_point()).count(), 0.0 );
-      const double rem_weight = 1.0 - useconds_to_mature / static_cast< double >( eosio::days( 180 ).count() );
-
+      const double useconds_to_mature = fmax((vote_mature_time - current_time_point()).count(), 0.0);
+      const double rem_weight = (1.0 - useconds_to_mature / eosio::days(180).count());
       /// TODO subtract 2080 brings the large numbers closer to this decade
-      // const double weight = int64_t( (current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7) )  / double( 52 );
-      return rem_weight * staked;// * std::pow( 2, weight );
+      const double weight = int64_t((current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7)) / double(52);
+
+      return double(staked) * std::pow(2, weight) * rem_weight;
    }
 
    double system_contract::update_total_votepay_share( const time_point& ct,
@@ -206,11 +206,6 @@ namespace eosiosystem {
       auto voter = _voters.find( voter_name.value );
       check( voter != _voters.end(), "user must stake before they can vote" ); /// staking creates voter object
       check( !proxy || !voter->is_proxy, "account registered as a proxy is not allowed to use a proxy" );
-      // WHY vote_mature_time.elapsed is 0 here ?&!
-      // const auto err = "voter: "s + voter->owner.to_string() + "; matures at: "s + std::to_string( voter->vote_mature_time.elapsed.count() );
-      // if ( voter_name == "whale1"_n ) {
-      //    check( false, err );
-      // }
 
 
       /**
