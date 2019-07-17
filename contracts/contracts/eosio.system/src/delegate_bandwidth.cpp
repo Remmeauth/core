@@ -25,7 +25,6 @@ namespace eosiosystem {
    
    using std::map;
    using std::pair;
-   using namespace std::string_literals;
 
    static constexpr uint32_t refund_delay_sec = 3*24*3600;
    static constexpr int64_t  ram_gift_bytes = 1400;
@@ -424,7 +423,7 @@ namespace eosiosystem {
             v.vote_mature_time = std::max( v.vote_mature_time, current_time_point() ) + eosio::days( vote_mature_period * total_update.amount / v.staked );
          });
       }
-      
+
       check( 0 <= voter_itr->staked, "stake for voting cannot be negative" );
 
       if( voter == "b1"_n ) {
