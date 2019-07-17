@@ -300,7 +300,7 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
 
         vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(global), N(global) );
 
-        // Total Stakes = whale1 + whale2 + stakes = (40'000'000'0000 - 1,000) + (30'000'000'0000 - 1,000) = 69'999'999.8000
+        // Total Stakes = whale1 + whale2 stakes = (40'000'000'0000 - 1,000) + (30'000'000'0000 - 1,000) = 69'999'999.8000
         BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 699999998000);
 
         // No producers will be set, since the total activated stake is less than 150,000,000
