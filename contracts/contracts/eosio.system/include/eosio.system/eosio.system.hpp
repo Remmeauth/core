@@ -250,6 +250,7 @@ namespace eosiosystem {
        *  new vote weight.  Vote weight is calculated as:
        *
        *  stated.amount * 2 ^ ( weeks_since_launch/weeks_per_year)
+       * 
        */
       double              last_vote_weight = 0; /// the vote weight cast the last time the vote was updated
       time_point          vote_mature_time;
@@ -523,6 +524,7 @@ namespace eosiosystem {
 
          static constexpr uint8_t max_block_producers      = 21;
          static constexpr int64_t producer_stake_threshold = 250'000'0000LL;
+         static constexpr int64_t vote_mature_period       = 180;
 
 
          /**

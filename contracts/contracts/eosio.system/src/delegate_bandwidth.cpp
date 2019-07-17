@@ -416,12 +416,12 @@ namespace eosiosystem {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
             v.owner            = voter;
             v.staked           = total_update.amount;
-            v.vote_mature_time = current_time_point() + eosio::days( 180 );
+            v.vote_mature_time = current_time_point() + eosio::days( vote_mature_period );
          });
       } else {
          _voters.modify( voter_itr, same_payer, [&]( auto& v ) {
             v.staked += total_update.amount;
-            v.vote_mature_time = std::max( v.vote_mature_time, current_time_point() ) + eosio::days( 180.0 * total_update.amount / v.staked );
+            v.vote_mature_time = std::max( v.vote_mature_time, current_time_point() ) + eosio::days( vote_mature_period * total_update.amount / v.staked );
          });
       }
       

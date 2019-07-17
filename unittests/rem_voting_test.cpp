@@ -168,25 +168,25 @@ public:
         produce_blocks();
     }
 
-   fc::variant get_producer_info( const account_name& act ) {
-      vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(producers), act );
-      return abi_ser.binary_to_variant( "producer_info", data, abi_serializer_max_time );
-   }
-
-   fc::variant get_voter_info( const account_name& act ) {
-      vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(voters), act );
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "voter_info", data, abi_serializer_max_time );
-   }
-
-   // Vote for producers
-   void votepro( account_name voter, vector<account_name> producers ) {
-      std::sort( producers.begin(), producers.end() );
-      base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
-                           ("voter", name(voter))
-                           ("proxy", name(0) )
-                           ("producers", producers)
-               );
-   };
+    fc::variant get_producer_info( const account_name& act ) {
+       vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(producers), act );
+       return abi_ser.binary_to_variant( "producer_info", data, abi_serializer_max_time );
+    }
+ 
+    fc::variant get_voter_info( const account_name& act ) {
+       vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(voters), act );
+       return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "voter_info", data, abi_serializer_max_time );
+    }
+ 
+    // Vote for producers
+    void votepro( account_name voter, vector<account_name> producers ) {
+       std::sort( producers.begin(), producers.end() );
+       base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
+                            ("voter", name(voter))
+                            ("proxy", name(0) )
+                            ("producers", producers)
+                );
+    };
 
     abi_serializer abi_ser;
 };
