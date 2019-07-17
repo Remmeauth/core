@@ -411,24 +411,20 @@ namespace eosiosystem {
 
    void system_contract::update_voting_power( const name& voter, const asset& total_update )
    {
-      const auto vote_mature_time = current_time_point() + eosio::days( 180 );
-
       auto voter_itr = _voters.find( voter.value );
       if( voter_itr == _voters.end() ) {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
             v.owner            = voter;
             v.staked           = total_update.amount;
-            v.vote_mature_time = vote_mature_time;
+            v.vote_mature_time = current_time_point() + eosio::days( 180 );
          });
       } else {
          _voters.modify( voter_itr, same_payer, [&]( auto& v ) {
             v.staked += total_update.amount;
-            if ( v.vote_mature_time == time_point() ) {
-               v.vote_mature_time = vote_mature_time;
-            }
+            v.vote_mature_time = std::max( v.vote_mature_time, current_time_point() ) + eosio::days( 180.0 * total_update.amount / v.staked );
          });
       }
-
+      
       check( 0 <= voter_itr->staked, "stake for voting cannot be negative" );
 
       if( voter == "b1"_n ) {

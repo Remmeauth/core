@@ -173,6 +173,21 @@ public:
       return abi_ser.binary_to_variant( "producer_info", data, abi_serializer_max_time );
    }
 
+   fc::variant get_voter_info( const account_name& act ) {
+      vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(voters), act );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "voter_info", data, abi_serializer_max_time );
+   }
+
+   // Vote for producers
+   void votepro( account_name voter, vector<account_name> producers ) {
+      std::sort( producers.begin(), producers.end() );
+      base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
+                           ("voter", name(voter))
+                           ("proxy", name(0) )
+                           ("producers", producers)
+               );
+   };
+
     abi_serializer abi_ser;
 };
 
@@ -269,16 +284,6 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
         for( const auto& producer : producer_runnerups ) {
            register_producer(producer);
         }
-
-        // Vote for producers
-        auto votepro = [&]( account_name voter, vector<account_name> producers ) {
-          std::sort( producers.begin(), producers.end() );
-          base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
-                                ("voter", name(voter))
-                                ("proxy", name(0) )
-                                ("producers", producers)
-                     );
-        };
 
         // whale3 is not a producer so can't vote
         BOOST_REQUIRE_THROW( votepro( N(whale3), {N(runnerup1), N(runnerup2), N(runnerup3)} ), eosio_assert_message_exception );
@@ -416,21 +421,9 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          register_producer(producer);
       }
 
-      // Vote for producers
-      auto votepro = [&]( account_name voter, vector<account_name> producers ) {
-         std::sort( producers.begin(), producers.end() );
-         base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
-                              ("voter", name(voter))
-                              ("proxy", name(0) )
-                              ("producers", producers)
-                  );
-      };
-
       // 0 days
       {
          votepro( N(whale1), { N(proda) } );
-         //check that producer parameters stay the same after voting
-         const auto prod = get_producer_info( "proda" );
 
          // vote gains full power at:     1593388805500000
          // voteproducer was done at:     1577836844500000
@@ -439,29 +432,73 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          // eos weight:                  ~1091357.4775723184
          // staked = 399999999000
          // 1091357.4775723184 * 0.00000250771 * 399999999000 ~= 1.09472322 × 10^12
+         const auto prod = get_producer_info( "proda" );
          BOOST_TEST_REQUIRE( 1094725862107.0167 == prod["total_votes"].as_double() );
       }
 
       // 30 days
       {
-         // Spend some time so the producer pay pool is filled by the inflation rate
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
+         const auto voter = get_voter_info( "whale1" );
+         const auto last_vote_weight = voter["last_vote_weight"].as_double();
+
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
          votepro( N(whale1), { N(proda) } );
 
          // rem vote weight: 0.16666917
          const auto prod = get_producer_info( "proda" );
          BOOST_TEST_REQUIRE( 78454001807635136 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( last_vote_weight < prod["total_votes"].as_double() );
       }
 
       // 180 days
       {
-         // Spend some time so the producer pay pool is filled by the inflation rate
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(150 * 24 * 3600)); // 30 days
+         const auto voter = get_voter_info( "whale1" );
+         const auto last_vote_weight = voter["last_vote_weight"].as_double();
+
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(150 * 24 * 3600)); // +150 days
          votepro( N(whale1), { N(proda) } );
 
          // rem vote weight: 1.0
          const auto prod = get_producer_info( "proda" );
          BOOST_TEST_REQUIRE( 617365016928612860 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( last_vote_weight < prod["total_votes"].as_double() );
+      }
+
+      // re-delegating vote power 100%
+      {
+         const auto voter = get_voter_info( "whale1" );
+         const auto last_vote_weight = voter["last_vote_weight"].as_double();
+
+         const auto r = delegate_bandwidth(N(eosio.stake), N(whale1), asset(10'000'000'0000LL), asset(10'000'000'0000LL));
+         BOOST_REQUIRE( !r->except_ptr );
+
+         votepro( N(whale1), { N(proda) } );
+
+         // staked 40KK + 20KK re-staked
+         // vote mature adjusted time: 0 + 180 * 20 / (40 + 20)
+         // rem vote weight:           0.66
+         const auto prod = get_producer_info( "proda" );
+         BOOST_TEST_REQUIRE( 617365047215702140 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( last_vote_weight < prod["total_votes"].as_double() );
+      }
+
+      // TODO validate adjusted voter.vote_mature_time
+      // re-delegating vote power 66%
+      {
+         const auto voter = get_voter_info( "whale1" );
+         const auto last_vote_weight = voter["last_vote_weight"].as_double();
+
+         const auto r = delegate_bandwidth(N(eosio.stake), N(whale1), asset(10'000'000'0000LL), asset(10'000'000'0000LL));
+         BOOST_REQUIRE( !r->except_ptr );
+
+         votepro( N(whale1), { N(proda) } );
+
+         // staked 60KK + 20KK re-staked
+         // vote mature adjusted time: 60 + 180 * 20 / (60 + 20)
+         // rem vote weight:           0.41
+         const auto prod = get_producer_info( "proda" );
+         BOOST_TEST_REQUIRE( 514470927477248640 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( last_vote_weight > prod["total_votes"].as_double() );
       }
    } FC_LOG_AND_RETHROW()
 }
