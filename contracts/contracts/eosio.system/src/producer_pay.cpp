@@ -136,9 +136,14 @@ namespace eosiosystem {
       auto prod = _producers.find( producer.value );
       if ( prod != _producers.end() ) {
          _gstate.total_unpaid_blocks++;
-         _producers.modify( prod, same_payer, [&](auto& p ) {
-               p.current_round_unpaid_blocks++;
-         });
+
+         const auto& voter = _voters.get( producer.value );
+         // TODO fix coupling in voter-producer entities
+         if ( voter.vote_is_reasserted() ) {
+            _producers.modify( prod, same_payer, [&](auto& p ) {
+                  p.current_round_unpaid_blocks++;
+            });
+         }
       }
 
       /// only update block producers once every minute, block_timestamp is in half seconds
@@ -169,12 +174,6 @@ namespace eosiosystem {
    void system_contract::claimrewards( const name& owner ) {
       using namespace std::string_literals;
       require_auth( owner );
-
-      const auto& voter = _voters.get( owner.value );
-
-      // TODO fix coupling in voter-producer entities
-      static const auto reassert_err = "producer did not reasserted status for "s + std::to_string( voter_info::reassertion_period ) + " days"s;
-      check( voter.bp_status_active(), reassert_err );
 
       const auto& prod = _producers.get( owner.value );
       check( prod.active(), "producer does not have an active key" );

@@ -335,8 +335,8 @@ namespace eosiosystem {
       return _producers.find( producer.value ) != _producers.end();
    }
    
-   bool voter_info::bp_status_active() const {
-         return (current_time_point() - last_reassertion_time) < microseconds( voter_info::reassertion_period * useconds_per_day );
+   bool voter_info::vote_is_reasserted() const {
+         return (current_time_point() - last_reassertion_time) < eosio::days( voter_info::reassertion_period );
    }
 
 } /// namespace eosiosystem

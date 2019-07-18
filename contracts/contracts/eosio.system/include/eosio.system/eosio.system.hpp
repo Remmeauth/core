@@ -298,7 +298,7 @@ namespace eosiosystem {
       time_point          last_reassertion_time;
 
       // Block producer should reassert its status (via voting) every voter_info::reassertion_period days
-      bool bp_status_active() const;
+      bool vote_is_reasserted() const;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(vote_mature_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_point) )
