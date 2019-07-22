@@ -301,7 +301,7 @@ namespace eosiosystem {
       bool vote_is_reasserted() const;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(vote_mature_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_point) )
+      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(vote_mature_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
    };
 
    struct [[eosio::table, eosio::contract("eosio.system")]] user_resources {

@@ -342,18 +342,28 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
         BOOST_REQUIRE_EQUAL(get_balance(N(eosio.bpay)).get_amount(), 20'0000);
         BOOST_REQUIRE_EQUAL(get_balance(N(eosio.vpay)).get_amount(), 70'0000);
 
+        // Balance starts from 0
+        votepro( N(whale1), {N(proda)} );
+        produce_blocks_for_n_rounds(2);
+        BOOST_TEST( 0 == get_balance(N(whale1)).get_amount() );
+        auto whale1_balance = get_balance(N(whale1)).get_amount();
+        
         // Since the total activated stake is larger than 150,000,000, pool should be filled reward should be bigger than zero
         // We have voted so last_reassertion_time is `now`
-        votepro( N(whale1), {N(proda)} );
-        claim_rewards(N(whale1));
-        BOOST_TEST(get_balance(N(whale1)).get_amount() > 0);
-
-        // Spend 7 days to invalidate BP status
+        // Spend 7 days to invalidate BP status and claim remaning reward
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(7 * 24 * 3600)); // 7 days
-        // Should throw as we didn't reassert BP status for 7 days
-        BOOST_REQUIRE_THROW( claim_rewards(N(whale1)), eosio_assert_message_exception );
+        claim_rewards(N(whale1));        
+        BOOST_TEST( whale1_balance < get_balance(N(whale1)).get_amount() );
+        whale1_balance = get_balance(N(whale1)).get_amount();
 
+        // Balance should be the same as we didn't reassert BP status for 7 days
+        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(7 * 24 * 3600)); // 7 days
+        claim_rewards(N(whale1));
+        BOOST_TEST( whale1_balance == get_balance(N(whale1)).get_amount() );
     } FC_LOG_AND_RETHROW()
+}
+
+BOOST_FIXTURE_TEST_CASE( rem_vote_reassertion_test, voting_tester ) {
 }
 
 BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
