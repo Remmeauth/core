@@ -270,12 +270,6 @@ namespace eosiosystem {
                v.vote_mature_time = current_time_point()
                      + microseconds{ static_cast< int64_t >( prevstake_rate * time_to_mature.count() ) }
                      + microseconds{ static_cast< int64_t >( restake_rate * vote_mature_period.count() ) };
-
-               print(
-                  "restake_rate: "s + std::to_string( restake_rate ) +
-                  "prevstake_rate: "s + std::to_string( prevstake_rate ) +
-                  "time_left: "s + std::to_string( time_to_mature.count() )
-               );
             }
          });
       }

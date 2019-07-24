@@ -125,7 +125,6 @@ namespace eosiosystem {
       const double weight = int64_t((current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7)) / double(52);
       const auto vote_weight = double(staked) * std::pow(2, weight) * rem_weight;
       check( vote_weight >= 0.0, "vote weight cannot be negative" );
-      print( "eos weight: "s + std::to_string( std::pow(2, weight) ) + "; rem weight: "s + std::to_string( rem_weight ) + "; staked: "s + std::to_string( staked ) );
 
       return vote_weight;
    }
