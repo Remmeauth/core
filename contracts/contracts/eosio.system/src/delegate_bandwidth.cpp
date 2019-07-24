@@ -250,8 +250,6 @@ namespace eosiosystem {
 
    void system_contract::update_voting_power( const name& voter, const asset& total_update )
    {
-      using namespace std::string_literals;
-
       auto voter_itr = _voters.find( voter.value );
       if( voter_itr == _voters.end() ) {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
