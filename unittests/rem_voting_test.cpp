@@ -335,12 +335,6 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
         BOOST_TEST(active_schedule.producers.at(18).producer_name == "prods");
         BOOST_TEST(active_schedule.producers.at(19).producer_name == "prodt");
         BOOST_TEST(active_schedule.producers.at(20).producer_name == "produ");
-
-        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
-        torewards(config::system_account_name, config::system_account_name, core_from_string("100.0000"));
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.saving)).get_amount(), 10'0000);
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.bpay)).get_amount(), 20'0000);
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.vpay)).get_amount(), 70'0000);
     } FC_LOG_AND_RETHROW()
 }
 
@@ -464,10 +458,6 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_reassertion_test, voting_tester ) {
 
       // Skip 180 Days so vote gain 100% power
       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600)); 
-      torewards(config::system_account_name, config::system_account_name, core_from_string("100.0000"));
-      BOOST_REQUIRE_EQUAL(get_balance(N(eosio.saving)).get_amount(), 10'0000);
-      BOOST_REQUIRE_EQUAL(get_balance(N(eosio.bpay)).get_amount(), 20'0000);
-      BOOST_REQUIRE_EQUAL(get_balance(N(eosio.vpay)).get_amount(), 70'0000);
 
       votepro( N(proda), {N(proda)} );
       produce_blocks_for_n_rounds(2);
