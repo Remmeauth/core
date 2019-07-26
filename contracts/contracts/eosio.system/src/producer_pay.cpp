@@ -5,7 +5,6 @@
 #include <eosio.system/eosio.system.hpp>
 #include <eosio.token/eosio.token.hpp>
 
-
 namespace eosiosystem {
 
    const int64_t  min_pervote_daily_pay = 100'0000;

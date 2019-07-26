@@ -116,15 +116,6 @@ public:
         return r;
     }
 
-   auto torewards( name caller, name payer, asset amount ) {
-        auto r = base_tester::push_action(config::system_account_name, N(torewards), caller, mvo()
-                ("payer", payer)
-                ("amount", amount)
-        );
-        produce_block();
-        return r;
-    }
-
     auto claim_rewards( name owner ) {
        auto r = base_tester::push_action( config::system_account_name, N(claimrewards), owner, mvo()("owner",  owner ));
        produce_block();
