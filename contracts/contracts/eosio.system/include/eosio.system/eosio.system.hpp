@@ -258,7 +258,7 @@ namespace eosiosystem {
     */
    struct [[eosio::table, eosio::contract("eosio.system")]] voter_info {
    public:
-      static constexpr auto reassertion_period = 7;
+      static const microseconds reassertion_period;
    
    public:
       name                owner;     /// the voter

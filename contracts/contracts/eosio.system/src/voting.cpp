@@ -336,7 +336,7 @@ namespace eosiosystem {
    }
    
    bool voter_info::vote_is_reasserted() const {
-         return (current_time_point() - last_reassertion_time) < eosio::days( voter_info::reassertion_period );
+         return (current_time_point() - last_reassertion_time) < voter_info::reassertion_period;
    }
 
 } /// namespace eosiosystem
