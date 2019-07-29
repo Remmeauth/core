@@ -87,6 +87,7 @@ namespace eosiosystem {
       require_auth( producer );
 
       const auto voter = _voters.find( producer.value );
+      
       check( voter != _voters.end(), "producer is not found in voter table" );
       check( voter->vote_mature_time <= current_time_point(), "producers are not allowed to unreg while stake lock period" );
       
