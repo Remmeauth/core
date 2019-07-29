@@ -337,6 +337,20 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
         BOOST_TEST(active_schedule.producers.at(18).producer_name == "prods");
         BOOST_TEST(active_schedule.producers.at(19).producer_name == "prodt");
         BOOST_TEST(active_schedule.producers.at(20).producer_name == "produ");
+
+        // Voter should not be allowed to unreg while stake lock period
+        {
+           BOOST_REQUIRE_THROW( base_tester::push_action( config::system_account_name, N(unregprod), N(whale2), mvo() ("producer",  "whale2") ), eosio_assert_message_exception );
+        }
+        
+        // After 180 Days stake lock period is over and producer is allowed to unreg
+        {
+           produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600));
+           const auto r = base_tester::push_action( config::system_account_name, N(unregprod), N(whale2), mvo() ("producer",  "whale2") );
+           produce_block();
+           
+           BOOST_REQUIRE( !r->except_ptr );
+        }
     } FC_LOG_AND_RETHROW()
 }
 
