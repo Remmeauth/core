@@ -581,37 +581,36 @@ BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
          votepro( producer, { N(proda) } );
       }
 
-      // Day 30 so stake is unlocked
+      // Day 0
       {
-         votepro( N(proda), { N(proda) } );
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
-         
-         // Should throw because of producer stake lock period
+         // Should throw because producer stake is locked for 180 days
          BOOST_REQUIRE_THROW( unregister_producer( N(proda) ), eosio_assert_message_exception );
-         
-         const auto prod = get_producer_info( "proda" );
-         BOOST_TEST( 0 < prod["unpaid_blocks"].as_int64() );
       }
 
       // Day 180 so stake is unlocked
       {
-         votepro( N(proda), { N(proda) } );
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(150 * 24 * 3600)); // +150 days
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600)); // +150 days
+                  
+         const auto prod = get_producer_info( "proda" );
+         BOOST_TEST( 0 < prod["unpaid_blocks"].as_int64() );
 
          claim_rewards( N(proda) );
+         // Claim rewards is called from `unregprod` and allowed only once per day
          BOOST_REQUIRE_THROW( unregister_producer( N(proda) ), eosio_assert_message_exception );
       }
 
       // Day 181
       {
+         // Re-assert vote so we will participate in block rewards
+         votepro( N(proda), { N(proda) } );       
          torewards(config::system_account_name, config::system_account_name, core_from_string("20000.0000"));
-         
-         votepro( N(proda), { N(proda) } );
+
          BOOST_TEST( 0 == get_producer_info( "proda" )["unpaid_blocks"].as_int64() );
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(10 * 24 * 3600)); // +1 day
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(1 * 24 * 3600)); // +1 day
          BOOST_TEST( 0 < get_producer_info( "proda" )["unpaid_blocks"].as_int64() );
 
          const auto balance_before_unreg = get_balance(N(proda)).get_amount();
+         BOOST_TEST( 0 == balance_before_unreg );
 
          unregister_producer( N(proda) );
          BOOST_TEST( balance_before_unreg < get_balance(N(proda)).get_amount() );
