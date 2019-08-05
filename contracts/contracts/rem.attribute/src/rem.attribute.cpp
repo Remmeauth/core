@@ -22,11 +22,11 @@ namespace eosio {
    void attribute::setbool( const name& issuer, const name& target, const name& attribute_name, bool value )
    {
       require_auth( issuer );
-      //TODO: privacy type logic
 
       attribute_info_table attributes_info( _self, attribute_name.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
       check( attrinfo.type == data_type::Boolean, "invalid attribute type (Boolean)" );
+      check_privacy(issuer, target, attrinfo.ptype);
 
       attributes_table attributes( _self, target.value );
       const auto attr_it = attributes.find( target.value );
@@ -40,6 +40,25 @@ namespace eosio {
             attr.attribute_name = attribute_name;
             attr.data           = pack(value);
          });
+      }
+   }
+
+   void attribute::check_privacy(const name& issuer, const name& target, privacy_type ptype) const
+   {
+      switch (ptype) {
+         case privacy_type::SelfAssigned:
+            check(issuer == target, "self-assigned check");
+            break;
+         case privacy_type::PublicPointer:
+            break;
+         case privacy_type::PublicConfirmedPointer:
+            break;
+         case privacy_type::PrivatePointer:
+            check(issuer == _self, "private pointer check");
+            break;
+         case privacy_type::PrivateConfirmedPointer:
+            check(issuer == _self, "private confirmed pointer check");
+            break;
       }
    }
 

@@ -39,6 +39,8 @@ namespace eosio {
 
       typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
       typedef eosio::multi_index< "attributes"_n, attribute_data > attributes_table;
+
+      void check_privacy(const name& issuer, const name& target, privacy_type ptype) const;
    };
 
 } /// namespace eosio
