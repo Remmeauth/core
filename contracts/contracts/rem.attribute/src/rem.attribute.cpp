@@ -59,17 +59,17 @@ namespace eosio {
    {
       switch (ptype) {
          case privacy_type::SelfAssigned:
-            check(issuer == target, "self-assigned check");
+            check(issuer == target, "self-assigned check"); //TODO: change message
             break;
          case privacy_type::PublicPointer:
             break;
          case privacy_type::PublicConfirmedPointer:
             break;
          case privacy_type::PrivatePointer:
-            check(issuer == _self, "private pointer check");
+            check(issuer == _self, "private pointer check"); //TODO: change message
             break;
          case privacy_type::PrivateConfirmedPointer:
-            check(issuer == _self, "private confirmed pointer check");
+            check(issuer == _self, "private confirmed pointer check"); //TODO: change message
             break;
       }
    }
@@ -82,4 +82,4 @@ namespace eosio {
 
 } /// namespace eosio
 
-EOSIO_DISPATCH( eosio::attribute, (create)(setbool) )
+EOSIO_DISPATCH( eosio::attribute, (confirm)(create)(setbool) )

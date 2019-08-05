@@ -18,7 +18,8 @@ namespace eosio {
       [[eosio::action]]
       void setbool( const name& issuer, const name& target, const name& attribute_name, bool value );
 
-      using create_action = eosio::action_wrapper<"create"_n, &attribute::create>;
+      using confirm_action = eosio::action_wrapper<"confirm"_n, &attribute::confirm>;
+      using create_action  = eosio::action_wrapper<"create"_n,   &attribute::create>;
       using setbool_action = eosio::action_wrapper<"setbool"_n, &attribute::setbool>;
 
    private:
