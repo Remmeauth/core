@@ -593,7 +593,7 @@ BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
       // Day 180 so stake is unlocked
       {
          produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600)); // +150 days
-                  
+
          const auto prod = get_producer_info( "proda" );
          BOOST_TEST( 0 < prod["unpaid_blocks"].as_int64() );
 
@@ -605,7 +605,7 @@ BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
       // Day 181
       {
          // Re-assert vote so we will participate in block rewards
-         votepro( N(proda), { N(proda) } );       
+         votepro( N(proda), { N(proda) } );
          torewards(config::system_account_name, config::system_account_name, core_from_string("20000.0000"));
 
          BOOST_TEST( 0 == get_producer_info( "proda" )["unpaid_blocks"].as_int64() );
