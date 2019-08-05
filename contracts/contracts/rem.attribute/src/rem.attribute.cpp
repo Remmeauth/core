@@ -3,6 +3,17 @@
 
 namespace eosio {
 
+   void attribute::confirm( const name& owner, const name& attribute_name )
+   {
+      require_auth(owner);
+
+      attributes_table attributes( _self, owner.value );
+      const auto& attr = attributes.get( attribute_name.value, "account does not have this attribute" );
+      attributes.modify( attr, same_payer, [&]( auto& attr ) {
+         attr.confirmed = true;
+      });
+   }
+
    void attribute::create( const name& attribute_name, int32_t type, int32_t ptype )
    {
       require_auth( _self );
@@ -29,16 +40,17 @@ namespace eosio {
       check_privacy(issuer, target, attrinfo.ptype);
 
       attributes_table attributes( _self, target.value );
-      const auto attr_it = attributes.find( target.value );
+      const auto attr_it = attributes.find( attribute_name.value );
       if ( attr_it == attributes.end() ) {
          attributes.emplace( issuer, [&]( auto& attr ) {
             attr.attribute_name = attribute_name;
             attr.data           = pack(value);
+            attr.confirmed      = !need_confirm(attrinfo.ptype);
          });
       } else {
          attributes.modify( attr_it, issuer, [&]( auto& attr ) {
-            attr.attribute_name = attribute_name;
             attr.data           = pack(value);
+            attr.confirmed      = !need_confirm(attrinfo.ptype);
          });
       }
    }
@@ -60,6 +72,12 @@ namespace eosio {
             check(issuer == _self, "private confirmed pointer check");
             break;
       }
+   }
+
+   bool attribute::need_confirm(privacy_type ptype) const
+   {
+      return ptype == privacy_type::PublicConfirmedPointer ||
+         ptype == privacy_type::PrivateConfirmedPointer;
    }
 
 } /// namespace eosio

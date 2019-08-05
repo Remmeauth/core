@@ -10,6 +10,9 @@ namespace eosio {
       using contract::contract;
 
       [[eosio::action]]
+      void confirm( const name& owner, const name& attribute_name );
+
+      [[eosio::action]]
       void create( const name& attribute_name, int32_t type, int32_t ptype );
 
       [[eosio::action]]
@@ -33,6 +36,7 @@ namespace eosio {
       struct [[eosio::table]] attribute_data {
          name               attribute_name;
          std::vector<char>  data;
+         bool               confirmed;
 
          uint64_t primary_key() const { return attribute_name.value; }
       };
@@ -41,6 +45,7 @@ namespace eosio {
       typedef eosio::multi_index< "attributes"_n, attribute_data > attributes_table;
 
       void check_privacy(const name& issuer, const name& target, privacy_type ptype) const;
+      bool need_confirm(privacy_type ptype) const;
    };
 
 } /// namespace eosio
