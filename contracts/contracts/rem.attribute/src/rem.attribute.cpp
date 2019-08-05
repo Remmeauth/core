@@ -39,20 +39,7 @@ namespace eosio {
       check( attrinfo.type == data_type::Boolean, "invalid attribute type (Boolean)" );
       check_privacy(issuer, target, attrinfo.ptype);
 
-      attributes_table attributes( _self, target.value );
-      const auto attr_it = attributes.find( attribute_name.value );
-      if ( attr_it == attributes.end() ) {
-         attributes.emplace( issuer, [&]( auto& attr ) {
-            attr.attribute_name = attribute_name;
-            attr.data           = pack(value);
-            attr.confirmed      = !need_confirm(attrinfo.ptype);
-         });
-      } else {
-         attributes.modify( attr_it, issuer, [&]( auto& attr ) {
-            attr.data           = pack(value);
-            attr.confirmed      = !need_confirm(attrinfo.ptype);
-         });
-      }
+      set_attribute(issuer, target, attribute_name, pack(value), !need_confirm(attrinfo.ptype));
    }
 
    void attribute::check_privacy(const name& issuer, const name& target, privacy_type ptype) const
@@ -78,6 +65,24 @@ namespace eosio {
    {
       return ptype == privacy_type::PublicConfirmedPointer ||
          ptype == privacy_type::PrivateConfirmedPointer;
+   }
+
+   void attribute::set_attribute(const name& issuer, const name& target, const name& attribute_name, const std::vector<char>& value, bool confirmed)
+   {
+      attributes_table attributes( _self, target.value );
+      const auto attr_it = attributes.find( attribute_name.value );
+      if ( attr_it == attributes.end() ) {
+         attributes.emplace( issuer, [&]( auto& attr ) {
+            attr.attribute_name = attribute_name;
+            attr.data           = value;
+            attr.confirmed      = confirmed;
+         });
+      } else {
+         attributes.modify( attr_it, issuer, [&]( auto& attr ) {
+            attr.data           = value;
+            attr.confirmed      = confirmed;
+         });
+      }
    }
 
 } /// namespace eosio

@@ -47,6 +47,7 @@ namespace eosio {
 
       void check_privacy(const name& issuer, const name& target, privacy_type ptype) const;
       bool need_confirm(privacy_type ptype) const;
+      void set_attribute(const name& issuer, const name& target, const name& attribute_name, const std::vector<char>& value, bool confirmed);
    };
 
 } /// namespace eosio
