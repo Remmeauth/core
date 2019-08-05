@@ -265,6 +265,7 @@ namespace eosiosystem {
       name                proxy;     /// the proxy set by the voter, if any
       std::vector<name>   producers; /// the producers approved by this voter if no proxy set
       int64_t             staked = 0;
+      int64_t             locked_stake = 0;
 
       /**
        *  Every time a vote is cast we must first "undo" the last vote weight, before casting the
@@ -273,8 +274,8 @@ namespace eosiosystem {
        *  stated.amount * 2 ^ (weeks_since_launch/weeks_per_year) * (time_to_mature / mature_period)
        */
       double              last_vote_weight = 0; /// the vote weight cast the last time the vote was updated
-      time_point          vote_mature_time;
-
+      time_point          locked_stake_period;
+      time_point          last_claim_time;
 
       /**
        * Total vote weight delegated to this voter.
@@ -301,7 +302,7 @@ namespace eosiosystem {
       bool vote_is_reasserted() const;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(vote_mature_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
+      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(locked_stake_period)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
    };
 
    struct [[eosio::table, eosio::contract("rem.system")]] user_resources {

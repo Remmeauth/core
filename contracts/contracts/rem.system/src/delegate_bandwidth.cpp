@@ -249,7 +249,7 @@ namespace eosiosystem {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
             v.owner            = voter;
             v.staked           = total_update.amount;
-            v.vote_mature_time = current_time_point() + vote_mature_period;
+            v.locked_stake_period = current_time_point() + vote_mature_period;
          });
       } else {
          _voters.modify( voter_itr, same_payer, [&]( auto& v ) {
@@ -257,9 +257,9 @@ namespace eosiosystem {
             if ( total_update.amount >= 0 ) {
                const auto restake_rate = double(total_update.amount) / v.staked;
                const auto prevstake_rate = 1 - restake_rate;
-               const auto time_to_mature = std::max( v.vote_mature_time - current_time_point(), microseconds{} );
+               const auto time_to_mature = std::max( v.locked_stake_period - current_time_point(), microseconds{} );
 
-               v.vote_mature_time = current_time_point()
+               v.locked_stake_period = current_time_point()
                      + microseconds{ static_cast< int64_t >( prevstake_rate * time_to_mature.count() ) }
                      + microseconds{ static_cast< int64_t >( restake_rate * vote_mature_period.count() ) };
             }
@@ -300,6 +300,13 @@ namespace eosiosystem {
           del_bandwidth_table     del_tbl( _self, from.value );
           const auto& del = del_tbl.get( from.value, "user has no resources" );
           check( current_time_point() > del.staked_time + stake_lock_period, "producer cannot undelegate bandwidth during 180 days");
+
+          const auto &vot = _voters.get(from.value, "user has no resources");
+          _voters.modify(vot, from, [&](auto &p) {
+              check(p.locked_stake >= unstake_quantity.amount, "cannot undelegate more than was staked");
+              p.locked_stake -= unstake_quantity.amount;
+              p.last_claim_time = current_time_point();
+          });
       }
 
       changebw( from, receiver, -unstake_quantity, false);
