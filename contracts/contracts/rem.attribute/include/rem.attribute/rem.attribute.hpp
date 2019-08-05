@@ -16,11 +16,11 @@ namespace eosio {
       void create( const name& attribute_name, int32_t type, int32_t ptype );
 
       [[eosio::action]]
-      void setbool( const name& issuer, const name& target, const name& attribute_name, bool value );
+      void setattr( const name& issuer, const name& target, const name& attribute_name, const std::vector<char>& value );
 
       using confirm_action = eosio::action_wrapper<"confirm"_n, &attribute::confirm>;
       using create_action  = eosio::action_wrapper<"create"_n,   &attribute::create>;
-      using setbool_action = eosio::action_wrapper<"setbool"_n, &attribute::setbool>;
+      using setattr_action = eosio::action_wrapper<"setattr"_n, &attribute::setattr>;
 
    private:
       enum class data_type { Boolean = 0, Int, LargeInt, MaxVal };
@@ -47,7 +47,6 @@ namespace eosio {
 
       void check_privacy(const name& issuer, const name& target, privacy_type ptype) const;
       bool need_confirm(privacy_type ptype) const;
-      void set_attribute(const name& issuer, const name& target, const name& attribute_name, const std::vector<char>& value, bool confirmed);
    };
 
 } /// namespace eosio
