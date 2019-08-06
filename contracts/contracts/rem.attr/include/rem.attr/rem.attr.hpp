@@ -5,7 +5,7 @@
 
 namespace eosio {
 
-   class [[eosio::contract("rem.attribute")]] attribute : public contract {
+   class [[eosio::contract("rem.attr")]] attribute : public contract {
    public:
       using contract::contract;
 

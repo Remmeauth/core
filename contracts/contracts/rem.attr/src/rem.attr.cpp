@@ -1,4 +1,4 @@
-#include <rem.attribute/rem.attribute.hpp>
+#include <rem.attr/rem.attr.hpp>
 
 
 namespace eosio {
