@@ -25,8 +25,8 @@ namespace eosio {
 
       attributes_info.emplace( _self, [&]( auto& attr ) {
          attr.attribute_name = attribute_name;
-         attr.type           = static_cast<data_type>( type );
-         attr.ptype          = static_cast<privacy_type>( ptype );
+         attr.type           = type;
+         attr.ptype          = ptype;
       });
    }
 
@@ -56,9 +56,9 @@ namespace eosio {
       }
    }
 
-   void attribute::check_privacy(const name& issuer, const name& target, privacy_type ptype) const
+   void attribute::check_privacy(const name& issuer, const name& target, int32_t ptype) const
    {
-      switch (ptype) {
+      switch (static_cast<privacy_type>(ptype)) {
          case privacy_type::SelfAssigned:
             check(issuer == target, "self-assigned check"); //TODO: change message
             break;
@@ -75,10 +75,10 @@ namespace eosio {
       }
    }
 
-   bool attribute::need_confirm(privacy_type ptype) const
+   bool attribute::need_confirm(int32_t ptype) const
    {
-      return ptype == privacy_type::PublicConfirmedPointer ||
-         ptype == privacy_type::PrivateConfirmedPointer;
+      return static_cast<privacy_type>(ptype) == privacy_type::PublicConfirmedPointer ||
+         static_cast<privacy_type>(ptype) == privacy_type::PrivateConfirmedPointer;
    }
 
 } /// namespace eosio

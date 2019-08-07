@@ -23,13 +23,13 @@ namespace eosio {
       using setattr_action = eosio::action_wrapper<"setattr"_n, &attribute::setattr>;
 
    private:
-      enum class data_type { Boolean = 0, Int, LargeInt, MaxVal };
-      enum class privacy_type { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
+      enum class data_type : int32_t { Boolean = 0, Int, LargeInt, MaxVal };
+      enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
 
       struct [[eosio::table]] attribute_info {
-         name          attribute_name;
-         data_type     type;
-         privacy_type  ptype;
+         name    attribute_name;
+         int32_t type;
+         int32_t ptype;
 
          uint64_t primary_key() const { return attribute_name.value; }
       };
@@ -45,8 +45,8 @@ namespace eosio {
       typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
       typedef eosio::multi_index< "attributes"_n, attribute_data > attributes_table;
 
-      void check_privacy(const name& issuer, const name& target, privacy_type ptype) const;
-      bool need_confirm(privacy_type ptype) const;
+      void check_privacy(const name& issuer, const name& target, int32_t ptype) const;
+      bool need_confirm(int32_t ptype) const;
    };
 
 } /// namespace eosio
