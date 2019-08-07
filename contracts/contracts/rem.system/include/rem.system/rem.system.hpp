@@ -135,7 +135,8 @@ namespace eosiosystem {
       uint64_t             min_account_stake = 1000000; //minimum stake for new created account 100'0000 REM
       uint64_t             total_ram_bytes_reserved = 0;
       int64_t              total_ram_stake = 0;
-
+      microseconds         stake_lock_period = eosio::days(180);
+      microseconds         stake_unlock_period = eosio::days(180);
       //producer name and pervote factor
       std::vector<std::pair<eosio::name, double>> last_schedule;
       uint32_t last_schedule_version = 0;
@@ -156,7 +157,7 @@ namespace eosiosystem {
       block_timestamp      last_name_close;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters,
+      EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (stake_lock_period)(stake_unlock_period)
                                 (max_ram_size)(min_account_stake)(total_ram_bytes_reserved)(total_ram_stake)
                                 (last_schedule)(last_schedule_version)(current_round_start_time)
                                 (last_producer_schedule_update)(last_pervote_bucket_fill)
@@ -274,7 +275,7 @@ namespace eosiosystem {
        *  stated.amount * 2 ^ (weeks_since_launch/weeks_per_year) * (time_to_mature / mature_period)
        */
       double              last_vote_weight = 0; /// the vote weight cast the last time the vote was updated
-      time_point          stake_lock_period;
+      time_point          stake_lock_time;
       time_point          last_claim_time;
 
       /**
@@ -302,7 +303,7 @@ namespace eosiosystem {
       bool vote_is_reasserted() const;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(stake_lock_period)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
+      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(stake_lock_time)(last_claim_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
    };
 
    struct [[eosio::table, eosio::contract("rem.system")]] user_resources {
@@ -595,7 +596,14 @@ namespace eosiosystem {
             const static auto sym = get_core_symbol( rm );
             return sym;
          }
+       [[eosio::action]]
+       void testprilo(const name& prod);
 
+       [[eosio::action]]
+       void setlockperiod( uint64_t period_in_days);
+
+       [[eosio::action]]
+       void setunloperiod( uint64_t period_in_days);
          // Actions:
          /**
           * Init action.
@@ -1289,6 +1297,9 @@ namespace eosiosystem {
          using setpriv_action = eosio::action_wrapper<"setpriv"_n, &system_contract::setpriv>;
          using setalimits_action = eosio::action_wrapper<"setalimits"_n, &system_contract::setalimits>;
          using setparams_action = eosio::action_wrapper<"setparams"_n, &system_contract::setparams>;
+         using setlockperiod_action = eosio::action_wrapper<"setlockperiod"_n, &system_contract::setlockperiod>;
+         using setunloperiod_action = eosio::action_wrapper<"setunloperiod"_n, &system_contract::setunloperiod>;
+         using testprintlock_action = eosio::action_wrapper<"testprilo"_n, &system_contract::testprilo>;
 
       private:
          // Implementation details:

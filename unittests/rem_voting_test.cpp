@@ -127,8 +127,18 @@ public:
         return r;
     }
 
-    void set_mature_period( uint64_t mature_period ) {
-        base_tester::push_action(config::system_account_name, N(setmperiod),config::system_account_name,  mvo()("mature_period", mature_period));
+    void set_lock_period(uint64_t mature_period ) {
+        base_tester::push_action(config::system_account_name, N(setlockperiod),config::system_account_name,  mvo()("period_in_days", mature_period));
+        produce_block();
+    }
+
+    void set_unlock_period(uint64_t mature_period ) {
+        base_tester::push_action(config::system_account_name, N(setunloperiod),config::system_account_name,  mvo()("period_in_days", mature_period));
+        produce_block();
+    }
+
+    void testprint( name prod) {
+        base_tester::push_action(config::system_account_name, N(testprilo),config::system_account_name, mvo()("prod", prod));
         produce_block();
     }
 
@@ -581,8 +591,6 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
 BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
    try {
 
-       set_mature_period(1);
-       set_mature_period(2);
       const auto producers = { N(b1), N(proda), N(whale1), N(whale2), N(whale3) };
       for( const auto& producer : producers ) {
          register_producer(producer);
@@ -632,5 +640,42 @@ BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
       }
    } FC_LOG_AND_RETHROW()
 }
+
+BOOST_FIXTURE_TEST_CASE( resignation_lock_test_case, voting_tester ) {
+   try {
+
+      const auto producers = { N(b1), N(proda), N(whale1), N(whale2), N(whale3) };
+      for( const auto& producer : producers ) {
+         register_producer(producer);
+      }
+
+      for( const auto& producer : producers ) {
+         votepro( producer, { N(proda) } );
+      }
+
+      // Should throw because producer stake is locked for 180 days
+      BOOST_REQUIRE_THROW( unregister_producer( N(proda) ), eosio_assert_message_exception );
+
+      delegate_bandwidth(N(rem.stake), N(proda), asset(2'000'000'000));
+
+
+      //set_lock_period(90);
+      testprint(N(proda) );
+
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(90 * 24 * 3600));
+
+      delegate_bandwidth(N(rem.stake), N(proda), asset(1'000'000'000));
+
+      testprint(N(proda) );
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(90 * 24 * 3600));
+
+      testprint(N(proda) );
+      unregister_producer( N(proda) );
+
+
+
+   } FC_LOG_AND_RETHROW()
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()

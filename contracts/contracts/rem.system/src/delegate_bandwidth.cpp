@@ -248,7 +248,7 @@ namespace eosiosystem {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
             v.owner            = voter;
             v.staked           = total_update.amount;
-            v.stake_lock_period = current_time_point() + stake_unlock_period;
+            v.stake_lock_time = current_time_point() + _gstate.stake_lock_period;
          });
       } else {
          _voters.modify( voter_itr, same_payer, [&]( auto& v ) {
@@ -256,11 +256,11 @@ namespace eosiosystem {
             if ( total_update.amount >= 0 ) {
                const auto restake_rate = double(total_update.amount) / v.staked;
                const auto prevstake_rate = 1 - restake_rate;
-               const auto time_to_stake_unlock = std::max( v.stake_lock_period - current_time_point(), microseconds{} );
+               const auto time_to_stake_unlock = std::max( v.stake_lock_time - current_time_point(), microseconds{} );
 
-               v.stake_lock_period = current_time_point()
+               v.stake_lock_time = current_time_point()
                      + microseconds{ static_cast< int64_t >( prevstake_rate * time_to_stake_unlock.count() ) }
-                     + microseconds{ static_cast< int64_t >( restake_rate * stake_lock_period.count() ) };
+                     + microseconds{ static_cast< int64_t >( restake_rate * _gstate.stake_lock_period.count() ) };
             }
          });
       }
