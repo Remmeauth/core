@@ -80,12 +80,13 @@ namespace eosiosystem {
          });
          _gstate.total_producer_stake += tot.own_stake_amount;
 
-         const auto &vot = _voters.get(producer.value, "user has no resources");
-         _voters.modify(vot, producer, [&](auto &p) {
-             p.locked_stake_period = current_time_point() + stake_lock_period;
-             p.locked_stake = tot.own_stake_amount;
-         });
       }
+
+       const auto &voter = _voters.get(producer.value, "user has no resources");
+       _voters.modify(voter, producer, [&](auto &v) {
+           v.stake_lock_period = current_time_point() + stake_unlock_period;
+           v.locked_stake = tot.own_stake_amount;
+       });
 
    }
 
@@ -97,13 +98,9 @@ namespace eosiosystem {
 
       claimrewards( producer );
 
-      if(is_block_producer(producer)) {
-          const auto &vot = _voters.get(producer.value, "user has no resources");
-          _voters.modify(vot, producer, [&](auto &p) {
-              p.locked_stake_period = current_time_point() + stake_lock_period;
-              //check(current_time_point() > p.locked_stake_period ) makes no sense
-          });
-      }
+      _voters.modify(voter, producer, [&](auto &v) {
+              v.stake_lock_period = current_time_point() + stake_unlock_period;
+      });
 
       const auto& prod = _producers.get( producer.value, "producer not found" );
       if (prod.active()) {
@@ -203,7 +200,7 @@ namespace eosiosystem {
          }
       }
 
-      auto new_vote_weight = stake2vote( voter->staked, voter->locked_stake_period );
+      auto new_vote_weight = stake2vote( voter->staked, voter->stake_lock_period );
       if( voter->is_proxy ) {
          new_vote_weight += voter->proxied_vote_weight;
       }
@@ -302,7 +299,7 @@ namespace eosiosystem {
 
    void system_contract::propagate_weight_change( const voter_info& voter ) {
       check( !voter.proxy || !voter.is_proxy, "account registered as a proxy is not allowed to use a proxy" );
-      double new_weight = stake2vote( voter.staked, voter.locked_stake_period );
+      double new_weight = stake2vote( voter.staked, voter.stake_lock_period );
       if ( voter.is_proxy ) {
          new_weight += voter.proxied_vote_weight;
       }

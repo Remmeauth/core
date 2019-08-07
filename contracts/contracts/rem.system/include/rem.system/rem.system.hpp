@@ -274,7 +274,7 @@ namespace eosiosystem {
        *  stated.amount * 2 ^ (weeks_since_launch/weeks_per_year) * (time_to_mature / mature_period)
        */
       double              last_vote_weight = 0; /// the vote weight cast the last time the vote was updated
-      time_point          locked_stake_period;
+      time_point          stake_lock_period;
       time_point          last_claim_time;
 
       /**
@@ -302,7 +302,7 @@ namespace eosiosystem {
       bool vote_is_reasserted() const;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(locked_stake_period)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
+      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(stake_lock_period)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
    };
 
    struct [[eosio::table, eosio::contract("rem.system")]] user_resources {
@@ -569,7 +569,8 @@ namespace eosiosystem {
 
          static constexpr uint8_t max_block_producers      = 21;
          static constexpr int64_t producer_stake_threshold = 250'000'0000LL;
-         static const microseconds vote_mature_period;
+         microseconds stake_unlock_period;
+         static const microseconds stake_lock_period;
 
 
          /**
@@ -639,6 +640,15 @@ namespace eosiosystem {
          [[eosio::action]]
          void setalimits( const name& account, int64_t ram_bytes, int64_t net_weight, int64_t cpu_weight );
 
+         /**
+          * Set mature period
+          *
+          * @details Set mature period of voice power
+          *
+          * @param mature_period - mature period in days.
+          */
+         [[eosio::action]]
+         void setmperiod( uint64_t mature_period);
 
          /**
           * Activates a protocol feature.
@@ -1265,6 +1275,7 @@ namespace eosiosystem {
          using unregprod_action = eosio::action_wrapper<"unregprod"_n, &system_contract::unregprod>;
          using setram_action = eosio::action_wrapper<"setram"_n, &system_contract::setram>;
          using setmin_account_stake_action = eosio::action_wrapper<"setminstake"_n, &system_contract::setminstake>;
+         using setmperiod_action = eosio::action_wrapper<"setmperiod"_n, &system_contract::setmperiod>;
          using setramrate_action = eosio::action_wrapper<"setramrate"_n, &system_contract::setramrate>;
          using voteproducer_action = eosio::action_wrapper<"voteproducer"_n, &system_contract::voteproducer>;
          using regproxy_action = eosio::action_wrapper<"regproxy"_n, &system_contract::regproxy>;

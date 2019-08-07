@@ -127,6 +127,11 @@ public:
         return r;
     }
 
+    void set_mature_period( uint64_t mature_period ) {
+        base_tester::push_action(config::system_account_name, N(setmperiod),config::system_account_name,  mvo()("mature_period", mature_period));
+        produce_block();
+    }
+
     auto claim_rewards( name owner ) {
        auto r = base_tester::push_action( config::system_account_name, N(claimrewards), owner, mvo()("owner",  owner ));
        produce_block();
@@ -575,6 +580,9 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
 
 BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
    try {
+
+       set_mature_period(1);
+       set_mature_period(2);
       const auto producers = { N(b1), N(proda), N(whale1), N(whale2), N(whale3) };
       for( const auto& producer : producers ) {
          register_producer(producer);
@@ -619,6 +627,8 @@ BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
          BOOST_TEST( balance_before_unreg < get_balance(N(proda)).get_amount() );
 
          BOOST_TEST( 0 == get_producer_info( "proda" )["unpaid_blocks"].as_int64() );
+
+
       }
    } FC_LOG_AND_RETHROW()
 }
