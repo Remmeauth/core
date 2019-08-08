@@ -56,6 +56,19 @@ namespace eosio {
       }
    }
 
+   void attribute::unsetattr( const name& issuer, const name& target, const name& attribute_name )
+   {
+      require_auth( issuer );
+
+      attribute_info_table attributes_info( _self, attribute_name.value );
+      const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
+      check_privacy(issuer, target, attrinfo.ptype);
+
+      attributes_table attributes( _self, target.value );
+      const auto& attr = attributes.get( attribute_name.value, "attribute hasn`t been set for account" );
+      attributes.erase(attr);
+   }
+
    void attribute::check_privacy(const name& issuer, const name& target, int32_t ptype) const
    {
       switch (static_cast<privacy_type>(ptype)) {
@@ -83,4 +96,4 @@ namespace eosio {
 
 } /// namespace eosio
 
-EOSIO_DISPATCH( eosio::attribute, (confirm)(create)(setattr) )
+EOSIO_DISPATCH( eosio::attribute, (confirm)(create)(setattr)(unsetattr) )

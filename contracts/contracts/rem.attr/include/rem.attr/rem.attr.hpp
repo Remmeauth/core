@@ -18,12 +18,16 @@ namespace eosio {
       [[eosio::action]]
       void setattr( const name& issuer, const name& target, const name& attribute_name, const std::vector<char>& value );
 
-      using confirm_action = eosio::action_wrapper<"confirm"_n, &attribute::confirm>;
-      using create_action  = eosio::action_wrapper<"create"_n,   &attribute::create>;
-      using setattr_action = eosio::action_wrapper<"setattr"_n, &attribute::setattr>;
+      [[eosio::action]]
+      void unsetattr( const name& issuer, const name& target, const name& attribute_name );
+
+      using confirm_action   = eosio::action_wrapper<"confirm"_n,     &attribute::confirm>;
+      using create_action    = eosio::action_wrapper<"create"_n,       &attribute::create>;
+      using setattr_action   = eosio::action_wrapper<"setattr"_n,     &attribute::setattr>;
+      using unsetattr_action = eosio::action_wrapper<"unsetattr"_n, &attribute::unsetattr>;
 
    private:
-      enum class data_type : int32_t { Boolean = 0, Int, LargeInt, MaxVal };
+      enum class data_type : int32_t { Boolean = 0, Int, LargeInt, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, MaxVal };
       enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
 
       struct [[eosio::table]] attribute_info {
