@@ -306,7 +306,7 @@ namespace eosiosystem {
     *  who can create accounts with the creator's name as a suffix.
     *
     */
-   void native::newaccount( const name&       creator,
+   void system_contract::newaccount( const name&       creator,
                             const name&       newact,
                             ignore<authority> owner,
                             ignore<authority> active ) {
@@ -336,13 +336,20 @@ namespace eosiosystem {
 
       user_resources_table  userres( _self, newact.value);
 
+      //TODO: add a check of special attritube when ready
+      const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
+      const double bytes_per_token = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
+      const int64_t free_stake_amount = _gstate.min_account_stake;
+      const int64_t free_gift_bytes = bytes_per_token * free_stake_amount;
+
       userres.emplace( newact, [&]( auto& res ) {
         res.owner = newact;
         res.net_weight = asset( 0, system_contract::get_core_symbol() );
         res.cpu_weight = asset( 0, system_contract::get_core_symbol() );
+        res.free_stake_amount = free_stake_amount;
       });
 
-      set_resource_limits( newact, 0, 0, 0 );
+      set_resource_limits( newact, free_gift_bytes, 0, 0 );
    }
 
    void native::setabi( const name& acnt, const std::vector<char>& abi ) {

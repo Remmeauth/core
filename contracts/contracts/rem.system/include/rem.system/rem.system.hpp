@@ -322,11 +322,13 @@ namespace eosiosystem {
       asset         net_weight;
       asset         cpu_weight;
       int64_t       own_stake_amount = 0; //controlled by delegatebw and undelegatebw only
+      int64_t       free_stake_amount = 0; // some accounts may get free stake for all resources,
+                                           // that will decrease when user stake own tokens above the free limits
 
       uint64_t primary_key()const { return owner.value; }
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( user_resources, (owner)(net_weight)(cpu_weight)(own_stake_amount) )
+      EOSLIB_SERIALIZE( user_resources, (owner)(net_weight)(cpu_weight)(own_stake_amount)(free_stake_amount) )
    };
 
    /**
@@ -635,6 +637,27 @@ namespace eosiosystem {
           */
          [[eosio::action]]
          void init( unsigned_int version, const symbol& core );
+
+
+         /**
+          * New account action
+          *
+          * @details Called after a new account is created. This code enforces resource-limits rules
+          * for new accounts as well as new account naming conventions.
+          *
+          * 1. accounts cannot contain '.' symbols which forces all acccounts to be 12
+          * characters long without '.' until a future account auction process is implemented
+          * which prevents name squatting.
+          *
+          * 2. new accounts must stake a minimal number of tokens (as set in system parameters)
+          * therefore, this method will execute an inline buyram from receiver for newacnt in
+          * an amount equal to the current new account creation fee.
+          */
+         [[eosio::action]]
+         void newaccount( const name&       creator,
+                          const name&       name,
+                          ignore<authority> owner,
+                          ignore<authority> active);
 
          /**
           * On block action.
@@ -1248,6 +1271,7 @@ namespace eosiosystem {
          void setinflation( int64_t annual_rate, int64_t inflation_pay_factor, int64_t votepay_factor );
 
          using init_action = eosio::action_wrapper<"init"_n, &system_contract::init>;
+         using newaccount_action = eosio::action_wrapper<"newaccount"_n, &system_contract::newaccount>;
          using delegatebw_action = eosio::action_wrapper<"delegatebw"_n, &system_contract::delegatebw>;
          using deposit_action = eosio::action_wrapper<"deposit"_n, &system_contract::deposit>;
          using withdraw_action = eosio::action_wrapper<"withdraw"_n, &system_contract::withdraw>;

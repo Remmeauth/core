@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <map>
+#include <algorithm>
 
 namespace eosiosystem {
 
@@ -127,12 +128,16 @@ namespace eosiosystem {
                   tot.cpu_weight    += stake_delta;
                   if (from == receiver) {
                      tot.own_stake_amount += stake_delta.amount;
+                     //we have to decrease free bytes in case of own stake
+                     const int64_t new_free_stake_amount = tot.free_stake_amount - tot.own_stake_amount;
+//                     print("new_free_stake_amount=", new_free_stake_amount, " tot.own_stake_amount=", tot.own_stake_amount, " tot.free_stake_amount=", tot.free_stake_amount);
+                     tot.free_stake_amount = std::max(new_free_stake_amount, 0LL);
                   }
                });
          }
          check( 0 <= tot_itr->net_weight.amount, "insufficient staked total net bandwidth" );
          check( 0 <= tot_itr->cpu_weight.amount, "insufficient staked total cpu bandwidth" );
-         check( _gstate.min_account_stake <= tot_itr->own_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
+         check( _gstate.min_account_stake <= tot_itr->own_stake_amount + tot_itr->free_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
 
          auto prod = _producers.find( receiver.value );
          if (prod != _producers.end() && prod->active() && from == receiver) {
@@ -155,12 +160,12 @@ namespace eosiosystem {
                get_resource_limits( receiver, ram_bytes, net, cpu );
                const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
                const double bytes_per_token = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-               const int64_t bytes_for_stake = bytes_per_token * tot_itr->own_stake_amount;
+               int64_t bytes_for_stake = bytes_per_token * (tot_itr->own_stake_amount + tot_itr->free_stake_amount);
                //print("changebw from='", eosio::name{from} ,"' receiver='", eosio::name{receiver}, "' ram_bytes=", tot_itr->ram_bytes, " stake_delta=", stake_delta.amount, " transfer=", transfer, " bytes_per_token=", bytes_per_token / 10000, " system_token_max_supply=", system_token_max_supply.amount / 10000, " \n");
                set_resource_limits( receiver,
                                     ram_managed ? ram_bytes : bytes_for_stake,
-                                    net_managed ? net : tot_itr->net_weight.amount,
-                                    cpu_managed ? cpu : tot_itr->cpu_weight.amount );
+                                    net_managed ? net : tot_itr->net_weight.amount + tot_itr->free_stake_amount,
+                                    cpu_managed ? cpu : tot_itr->cpu_weight.amount + tot_itr->free_stake_amount);
             }
          }
 

@@ -53,32 +53,43 @@ BOOST_AUTO_TEST_SUITE(ram_tests)
 
          //testing setminstake initially min stake 99'9999 REM should fail and after setting new min it should pass
          {
-            BOOST_REQUIRE_EXCEPTION(
-                  create_account_with_resources(N(testram44444), config::system_account_name, false,
-                                                core_from_string(std::to_string(min_account_stake / 10000 - 1) + ".9999")),
-                  eosio_assert_message_exception,
-                  fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake"));
-            produce_blocks(1);
+//            BOOST_REQUIRE_EXCEPTION(
+//                  create_account_with_resources(N(testram44444), config::system_account_name, false,
+//                                                core_from_string(std::to_string(min_account_stake / 10000 - 1) + ".9999")),
+//                  eosio_assert_message_exception,
+//                  fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake"));
+//            produce_blocks(1);
 
             tester->push_action(config::system_account_name, N(setminstake), config::system_account_name, mvo()
                   ("min_account_stake", 999999));
             create_account_with_resources(N(testram44444), config::system_account_name, false,
                                           core_from_string(std::to_string(min_account_stake / 10000 - 1) + ".9999"));
+            auto t4total = get_total_stake(N(testram44444));
+            BOOST_REQUIRE_EQUAL(t4total["own_stake_amount"].as_uint64(), 999999);
+            BOOST_REQUIRE_EQUAL(t4total["free_stake_amount"].as_uint64(), 0);
             produce_blocks(10);
          }
 
-         BOOST_REQUIRE_EXCEPTION(
-               create_account_with_resources(N(testram33333), config::system_account_name, false,
-                                             core_from_string(std::to_string(min_account_stake / 10000 + 1) + ".0000"),
-                                             false), //create without transfer
-               eosio_assert_message_exception,
-               fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake"));
+//         BOOST_REQUIRE_EXCEPTION(
+//               create_account_with_resources(N(testram33333), config::system_account_name, false,
+//                                             core_from_string(std::to_string(min_account_stake / 10000 + 1) + ".0000"),
+//                                             false), //create without transfer
+//               eosio_assert_message_exception,
+//               fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake"));
+
+         create_account_with_resources(N(testram55555), config::system_account_name, false,
+                                       core_from_string(std::to_string(min_account_stake / 10000 + 1) + ".0000"),
+                                       false); //create without transfer
+         auto t5total = get_total_stake(N(testram55555));
+         BOOST_REQUIRE_EQUAL(t5total["own_stake_amount"].as_uint64(), 0);
+         BOOST_REQUIRE_EQUAL(t5total["free_stake_amount"].as_uint64(), 999999);
          produce_blocks(10);
 
          create_account_with_resources(N(testram33333), config::system_account_name, false, core_from_string(
                std::to_string(min_account_stake / 10000 + 1) + ".0000")); //stake 101
          auto t3total = get_total_stake(N(testram33333));
          BOOST_REQUIRE_EQUAL(t3total["own_stake_amount"].as_uint64(), 1010000);
+         BOOST_REQUIRE_EQUAL(t3total["free_stake_amount"].as_uint64(), 0);
 
          produce_blocks(10);
          BOOST_REQUIRE_EXCEPTION(
