@@ -30,17 +30,18 @@ namespace eosio {
       });
    }
 
-   void attribute::setattr( const name& issuer, const name& target, const name& attribute_name, const std::vector<char>& value )
+   void attribute::setattr( const name& issuer, const name& receiver, const name& attribute_name, const std::vector<char>& value )
    {
       require_auth( issuer );
-
       check( !value.empty(), "value is empty" );
 
       attribute_info_table attributes_info( _self, attribute_name.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-      check_privacy(issuer, target, attrinfo.ptype);
+      check_privacy(issuer, receiver, attrinfo.ptype);
 
-      attributes_table attributes( _self, target.value );
+      require_recipient( receiver );
+
+      attributes_table attributes( _self, receiver.value );
       const auto attr_it = attributes.find( attribute_name.value );
       if ( attr_it == attributes.end() ) {
          attributes.emplace( issuer, [&]( auto& attr ) {
@@ -56,24 +57,26 @@ namespace eosio {
       }
    }
 
-   void attribute::unsetattr( const name& issuer, const name& target, const name& attribute_name )
+   void attribute::unsetattr( const name& issuer, const name& receiver, const name& attribute_name )
    {
       require_auth( issuer );
 
       attribute_info_table attributes_info( _self, attribute_name.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-      check_privacy(issuer, target, attrinfo.ptype);
+      check_privacy(issuer, receiver, attrinfo.ptype);
 
-      attributes_table attributes( _self, target.value );
+      require_recipient( receiver );
+
+      attributes_table attributes( _self, receiver.value );
       const auto& attr = attributes.get( attribute_name.value, "attribute hasn`t been set for account" );
       attributes.erase(attr);
    }
 
-   void attribute::check_privacy(const name& issuer, const name& target, int32_t ptype) const
+   void attribute::check_privacy(const name& issuer, const name& receiver, int32_t ptype) const
    {
       switch (static_cast<privacy_type>(ptype)) {
          case privacy_type::SelfAssigned:
-            check(issuer == target, "self-assigned check"); //TODO: change message
+            check(issuer == receiver, "self-assigned check"); //TODO: change message
             break;
          case privacy_type::PublicPointer:
             break;

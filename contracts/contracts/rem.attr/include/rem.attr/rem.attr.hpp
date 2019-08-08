@@ -16,10 +16,10 @@ namespace eosio {
       void create( const name& attribute_name, int32_t type, int32_t ptype );
 
       [[eosio::action]]
-      void setattr( const name& issuer, const name& target, const name& attribute_name, const std::vector<char>& value );
+      void setattr( const name& issuer, const name& receiver, const name& attribute_name, const std::vector<char>& value );
 
       [[eosio::action]]
-      void unsetattr( const name& issuer, const name& target, const name& attribute_name );
+      void unsetattr( const name& issuer, const name& receiver, const name& attribute_name );
 
       using confirm_action   = eosio::action_wrapper<"confirm"_n,     &attribute::confirm>;
       using create_action    = eosio::action_wrapper<"create"_n,       &attribute::create>;
@@ -49,7 +49,7 @@ namespace eosio {
       typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
       typedef eosio::multi_index< "attributes"_n, attribute_data > attributes_table;
 
-      void check_privacy(const name& issuer, const name& target, int32_t ptype) const;
+      void check_privacy(const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;
    };
 
