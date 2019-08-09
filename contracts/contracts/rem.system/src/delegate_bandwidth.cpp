@@ -27,8 +27,6 @@ namespace eosiosystem {
    using std::pair;
 
    static constexpr uint32_t refund_delay_sec = 3*24*3600;
-   static const eosio::time_point stake_lock_period = eosio::time_point(eosio::days(180));
-
 
    /**
     *  Every user 'from' has a scope/table that uses every receipient 'to' as the primary key.
