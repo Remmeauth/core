@@ -567,14 +567,12 @@ BOOST_FIXTURE_TEST_CASE( stake_lock_test, bootseq_tester ) {
             BOOST_REQUIRE( !r->except_ptr );
         }
 
-        const auto whales_as_producers = { N(b1), N(whale4), N(whale3), N(whale2) };
-        for( const auto& producer : whales_as_producers ) {
+        const auto producers = { N(b1), N(whale4), N(whale3), N(whale2) };
+        for( const auto& producer : producers ) {
             register_producer(producer);
         }
 
-        auto producer_candidates = {N(proda)};
-
-        register_producer( N(proda));
+       register_producer( N(proda));
 
         // Vote for producers
         auto votepro = [&]( account_name voter, vector<account_name> producers ) {
@@ -586,17 +584,13 @@ BOOST_FIXTURE_TEST_CASE( stake_lock_test, bootseq_tester ) {
             );
         };
 
-        votepro( N(b1), { N(proda)} );
-        votepro( N(whale2), {N(proda)} );
-        votepro( N(whale3), {N(proda)} );
-        votepro( N(whale4), {N(proda)} );
-        produce_block();
+        for( const auto& producer : producers ) {
+            votepro( producer, { N(proda) } );
+        }
 
         // Spend some time so the producer pay pool is filled by the inflation rate
-        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
+        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(60 * 24 * 3600)); // 60 days
 
-        // Spend some time so the producer pay pool is filled by the inflation rate
-        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
         const auto second_july_2020 = fc::seconds(1593648000); // 2020-07-02
         // Ensure that now is yet 6 month after 2020-01-01 yet
         BOOST_REQUIRE(control->head_block_time().time_since_epoch() < second_july_2020);
