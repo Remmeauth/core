@@ -157,8 +157,8 @@ namespace eosiosystem {
       block_timestamp      last_name_close;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (stake_lock_period)(stake_unlock_period)
-                                (max_ram_size)(min_account_stake)(total_ram_bytes_reserved)(total_ram_stake)
+      EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (max_ram_size)(min_account_stake)
+                                (total_ram_bytes_reserved)(total_ram_stake)(stake_lock_period)(stake_unlock_period)
                                 (last_schedule)(last_schedule_version)(current_round_start_time)
                                 (last_producer_schedule_update)(last_pervote_bucket_fill)
                                 (perstake_bucket)(pervote_bucket)(perblock_bucket)(total_unpaid_blocks)(total_producer_stake)
