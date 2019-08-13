@@ -40,6 +40,7 @@ namespace eosio {
 
       struct [[eosio::table]] attribute_data {
          name               attribute_name;
+         name               issuer;
          std::vector<char>  data;
          bool               confirmed;
 

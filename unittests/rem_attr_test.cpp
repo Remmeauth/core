@@ -315,6 +315,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
             set_attr(attr_ref.issuer, attr_ref.receiver, attr_ref.attribute_name, attr_ref.value);
 
             const auto attribute_obj = get_account_attribute(attr_ref.receiver, attr_ref.attribute_name);
+            wdump((attribute_obj));
             BOOST_TEST(attr_ref.isValueOk(attribute_obj["data"].as_string()));
         }
 
@@ -360,7 +361,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         unset_attr(N(rem.attr),   N(prodb),      N(creator));
         unset_attr(N(rem.attr),   N(rem.attr),   N(creator));
         unset_attr(N(prodb),      N(prodb),      N(name));
-        unset_attr(N(prodb),      N(prodb),      N(largeint));
+        unset_attr(N(proda),      N(prodb),      N(largeint));
         BOOST_REQUIRE_THROW(get_account_attribute(N(proda),      N(crosschain)),   unpack_exception);
         BOOST_REQUIRE_THROW(get_account_attribute(N(proda),      N(tags)),         unpack_exception);
         BOOST_REQUIRE_THROW(get_account_attribute(N(rem.attr),   N(tags)),         unpack_exception);

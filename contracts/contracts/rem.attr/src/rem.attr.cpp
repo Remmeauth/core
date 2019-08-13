@@ -46,11 +46,13 @@ namespace eosio {
       if ( attr_it == attributes.end() ) {
          attributes.emplace( issuer, [&]( auto& attr ) {
             attr.attribute_name = attribute_name;
+            attr.issuer         = issuer;
             attr.data           = value;
             attr.confirmed      = !need_confirm(attrinfo.ptype);
          });
-      } else {
+      } else { //TODO: does caller can update attribute?
          attributes.modify( attr_it, issuer, [&]( auto& attr ) {
+            attr.issuer         = issuer;
             attr.data           = value;
             attr.confirmed      = !need_confirm(attrinfo.ptype);
          });
@@ -69,6 +71,8 @@ namespace eosio {
 
       attributes_table attributes( _self, receiver.value );
       const auto& attr = attributes.get( attribute_name.value, "attribute hasn`t been set for account" );
+      check( attr.issuer == issuer, "only account that assigned attribute can unset it" );
+
       attributes.erase(attr);
    }
 
