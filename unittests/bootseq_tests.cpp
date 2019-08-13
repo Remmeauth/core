@@ -452,15 +452,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         //runnerup should not get any pervote rewards because he wasn`t on schedule when torewards was called
         BOOST_REQUIRE_EQUAL(get_balance(N(rem.vpay)).get_amount(), vpay_balance);
 
-       torewards(config::system_account_name, config::system_account_name, core_from_string("0.2000"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("2.0000"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("0.0200"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("1.0000"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("0.3000"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("2.1000"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("0.1000"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("0.0300"));
-       torewards(config::system_account_name, config::system_account_name, core_from_string("0.0030"));
         claim_rewards(N(runnerup1));
         BOOST_TEST(get_balance(N(runnerup1)).get_amount() > 0);
         claim_rewards(N(proda));
