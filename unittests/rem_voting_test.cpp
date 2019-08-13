@@ -521,7 +521,7 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          // rem weight: ~0.000002;
          // staked:     399999999000
          const auto prod = get_producer_info( "proda" );
-         BOOST_TEST_REQUIRE( 13413065.809731236 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( 1031774.2926451379 == prod["total_votes"].as_double() );
       }
 
       // Day 30
@@ -533,7 +533,7 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          // rem weight: ~0.170384;
          // staked:     399999999000
          const auto prod = get_producer_info( "proda" );
-         BOOST_TEST_REQUIRE( 1372250161277.3516 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( 1372237214636.8337 == prod["total_votes"].as_double() );
       }
 
       // Day 180
