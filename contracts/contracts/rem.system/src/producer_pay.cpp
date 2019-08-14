@@ -40,13 +40,15 @@ namespace eosiosystem {
 
    void system_contract::update_pervote_shares()
    {
-      for (auto& p: _gstate.last_schedule) {
-         const auto& prod_name = p.first;
-         const auto& prod = _producers.get(prod_name.value);
-         const double share = prod.total_votes / _gstate.total_active_producer_vote_weight;
-         // need to cut precision because sum of all shares can be greater that 1 due to floating point arithmetics
-         p.second = std::floor(share * 100000.0) / 100000.0;
-      }
+      std::for_each(std::begin(_gstate.last_schedule), std::end(_gstate.last_schedule),
+         [this](auto& p)
+         {
+            const auto& prod_name = p.first;
+            const auto& prod = _producers.get(prod_name.value);
+            const double share = prod.total_votes / _gstate.total_active_producer_vote_weight;
+            // need to cut precision because sum of all shares can be greater that 1 due to floating point arithmetics
+            p.second = std::floor(share * 100000.0) / 100000.0;
+         });
    }
 
 
