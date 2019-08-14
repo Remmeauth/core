@@ -250,7 +250,6 @@ namespace eosiosystem {
                [target = pd.first](const auto& prod){ return prod.first.value == target.value; });
             if (active_prod != std::end(_gstate.last_schedule)) {
                _gstate.total_active_producer_vote_weight += pitr->total_votes - total_votes_before;
-               update_pervote_shares();
             }
          } else {
             if( pd.second.second ) {
@@ -258,6 +257,7 @@ namespace eosiosystem {
             }
          }
       }
+      update_pervote_shares();
 
       _voters.modify( voter, same_payer, [&]( auto& av ) {
          av.last_vote_weight = new_vote_weight;
@@ -315,9 +315,9 @@ namespace eosiosystem {
                   [&](const auto& prod){ return prod.first.value == acnt.value; });
                if (active_prod != std::end(_gstate.last_schedule)) {
                   _gstate.total_active_producer_vote_weight += delta;
-                  update_pervote_shares();
                }
             }
+            update_pervote_shares();
          }
       }
 
