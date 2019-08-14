@@ -5,6 +5,8 @@
 #include <rem.system/rem.system.hpp>
 #include <rem.token/rem.token.hpp>
 
+#include <cmath>
+
 namespace eosiosystem {
 
    const int64_t  min_pervote_daily_pay = 100'0000;
@@ -40,6 +42,16 @@ namespace eosiosystem {
       check(total_reward_distributed <= amount, "distributed reward above the given amount");
       return total_reward_distributed;
    }
+
+   void system_contract::update_pervote_shares()
+   {
+      for (auto& p: _gstate.last_schedule) {
+         const auto& prod_name = p.first;
+         const auto& prod = _producers.get(prod_name.value);
+         p.second = (std::floor(prod.total_votes * 10.0) / 10.0) / _gstate.total_active_producer_vote_weight;
+      }
+   }
+
 
    void system_contract::onblock( ignore<block_header> ) {
       using namespace eosio;
@@ -125,7 +137,7 @@ namespace eosiosystem {
             _producers.modify(prod, same_payer, [&](auto& p) {
                p.last_expected_produced_blocks_update = timestamp;
             });
-            _gstate.last_schedule[i] = std::make_pair(prod_name, prod.total_votes / _gstate.total_active_producer_vote_weight);
+            _gstate.last_schedule[i] = std::make_pair(prod_name, (std::floor(prod.total_votes * 10.0) / 10.0) / _gstate.total_active_producer_vote_weight);
          }
       }
 
@@ -284,7 +296,7 @@ namespace eosiosystem {
       const auto to_per_vote_pay  = share_pervote_reward_between_producers(amount.amount * 0.2); //TODO: move to constants section
       const auto to_rem           = amount.amount - (to_per_stake_pay + to_per_vote_pay);
       if( amount.amount > 0 ) {
-        token::transfer_action transfer_act{ token_account, { {_self, active_permission} } };
+        token::transfer_action transfer_act{ token_account, { {payer, active_permission} } };
         if( to_rem > 0 ) {
            transfer_act.send( payer, saving_account, asset(to_rem, core_symbol()), "Remme Savings" );
         }
