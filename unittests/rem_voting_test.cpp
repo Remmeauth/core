@@ -671,9 +671,6 @@ BOOST_FIXTURE_TEST_CASE( resignation_lock_test_case, voting_tester ) {
 
       testprint(N(proda) );
       unregister_producer( N(proda) );
-
-
-
    } FC_LOG_AND_RETHROW()
 }
 
