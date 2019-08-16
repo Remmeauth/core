@@ -37,7 +37,7 @@ namespace eosio {
 
       attribute_info_table attributes_info( _self, attribute_name.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-      check_privacy(issuer, receiver, attrinfo.ptype);
+      check_create_permission(issuer, receiver, attrinfo.ptype);
 
       require_recipient( receiver );
 
@@ -50,7 +50,8 @@ namespace eosio {
             attr.data           = value;
             attr.confirmed      = !need_confirm(attrinfo.ptype);
          });
-      } else { //TODO: does caller can update attribute?
+      } else {
+         check_delete_permission(attr_it->issuer, issuer, receiver, attrinfo.ptype);
          attributes.modify( attr_it, issuer, [&]( auto& attr ) {
             attr.issuer         = issuer;
             attr.data           = value;
@@ -65,34 +66,33 @@ namespace eosio {
 
       attribute_info_table attributes_info( _self, attribute_name.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-      check_privacy(issuer, receiver, attrinfo.ptype);
 
       require_recipient( receiver );
 
       attributes_table attributes( _self, receiver.value );
       const auto& attr = attributes.get( attribute_name.value, "attribute hasn`t been set for account" );
-      check( attr.issuer == issuer, "only account that assigned attribute can unset it" );
+      check_delete_permission(attr.issuer, issuer, receiver, attrinfo.ptype);
 
       attributes.erase(attr);
    }
 
-   void attribute::check_privacy(const name& issuer, const name& receiver, int32_t ptype) const
+   void attribute::check_create_permission(const name& issuer, const name& receiver, int32_t ptype) const
    {
-      switch (static_cast<privacy_type>(ptype)) {
-         case privacy_type::SelfAssigned:
-            check(issuer == receiver, "self-assigned check"); //TODO: change message
-            break;
-         case privacy_type::PublicPointer:
-            break;
-         case privacy_type::PublicConfirmedPointer:
-            break;
-         case privacy_type::PrivatePointer:
-            check(issuer == _self, "private pointer check"); //TODO: change message
-            break;
-         case privacy_type::PrivateConfirmedPointer:
-            check(issuer == _self, "private confirmed pointer check"); //TODO: change message
-            break;
+      if (static_cast<privacy_type>(ptype) == privacy_type::SelfAssigned) {
+         check(issuer == receiver, "this attribute can only be self-assigned");
       }
+      else if (static_cast<privacy_type>(ptype) == privacy_type::PrivatePointer ||
+         static_cast<privacy_type>(ptype) == privacy_type::PrivateConfirmedPointer) {
+         check(issuer == _self, "only contract owner can assign this attribute");
+      }
+   }
+
+   void attribute::check_delete_permission(const name& initial_issuer, const name& issuer, const name& receiver, int32_t ptype) const
+   {
+      bool is_creator = initial_issuer == issuer;
+      bool is_confirmable = static_cast<privacy_type>(ptype) == privacy_type::PublicConfirmedPointer ||
+         static_cast<privacy_type>(ptype) == privacy_type::PrivateConfirmedPointer;
+      check(is_creator || (is_confirmable && issuer == receiver), "only creator or receiver (in case of confirmable attribute) can unset attribute");
    }
 
    bool attribute::need_confirm(int32_t ptype) const
