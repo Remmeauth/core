@@ -42,7 +42,7 @@ namespace eosio {
          name               attribute_name;
          name               issuer;
          std::vector<char>  data;
-         bool               confirmed;
+         std::vector<char>  pending;
 
          uint64_t primary_key() const { return attribute_name.value; }
       };

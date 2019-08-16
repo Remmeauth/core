@@ -10,7 +10,8 @@ namespace eosio {
       attributes_table attributes( _self, owner.value );
       const auto& attr = attributes.get( attribute_name.value, "account does not have this attribute" );
       attributes.modify( attr, same_payer, [&]( auto& attr ) {
-         attr.confirmed = true;
+         attr.data = attr.pending;
+         attr.pending.clear();
       });
    }
 
@@ -47,15 +48,23 @@ namespace eosio {
          attributes.emplace( issuer, [&]( auto& attr ) {
             attr.attribute_name = attribute_name;
             attr.issuer         = issuer;
-            attr.data           = value;
-            attr.confirmed      = !need_confirm(attrinfo.ptype);
+            if (need_confirm(attrinfo.ptype)) {
+               attr.pending = value;
+            }
+            else {
+               attr.data = value;
+            }
          });
       } else {
          check_delete_permission(attr_it->issuer, issuer, receiver, attrinfo.ptype);
          attributes.modify( attr_it, issuer, [&]( auto& attr ) {
-            attr.issuer         = issuer;
-            attr.data           = value;
-            attr.confirmed      = !need_confirm(attrinfo.ptype);
+            attr.issuer = issuer;
+            if (need_confirm(attrinfo.ptype)) {
+               attr.pending = value;
+            }
+            else {
+               attr.data = value;
+            }
          });
       }
    }
