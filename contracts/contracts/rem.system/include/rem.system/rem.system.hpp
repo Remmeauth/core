@@ -570,8 +570,6 @@ namespace eosiosystem {
 
          static constexpr uint8_t max_block_producers      = 21;
          static constexpr int64_t producer_stake_threshold = 250'000'0000LL;
-         microseconds stake_unlock_period;
-         static const microseconds stake_lock_period;
 
 
          /**

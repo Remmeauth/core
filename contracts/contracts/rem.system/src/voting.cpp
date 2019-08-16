@@ -79,15 +79,13 @@ namespace eosiosystem {
             info.last_votepay_share_update = ct;
          });
          _gstate.total_producer_stake += tot.own_stake_amount;
-
       }
 
-       const auto &voter = _voters.get(producer.value, "user has no resources");
-       _voters.modify(voter, producer, [&](auto &v) {
-           v.stake_lock_time = current_time_point() + _gstate.stake_lock_period;
-           v.locked_stake = tot.own_stake_amount;
-       });
-
+      const auto &voter = _voters.get(producer.value, "user has no resources");
+      _voters.modify(voter, producer, [&](auto &v) {
+         v.stake_lock_time = current_time_point() + _gstate.stake_lock_period;
+         v.locked_stake = tot.own_stake_amount;
+      });
    }
 
    void system_contract::unregprod( const name& producer ) {

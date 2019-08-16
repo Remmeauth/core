@@ -634,7 +634,7 @@ BOOST_FIXTURE_TEST_CASE( resignation_test, voting_tester ) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_FIXTURE_TEST_CASE( resignation_lock_test_case, voting_tester ) {
+BOOST_FIXTURE_TEST_CASE( stake_lock_period_test, voting_tester ) {
    try {
 
       const auto producers = { N(b1), N(proda), N(whale1), N(whale2), N(whale3) };
@@ -662,6 +662,4 @@ BOOST_FIXTURE_TEST_CASE( resignation_lock_test_case, voting_tester ) {
       unregister_producer( N(proda) );
    } FC_LOG_AND_RETHROW()
 }
-
-
 BOOST_AUTO_TEST_SUITE_END()
