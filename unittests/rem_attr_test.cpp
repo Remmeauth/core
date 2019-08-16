@@ -315,8 +315,11 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
             set_attr(attr_ref.issuer, attr_ref.receiver, attr_ref.attribute_name, attr_ref.value);
 
             const auto attribute_obj = get_account_attribute(attr_ref.receiver, attr_ref.attribute_name);
-            wdump((attribute_obj));
-            BOOST_TEST(attr_ref.isValueOk(attribute_obj["data"].as_string()));
+            auto data = attribute_obj["data"].as_string();
+            if (data.empty()) {
+               data = attribute_obj["pending"].as_string();
+            }
+            BOOST_TEST(attr_ref.isValueOk(data));
         }
 
         //issuer must have authorization
@@ -332,13 +335,20 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_REQUIRE_THROW(set_attr(N(rem.attr), N(proda), N(name), "06426c61697a65"), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(set_attr(N(proda), N(proda), N(crosschain), "000000000000000000000000000000000000000000000000000000000000ffff"), eosio_assert_message_exception);
 
-        BOOST_TEST(get_account_attribute(N(proda),        N(crosschain)) ["confirmed"].as_bool() == true);
-        BOOST_TEST(get_account_attribute(N(proda),              N(tags)) ["confirmed"].as_bool() == false);
-        BOOST_TEST(get_account_attribute(N(rem.attr),           N(tags)) ["confirmed"].as_bool() == false);
-        BOOST_TEST(get_account_attribute(N(prodb),           N(creator)) ["confirmed"].as_bool() == true);
-        BOOST_TEST(get_account_attribute(N(rem.attr),        N(creator)) ["confirmed"].as_bool() == true);
-        BOOST_TEST(get_account_attribute(N(prodb),              N(name)) ["confirmed"].as_bool() == true);
-        BOOST_TEST(get_account_attribute(N(prodb),          N(largeint)) ["confirmed"].as_bool() == false);
+        BOOST_TEST(get_account_attribute(N(proda),        N(crosschain)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(N(proda),        N(crosschain)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(N(proda),              N(tags)) ["data"].as_string()    == "");
+        BOOST_TEST(get_account_attribute(N(proda),              N(tags)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute(N(rem.attr),           N(tags)) ["data"].as_string()    == "");
+        BOOST_TEST(get_account_attribute(N(rem.attr),           N(tags)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute(N(prodb),           N(creator)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(N(prodb),           N(creator)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(N(rem.attr),        N(creator)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(N(rem.attr),        N(creator)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(N(prodb),              N(name)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(N(prodb),              N(name)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(N(prodb),          N(largeint)) ["data"].as_string()    == "");
+        BOOST_TEST(get_account_attribute(N(prodb),          N(largeint)) ["pending"].as_string() != ""); //not confirmed
 
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(confirm), N(rem.attr), mvo()("owner", name(N(proda)))("attribute_name", name(N(tags)))),
             missing_auth_exception);
@@ -347,9 +357,12 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         confirm_attr(N(proda),     N(tags));
         confirm_attr(N(rem.attr),  N(tags));
         confirm_attr(N(prodb),     N(largeint));
-        BOOST_TEST(get_account_attribute(N(proda),              N(tags)) ["confirmed"].as_bool() == true);
-        BOOST_TEST(get_account_attribute(N(rem.attr),           N(tags)) ["confirmed"].as_bool() == true);
-        BOOST_TEST(get_account_attribute(N(prodb),          N(largeint)) ["confirmed"].as_bool() == true);
+        BOOST_TEST(get_account_attribute(N(proda),              N(tags)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(N(proda),              N(tags)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(N(rem.attr),           N(tags)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(N(rem.attr),           N(tags)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(N(prodb),          N(largeint)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(N(prodb),          N(largeint)) ["pending"].as_string() == "");
 
         BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(nonexisting)),  eosio_assert_message_exception); //nonexisting
         BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodc),      N(crosschain)),   eosio_assert_message_exception); //account does not have attribute
