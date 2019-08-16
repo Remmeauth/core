@@ -590,13 +590,13 @@ BOOST_FIXTURE_TEST_CASE( stake_lock_test, bootseq_tester ) {
         votepro( N(whale2), {N(proda)} );
         votepro( N(whale3), {N(proda)} );
         votepro( N(whale4), {N(proda)} );
+        produce_block();
 
         // Spend some time so the producer pay pool is filled by the inflation rate
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
 
         // Spend some time so the producer pay pool is filled by the inflation rate
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
-
         const auto second_july_2020 = fc::seconds(1593648000); // 2020-07-02
         // Ensure that now is yet 6 month after 2020-01-01 yet
         BOOST_REQUIRE(control->head_block_time().time_since_epoch() < second_july_2020);
