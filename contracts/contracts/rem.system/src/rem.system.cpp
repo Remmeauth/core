@@ -168,13 +168,6 @@ namespace eosiosystem {
       set_resource_limits( account, ram, net, cpu );
    }
 
-    void system_contract::setmperiod( uint64_t mature_period ) {
-        require_auth( _self );
-
-        stake_unlock_period = eosio::days(mature_period);
-    }
-
-
     void system_contract::activate( const eosio::checksum256& feature_digest ) {
       require_auth( get_self() );
       preactivate_feature( feature_digest );

@@ -648,16 +648,6 @@ namespace eosiosystem {
          void setalimits( const name& account, int64_t ram_bytes, int64_t net_weight, int64_t cpu_weight );
 
          /**
-          * Set mature period
-          *
-          * @details Set mature period of voice power
-          *
-          * @param mature_period - mature period in days.
-          */
-         [[eosio::action]]
-         void setmperiod( uint64_t mature_period);
-
-         /**
           * Activates a protocol feature.
           *
           * @details Activates a protocol feature
@@ -1282,7 +1272,6 @@ namespace eosiosystem {
          using unregprod_action = eosio::action_wrapper<"unregprod"_n, &system_contract::unregprod>;
          using setram_action = eosio::action_wrapper<"setram"_n, &system_contract::setram>;
          using setmin_account_stake_action = eosio::action_wrapper<"setminstake"_n, &system_contract::setminstake>;
-         using setmperiod_action = eosio::action_wrapper<"setmperiod"_n, &system_contract::setmperiod>;
          using setramrate_action = eosio::action_wrapper<"setramrate"_n, &system_contract::setramrate>;
          using voteproducer_action = eosio::action_wrapper<"voteproducer"_n, &system_contract::voteproducer>;
          using regproxy_action = eosio::action_wrapper<"regproxy"_n, &system_contract::regproxy>;
