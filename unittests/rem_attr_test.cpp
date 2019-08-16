@@ -283,7 +283,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_REQUIRE_THROW(create_attr(N(fail), 0, 5), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(create_attr(N(tags), 0, 0), eosio_assert_message_exception);
 
-        set_attr_expected_t<std::pair<fc::sha256, name>> attr1(N(proda), N(proda), N(crosschain),
+        set_attr_expected_t<std::pair<fc::sha256, name>> attr1(N(prodb), N(proda), N(crosschain),
            "00000000000000000000000000000000000000000000000000000000000000ff000000000000A4BA",
            std::pair<chain_id_type, name>("00000000000000000000000000000000000000000000000000000000000000ff", N(rem)));
         set_attr_expected_t<std::pair<fc::sha256, name>> attr2(N(prodb), N(proda), N(crosschain),
@@ -304,10 +304,10 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         set_attr_expected_t<std::string> attr7(N(prodb), N(prodb), N(name),
             "06426c61697a65",
             "Blaize");
-        set_attr_expected_t<int64_t> attr8(N(prodb), N(prodb), N(largeint),
+        set_attr_expected_t<int64_t> attr8(N(proda), N(prodb), N(largeint),
             "0000000000000080",
             -9223372036854775808);
-        set_attr_expected_t<int64_t> attr9(N(proda), N(prodb), N(largeint),
+        set_attr_expected_t<int64_t> attr9(N(prodb), N(prodb), N(largeint),
            "ffffffffffffffff",
            -1);
         for (auto& attr: std::vector<std::reference_wrapper<set_attr_t>>{ attr1, attr2, attr3, attr4, attr5, attr6, attr7, attr8, attr9 }) {
@@ -322,12 +322,15 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         //issuer must have authorization
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(setattr), N(proda), mvo()("issuer", name(N(b1)))("receiver", name(N(prodb)))("attribute_name", name(N(crosschain)))("value", "00000000000000000000000000000000000000000000000000000000000000ff000000000000A4BA")),
             missing_auth_exception);
+        //non-existing attribute
+        BOOST_REQUIRE_THROW(set_attr(N(proda), N(prodb), N(nonexisting), ""), eosio_assert_message_exception);
         //empty value
         BOOST_REQUIRE_THROW(set_attr(N(proda), N(prodb), N(crosschain), ""), eosio_assert_message_exception);
         //privacy checks
         BOOST_REQUIRE_THROW(set_attr(N(prodb), N(proda), N(tags), "03013101320133013401350136"), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(set_attr(N(proda), N(proda), N(creator), "01"), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(set_attr(N(rem.attr), N(proda), N(name), "06426c61697a65"), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(set_attr(N(proda), N(proda), N(crosschain), "000000000000000000000000000000000000000000000000000000000000ffff"), eosio_assert_message_exception);
 
         BOOST_TEST(get_account_attribute(N(proda),        N(crosschain)) ["confirmed"].as_bool() == true);
         BOOST_TEST(get_account_attribute(N(proda),              N(tags)) ["confirmed"].as_bool() == false);
@@ -348,12 +351,14 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_TEST(get_account_attribute(N(rem.attr),           N(tags)) ["confirmed"].as_bool() == true);
         BOOST_TEST(get_account_attribute(N(prodb),          N(largeint)) ["confirmed"].as_bool() == true);
 
-        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(nonexisting)),  eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodc),      N(crosschain)),   eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(tags)),         eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(unset_attr(N(prodb),      N(rem.attr),   N(tags)),         eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(creator)),      eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(unset_attr(N(rem.attr),   N(proda),      N(name)),         eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(nonexisting)),  eosio_assert_message_exception); //nonexisting
+        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodc),      N(crosschain)),   eosio_assert_message_exception); //account does not have attribute
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(crosschain)),   eosio_assert_message_exception); //only issuer can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(proda),      N(tags)),         eosio_assert_message_exception); //only issuer or receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(prodb),      N(rem.attr),   N(tags)),         eosio_assert_message_exception); //only issuer or receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(creator)),      eosio_assert_message_exception); //only contract owner can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(rem.attr),   N(proda),      N(name)),         eosio_assert_message_exception); //only receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(prodb),      N(largeint)),     eosio_assert_message_exception); //only issuer or receiver can unset
 
         unset_attr(N(prodb),      N(proda),      N(crosschain));
         unset_attr(N(rem.attr),   N(proda),      N(tags));
@@ -361,7 +366,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         unset_attr(N(rem.attr),   N(prodb),      N(creator));
         unset_attr(N(rem.attr),   N(rem.attr),   N(creator));
         unset_attr(N(prodb),      N(prodb),      N(name));
-        unset_attr(N(proda),      N(prodb),      N(largeint));
+        unset_attr(N(prodb),      N(prodb),      N(largeint));
         BOOST_REQUIRE_THROW(get_account_attribute(N(proda),      N(crosschain)),   unpack_exception);
         BOOST_REQUIRE_THROW(get_account_attribute(N(proda),      N(tags)),         unpack_exception);
         BOOST_REQUIRE_THROW(get_account_attribute(N(rem.attr),   N(tags)),         unpack_exception);
