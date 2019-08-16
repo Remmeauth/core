@@ -137,11 +137,6 @@ public:
         produce_block();
     }
 
-    void testprint( name prod) {
-        base_tester::push_action(config::system_account_name, N(testprilo),config::system_account_name, mvo()("prod", prod));
-        produce_block();
-    }
-
     auto claim_rewards( name owner ) {
        auto r = base_tester::push_action( config::system_account_name, N(claimrewards), owner, mvo()("owner",  owner ));
        produce_block();
@@ -588,7 +583,7 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
+BOOST_FIXTURE_TEST_CASE( resignation_test, voting_tester ) {
    try {
 
       const auto producers = { N(b1), N(proda), N(whale1), N(whale2), N(whale3) };
@@ -635,8 +630,6 @@ BOOST_FIXTURE_TEST_CASE( resignation_test_case, voting_tester ) {
          BOOST_TEST( balance_before_unreg < get_balance(N(proda)).get_amount() );
 
          BOOST_TEST( 0 == get_producer_info( "proda" )["unpaid_blocks"].as_int64() );
-
-
       }
    } FC_LOG_AND_RETHROW()
 }
@@ -659,17 +652,13 @@ BOOST_FIXTURE_TEST_CASE( resignation_lock_test_case, voting_tester ) {
       delegate_bandwidth(N(rem.stake), N(proda), asset(2'000'000'000));
 
 
-      //set_lock_period(90);
-      testprint(N(proda) );
-
+      set_lock_period(90);
       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(90 * 24 * 3600));
 
       delegate_bandwidth(N(rem.stake), N(proda), asset(1'000'000'000));
 
-      testprint(N(proda) );
       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(90 * 24 * 3600));
 
-      testprint(N(proda) );
       unregister_producer( N(proda) );
    } FC_LOG_AND_RETHROW()
 }

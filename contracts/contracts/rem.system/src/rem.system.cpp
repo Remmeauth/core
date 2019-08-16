@@ -76,45 +76,15 @@ namespace eosiosystem {
    }
 
    void system_contract::setlockperiod( uint64_t period_in_days) {
+      require_auth(_self);
 
-       require_auth(_self);
-       printf("====+BEFOR1+=====");
-       printf("%lld", _gstate.stake_lock_period);
-       printf("====+BEFOR1+=====");
-       _gstate.stake_lock_period = eosio::days(period_in_days);
-       printf("====+AFTER1+=====");
-       printf("%lld", _gstate.stake_lock_period);
-       printf("====+AFTER1+=====");
+      _gstate.stake_lock_period = eosio::days(period_in_days);
    }
 
    void system_contract::setunloperiod( uint64_t period_in_days) {
+      require_auth(_self);
 
-       require_auth(_self);
-       printf("====+BEFOR2+=====");
-       printf("%lld", _gstate.stake_unlock_period);
-       printf("====+BEFOR2+=====");
-
-       _gstate.stake_unlock_period = eosio::days(period_in_days);
-
-       printf("====+AFTER2+=====");
-       printf("%lld", _gstate.stake_unlock_period);
-       printf("====+AFTER2+=====");
-
-    }
-    void system_contract::testprilo(const name& prod) {
-        printf("====+CURRENT_TIME_POINT+=====");
-        printf("%lld",current_time_point());
-        printf("====+CURRENT_TIME_POINT+=====");
-       auto& voter = _voters.get(prod.value, "not found");
-       _voters.modify(voter, prod, [&](auto& v) {
-           printf("====+TESTING_STAKE_LOCK_PERIOD+=====");
-           printf("%lld",v.stake_lock_time);
-           printf("====+TESTING_STAKE_LOCK_PERIOD+=====");
-       });
-//        printf("====+TESTING_STAKE_LOCK_PERIOD+=====");
-//        printf("%lld", _gstate.stake_lock_period.count());
-//        printf("====+TESTING_STAKE_LOCK_PERIOD+=====");
-
+      _gstate.stake_unlock_period = eosio::days(period_in_days);
    }
 
    void system_contract::setminstake( uint64_t min_account_stake ) {
@@ -410,7 +380,7 @@ EOSIO_DISPATCH( eosiosystem::system_contract,
      // native.hpp (newaccount definition is actually in rem.system.cpp)
      (newaccount)(updateauth)(deleteauth)(linkauth)(unlinkauth)(canceldelay)(onerror)(setabi)
      // rem.system.cpp
-     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setlockperiod)(testprilo)(setunloperiod)(activate)
+     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setlockperiod)(setunloperiod)(activate)
      (rmvproducer)(updtrevision)(bidname)(bidrefund)(setinflation)
      // rex.cpp
      (deposit)(withdraw)(buyrex)(unstaketorex)(sellrex)(cnclrexorder)(rentcpu)(rentnet)(fundcpuloan)(fundnetloan)

@@ -303,7 +303,7 @@ namespace eosiosystem {
       bool vote_is_reasserted() const;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(last_vote_weight)(stake_lock_time)(last_claim_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
+      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(locked_stake)(last_vote_weight)(stake_lock_time)(last_claim_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
    };
 
    struct [[eosio::table, eosio::contract("rem.system")]] user_resources {
@@ -596,14 +596,13 @@ namespace eosiosystem {
             const static auto sym = get_core_symbol( rm );
             return sym;
          }
-       [[eosio::action]]
-       void testprilo(const name& prod);
 
        [[eosio::action]]
        void setlockperiod( uint64_t period_in_days);
 
        [[eosio::action]]
        void setunloperiod( uint64_t period_in_days);
+
          // Actions:
          /**
           * Init action.
@@ -1299,7 +1298,6 @@ namespace eosiosystem {
          using setparams_action = eosio::action_wrapper<"setparams"_n, &system_contract::setparams>;
          using setlockperiod_action = eosio::action_wrapper<"setlockperiod"_n, &system_contract::setlockperiod>;
          using setunloperiod_action = eosio::action_wrapper<"setunloperiod"_n, &system_contract::setunloperiod>;
-         using testprintlock_action = eosio::action_wrapper<"testprilo"_n, &system_contract::testprilo>;
 
       private:
          // Implementation details:
@@ -1354,6 +1352,7 @@ namespace eosiosystem {
          // defined in delegate_bandwidth.cpp
          void changebw( name from, const name& receiver,
                         const asset& stake_quantity, bool transfer );
+         double stake2vote( int64_t staked, time_point locked_stake_period ) const;
          void update_voting_power( const name& voter, const asset& total_update );
 
          // defined in voting.hpp
