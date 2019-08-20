@@ -10,7 +10,7 @@ namespace eosio {
       attributes_table attributes( _self, owner.value );
       const auto& attr = attributes.get( attribute_name.value, "account does not have this attribute" );
       attributes.modify( attr, same_payer, [&]( auto& attr ) {
-         attr.data = attr.pending;
+         attr.data.swap(attr.pending);
          attr.pending.clear();
       });
    }
@@ -34,38 +34,31 @@ namespace eosio {
    void attribute::setattr( const name& issuer, const name& receiver, const name& attribute_name, const std::vector<char>& value )
    {
       require_auth( issuer );
+      require_recipient( receiver );
       check( !value.empty(), "value is empty" );
 
       attribute_info_table attributes_info( _self, attribute_name.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
       check_create_permission(issuer, receiver, attrinfo.ptype);
 
-      require_recipient( receiver );
+      const auto attribute_setter = [&]( auto& attr ) {
+         attr.attribute_name = attribute_name;
+         attr.issuer         = issuer;
+         if (need_confirm(attrinfo.ptype)) {
+            attr.pending = value;
+         }
+         else {
+            attr.data = value;
+         }
+      };
 
       attributes_table attributes( _self, receiver.value );
       const auto attr_it = attributes.find( attribute_name.value );
       if ( attr_it == attributes.end() ) {
-         attributes.emplace( issuer, [&]( auto& attr ) {
-            attr.attribute_name = attribute_name;
-            attr.issuer         = issuer;
-            if (need_confirm(attrinfo.ptype)) {
-               attr.pending = value;
-            }
-            else {
-               attr.data = value;
-            }
-         });
+         attributes.emplace( issuer, attribute_setter);
       } else {
          check_delete_permission(attr_it->issuer, issuer, receiver, attrinfo.ptype);
-         attributes.modify( attr_it, issuer, [&]( auto& attr ) {
-            attr.issuer = issuer;
-            if (need_confirm(attrinfo.ptype)) {
-               attr.pending = value;
-            }
-            else {
-               attr.data = value;
-            }
-         });
+         attributes.modify( attr_it, issuer, attribute_setter);
       }
    }
 
