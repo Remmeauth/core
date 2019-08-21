@@ -10,7 +10,7 @@ namespace eosio {
       using contract::contract;
 
       [[eosio::action]]
-      void confirm( const name& owner, const name& attribute_name );
+      void confirm( const name& owner, const name& issuer, const name& attribute_name );
 
       [[eosio::action]]
       void create( const name& attribute_name, int32_t type, int32_t ptype );
@@ -38,20 +38,22 @@ namespace eosio {
          uint64_t primary_key() const { return attribute_name.value; }
       };
 
-      struct [[eosio::table]] attribute_data {
-         name               attribute_name;
-         name               issuer;
+      struct attribute_t {
          std::vector<char>  data;
          std::vector<char>  pending;
+      };
 
-         uint64_t primary_key() const { return attribute_name.value; }
+      struct [[eosio::table]] attribute_data {
+         name                        issuer;
+         std::map<name, attribute_t> attributes;
+
+         uint64_t primary_key() const { return issuer.value; }
       };
 
       typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
       typedef eosio::multi_index< "attributes"_n, attribute_data > attributes_table;
 
       void check_create_permission(const name& issuer, const name& receiver, int32_t ptype) const;
-      void check_delete_permission(const name& initial_issuer, const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;
    };
 
