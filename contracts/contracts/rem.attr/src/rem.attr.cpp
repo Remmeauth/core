@@ -10,8 +10,7 @@ namespace eosio {
       attributes_table attributes( _self, owner.value );
       const auto& attr = attributes.get( issuer.value, "account does not have this attribute set by provided issuer" );
       const auto attr_it = attr.attributes.find(attribute_name);
-      check( attr_it != attr.attributes.end(), "account does not have this attribute set by provided issuer" );
-      check( !attr_it->second.pending.empty(), "nothing to confirm" );
+      check( attr_it != attr.attributes.end() && !attr_it->second.pending.empty(), "nothing to confirm" );
       attributes.modify( attr, same_payer, [&]( auto& attr ) {
          auto& account_attribute = attr.attributes[attribute_name];
          account_attribute.data.swap(account_attribute.pending);
