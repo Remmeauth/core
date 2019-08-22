@@ -41,7 +41,7 @@ namespace eosio {
 
       attribute_info_table attributes_info( _self, attribute_name.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-      check_create_permission(issuer, receiver, attrinfo.ptype);
+      check_permission(issuer, receiver, attrinfo.ptype);
 
       const auto attribute_setter = [&]( auto& attr ) {
          attr.issuer = issuer;
@@ -84,7 +84,7 @@ namespace eosio {
       });
    }
 
-   void attribute::check_create_permission(const name& issuer, const name& receiver, int32_t ptype) const
+   void attribute::check_permission(const name& issuer, const name& receiver, int32_t ptype) const
    {
       if (static_cast<privacy_type>(ptype) == privacy_type::SelfAssigned) {
          check(issuer == receiver, "this attribute can only be self-assigned");

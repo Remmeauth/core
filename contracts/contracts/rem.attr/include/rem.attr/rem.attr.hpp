@@ -53,7 +53,7 @@ namespace eosio {
       typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
       typedef eosio::multi_index< "attributes"_n, attribute_data > attributes_table;
 
-      void check_create_permission(const name& issuer, const name& receiver, int32_t ptype) const;
+      void check_permission(const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;
    };
 
