@@ -541,11 +541,12 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          // voteproducer was done at:     1577836844500000
          // 180 days in microseconds is:  15552000000000
 
-         // eos weight: ~20.057692;
-         // rem weight: ~0.000002;
-         // staked:     399999999000
+         // eos weight:    ~20.057692;
+         // days to mature: 179;
+         // rem weight:    ~0.00555;
+         // staked:         399999999000;
          const auto prod = get_producer_info( "proda" );
-         BOOST_TEST_REQUIRE( 1031774.2926451379 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( 44572649461.217789 == prod["total_votes"].as_double() );
       }
 
       // Day 30
@@ -553,11 +554,26 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
          votepro( N(whale1), { N(proda) } );
 
-         // eos weight: ~20.134615;
-         // rem weight: ~0.170384;
-         // staked:     399999999000
+         // eos weight:    ~20.134615;
+         // days to mature: 149;
+         // rem weight:    ~0.172222;
+         // staked:         399999999000
          const auto prod = get_producer_info( "proda" );
-         BOOST_TEST_REQUIRE( 1372237214636.8337 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( 1387051278583.6543 == prod["total_votes"].as_double() );
+      }
+
+      // Day 30+
+      // `days to mature` and `rem weight` should be the same within 1 day
+      {
+         produce_blocks( 500 );
+         votepro( N(whale1), { N(proda) } );
+
+         // eos weight:    ~20.134615;
+         // days to mature: 149;
+         // rem weight:    ~0.172222;
+         // staked:         399999999000
+         const auto prod = get_producer_info( "proda" );
+         BOOST_TEST_REQUIRE( 1387051278583.6543 == prod["total_votes"].as_double() );
       }
 
       // Day 180
@@ -565,9 +581,10 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(150 * 24 * 3600)); // +150 days
          votepro( N(whale1), { N(proda) } );
 
-         // eos weight: 20.557692;
-         // rem weight: 1.000000;
-         // staked:     399999999000
+         // eos weight:    ~20.557692;
+         // days to mature: 0;
+         // rem weight:     1.000000;
+         // staked:         399999999000
          const auto prod = get_producer_info( "proda" );
          BOOST_TEST_REQUIRE( 8223076902519.2305 == prod["total_votes"].as_double() );
       }
@@ -583,11 +600,12 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          votepro( N(whale1), { N(proda) } );
 
          // adjusted:   now + 0 Days * 40 / 60 + 180 Days * 20 / 60 => 60 Days
-         // eos weight: 20.557692;
-         // rem weight: 0.666667;
-         // staked:     599999999000
+         // days to mature: 59;
+         // eos weight:    ~20.557692;
+         // rem weight:    ~0.672222;
+         // staked:         599999999000
          const auto prod = get_producer_info( "proda" );
-         BOOST_TEST_REQUIRE( 8223077702492.6377 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( 8291602550283.2266 == prod["total_votes"].as_double() );
       }
 
       // Day 210 (30)
@@ -603,11 +621,12 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          votepro( N(whale1), { N(proda) } );
 
          // adjusted:   now + 30 Days * 60 / 80 + 180 Days * 20 / 80 => 67.5 Days
-         // eos weight: 20.634615;
-         // rem weight: 0.625;
-         // staked:     799999999000
+         // days to mature: 66;
+         // eos weight:    ~20.634615;
+         // rem weight:    ~0.633333;
+         // staked:         799999999000
          const auto prod = get_producer_info( "proda" );
-         BOOST_TEST_REQUIRE( 10363317352113.912 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( 10454871781803.203 == prod["total_votes"].as_double() );
       }
    } FC_LOG_AND_RETHROW()
 }
