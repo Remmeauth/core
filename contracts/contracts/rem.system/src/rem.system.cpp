@@ -34,6 +34,7 @@ namespace eosiosystem {
     _global2(_self, _self.value),
     _global3(_self, _self.value),
     _global4(_self, _self.value),
+    _global5(_self, _self.value),
     _rammarket(_self, _self.value),
     _rexpool(_self, _self.value),
     _rexfunds(_self, _self.value),
@@ -45,6 +46,7 @@ namespace eosiosystem {
       _gstate2 = _global2.exists() ? _global2.get() : eosio_global_state2{};
       _gstate3 = _global3.exists() ? _global3.get() : eosio_global_state3{};
       _gstate4 = _global4.exists() ? _global4.get() : get_default_inflation_parameters();
+      _gstate5 = _global5.exists() ? _global5.get() : get_default_parameters5();
    }
 
    eosio_global_state system_contract::get_default_parameters() {
@@ -61,6 +63,13 @@ namespace eosiosystem {
       return gs4;
    }
 
+   eosio_global_state5 system_contract::get_default_parameters5() {
+      eosio_global_state5 gs5;
+      gs5.per_stake_share = 0.6;
+      gs5.per_vote_share = 0.3;
+      return gs5;
+   }
+
    symbol system_contract::core_symbol()const {
       const static auto sym = get_core_symbol( _rammarket );
       return sym;
@@ -71,6 +80,23 @@ namespace eosiosystem {
       _global2.set( _gstate2, _self );
       _global3.set( _gstate3, _self );
       _global4.set( _gstate4, _self );
+      _global5.set( _gstate5, _self );
+   }
+
+   void system_contract::setstakeshare( double share ) {
+      require_auth(_self);
+
+      check(share > 0, "share must be positive");
+      _gstate5.per_stake_share = share;
+      check(_gstate5.per_stake_share + _gstate5.per_vote_share < 1.0, "perstake and pervote shares together must be less than 1.0");
+   }
+
+   void system_contract::setvoteshare( double share ) {
+      require_auth(_self);
+
+      check(share > 0, "share must be positive");
+      _gstate5.per_vote_share = share;
+      check(_gstate5.per_stake_share + _gstate5.per_vote_share < 1.0, "perstake and pervote shares together must be less than 1.0");
    }
 
    void system_contract::setlockperiod( uint64_t period_in_days ) {
@@ -373,8 +399,8 @@ EOSIO_DISPATCH( eosiosystem::system_contract,
      // native.hpp (newaccount definition is actually in rem.system.cpp)
      (newaccount)(updateauth)(deleteauth)(linkauth)(unlinkauth)(canceldelay)(onerror)(setabi)
      // rem.system.cpp
-     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setlockperiod)(setunloperiod)(activate)
-     (rmvproducer)(updtrevision)(bidname)(bidrefund)(setinflation)
+     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setstakeshare)(setvoteshare)
+     (setlockperiod)(setunloperiod)(activate)(rmvproducer)(updtrevision)(bidname)(bidrefund)(setinflation)
      // rex.cpp
      (deposit)(withdraw)(buyrex)(unstaketorex)(sellrex)(cnclrexorder)(rentcpu)(rentnet)(fundcpuloan)(fundnetloan)
      (defcpuloan)(defnetloan)(updaterex)(consolidate)(mvtosavings)(mvfrsavings)(setrex)(rexexec)(closerex)
