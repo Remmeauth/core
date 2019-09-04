@@ -292,31 +292,33 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_REQUIRE_THROW(create_attr(N(tags), 0, 0), eosio_assert_message_exception);
 
         set_attr_expected_t<std::pair<fc::sha256, name>> attr1(N(prodb), N(proda), N(crosschain),
-           "00000000000000000000000000000000000000000000000000000000000000ff000000000000A4BA",
-           std::pair<chain_id_type, name>("00000000000000000000000000000000000000000000000000000000000000ff", N(rem)));
+            // concatenated "00000000000000000000000000000000000000000000000000000000000000ff" and "rem" in hex
+            "00000000000000000000000000000000000000000000000000000000000000ff000000000000A4BA",
+            std::pair<chain_id_type, name>("00000000000000000000000000000000000000000000000000000000000000ff", N(rem)));
         set_attr_expected_t<std::pair<fc::sha256, name>> attr2(N(prodb), N(proda), N(crosschain),
+            // concatenated "000000000000000000000000000000000000000000000000000000000000ffff" and "eosio" in hex
             "000000000000000000000000000000000000000000000000000000000000ffff0000000000EA3055",
             std::pair<chain_id_type, name>("000000000000000000000000000000000000000000000000000000000000ffff", N(eosio)));
         set_attr_expected_t<std::set<std::pair<std::string, std::string>>> attr3(N(rem.attr), N(proda), N(tags),
-            "03013101320133013401350136",
+            "03013101320133013401350136", // encoded set of pairs
             std::set<std::pair<std::string, std::string>>{ std::pair("1", "2"), std::pair("3", "4"), std::pair("5", "6") });
         set_attr_expected_t<std::set<std::pair<std::string, std::string>>> attr4(N(rem.attr), N(rem.attr), N(tags),
-            "02013103323334023536023738",
+            "02013103323334023536023738", // encoded set of pairs
             std::set<std::pair<std::string, std::string>>{ std::pair("1", "234"), std::pair("56", "78") });
         set_attr_expected_t<bool> attr5(N(rem.attr), N(prodb), N(creator),
-            "00",
+            "00", // encoded false
             false);
         set_attr_expected_t<bool> attr6(N(rem.attr), N(rem.attr), N(creator),
-            "01",
+            "01", // encoded false
             true);
         set_attr_expected_t<std::string> attr7(N(prodb), N(prodb), N(name),
-            "06426c61697a65",
+            "06426c61697a65", // encoded string "Blaize"
             "Blaize");
         set_attr_expected_t<int64_t> attr8(N(proda), N(prodb), N(largeint),
-            "0000000000000080",
+            "0000000000000080", // encoded number -9223372036854775808
             -9223372036854775808);
         set_attr_expected_t<int64_t> attr9(N(prodb), N(prodb), N(largeint),
-           "ffffffffffffffff",
+           "ffffffffffffffff", // encoded number -1
            -1);
         for (auto& attr: std::vector<std::reference_wrapper<set_attr_t>>{ attr1, attr2, attr3, attr4, attr5, attr6, attr7, attr8, attr9 }) {
             auto& attr_ref = attr.get();
@@ -330,16 +332,19 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
             BOOST_TEST(attr_ref.isValueOk(data));
         }
 
-        //issuer must have authorization
+        // issuer b1 does not have authorization
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(setattr), N(proda), mvo()("issuer", "b1")("receiver", "prodb")("attribute_name", "crosschain")("value", "00000000000000000000000000000000000000000000000000000000000000ff000000000000A4BA")),
             missing_auth_exception);
-        //non-existing attribute
+        // non-existing attribute
         BOOST_REQUIRE_THROW(set_attr(N(proda), N(prodb), N(nonexisting), ""), eosio_assert_message_exception);
-        //empty value
+        // empty value
         BOOST_REQUIRE_THROW(set_attr(N(proda), N(prodb), N(crosschain), ""), eosio_assert_message_exception);
-        //privacy checks
+        // Privacy checks:
+        // only rem.attr is allowed to set PrivateConfirmedPointer
         BOOST_REQUIRE_THROW(set_attr(N(prodb), N(proda), N(tags), "03013101320133013401350136"), eosio_assert_message_exception);
+        // only rem.attr is allowed to set PrivatePointer
         BOOST_REQUIRE_THROW(set_attr(N(proda), N(proda), N(creator), "01"), eosio_assert_message_exception);
+        // only proda is allowed to assign SelfAssigned attribute to proda
         BOOST_REQUIRE_THROW(set_attr(N(rem.attr), N(proda), N(name), "06426c61697a65"), eosio_assert_message_exception);
 
         //check that PublicConfirmedPointer/PrivateConfirmedPointer attributes are not confirmed
@@ -360,13 +365,19 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["data"].as_string()    == "");
         BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["pending"].as_string() != ""); //not confirmed
 
+        // only proda is allowed to confirm his attributes
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(confirm), N(rem.attr), mvo()("owner", "proda")("issuer", "prodb")("attribute_name", "tags")),
             missing_auth_exception);
+        // account prodb does not have this attribute set by prodc
         BOOST_REQUIRE_THROW(confirm_attr(N(prodb), N(prodc), N(largeint)), eosio_assert_message_exception);
+        // PublicPointer doesnot need to be confirmed
         BOOST_REQUIRE_THROW(confirm_attr(N(proda), N(prodb), N(crosschain)), eosio_assert_message_exception);
+        // account proda does not have this attribute set by rem.attr
         BOOST_REQUIRE_THROW(confirm_attr(N(proda), N(rem.attr), N(largeint)), eosio_assert_message_exception);
+        // non-existing attribute
         BOOST_REQUIRE_THROW(confirm_attr(N(proda), N(prodb), N(nonexisting)), eosio_assert_message_exception);
 
+        // Confirm unconfirmed and check
         confirm_attr(    N(proda),  N(rem.attr),      N(tags));
         confirm_attr( N(rem.attr),  N(rem.attr),      N(tags));
         confirm_attr(    N(prodb),     N(proda),  N(largeint));
@@ -380,9 +391,13 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_TEST(get_account_attribute(    N(prodb),    N(prodb),      N(largeint)) ["data"].as_string()    != "");
         BOOST_TEST(get_account_attribute(    N(prodb),    N(prodb),      N(largeint)) ["pending"].as_string() == "");
 
+        // Reset attribute
         set_attr(N(rem.attr), N(rem.attr), N(tags), "02013103323334023536023739");
+        // Check that it hasn`t been confirmed yet
         BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() != ""); //not confirmed
+        // Confirm attribute
         confirm_attr(N(rem.attr), N(rem.attr), N(tags));
+        // Check that it have been confirmed
         BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() == ""); //confirmed
 
         BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(nonexisting)),  eosio_assert_message_exception); //nonexisting
