@@ -163,7 +163,10 @@ namespace eosiosystem {
    void system_contract::voteproducer( const name& voter_name, const name& proxy, const std::vector<name>& producers ) {
       require_auth( voter_name );
 
-      check( is_block_producer( voter_name ), "only block producers are allowed to vote" );
+      user_resources_table totals_tbl( _self, voter_name.value );
+      const auto& tot = totals_tbl.get( voter_name.value, "producer must have resources" );
+      
+      check( tot.own_stake_amount > system_contract::producer_stake_threshold, "user should stake at least "s + asset(producer_stake_threshold, core_symbol()).to_string() + " to vote"s );
 
       vote_stake_updater( voter_name );
       update_votes( voter_name, proxy, producers, true );
@@ -338,16 +341,6 @@ namespace eosiosystem {
             v.last_vote_weight = new_weight;
          }
       );
-   }
-
-   bool system_contract::does_satisfy_stake_requirement( const name& producer ) const {
-      const auto voter = _voters.find( producer.value );
-
-      if ( voter == _voters.end() ) {
-         return false;
-      }
-
-      return voter->staked >= producer_stake_threshold;
    }
 
    bool system_contract::is_block_producer( const name& producer ) const {

@@ -330,15 +330,6 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
            register_producer(producer);
         }
 
-        // whale3 is not a producer so can't vote
-        BOOST_REQUIRE_THROW( votepro( N(whale3), {N(runnerup1), N(runnerup2), N(runnerup3)} ), eosio_assert_message_exception );
-
-        // register whales as producers
-        const auto whales_as_producers = { N(b1), N(whale1), N(whale2) };
-        for( const auto& producer : whales_as_producers ) {
-           register_producer(producer);
-        }
-
         votepro( N(whale1), {N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
                              N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
                              N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
