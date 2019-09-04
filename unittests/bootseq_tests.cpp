@@ -385,15 +385,21 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         BOOST_REQUIRE_THROW(torewards(N(b1), config::system_account_name, core_from_string("20000.0000")), missing_auth_exception);
         torewards(config::system_account_name, config::system_account_name, core_from_string("20000.0000"));
-        //Counters of expected_produced_blocks
-        //prode - 8
-        const auto saving_balance = get_balance(N(rem.saving)).get_amount();
-        const auto spay_balance = get_balance(N(rem.spay)).get_amount();
-        const auto vpay_balance = get_balance(N(rem.vpay)).get_amount();
+        auto saving_balance = get_balance(N(rem.saving)).get_amount();
+        auto spay_balance = get_balance(N(rem.spay)).get_amount();
+        auto vpay_balance = get_balance(N(rem.vpay)).get_amount();
         BOOST_REQUIRE(saving_balance >= 2000'0000);
-        BOOST_REQUIRE_EQUAL(spay_balance, 14000'0000);
-        BOOST_REQUIRE(vpay_balance <= 4000'0000);
+        BOOST_REQUIRE_EQUAL(spay_balance, 12000'0000);
+        BOOST_REQUIRE(vpay_balance <= 6000'0000);
         BOOST_REQUIRE_EQUAL(saving_balance + spay_balance + vpay_balance, 20000'0000);
+        torewards(config::system_account_name, config::system_account_name, core_from_string("1.0000"));
+        saving_balance = get_balance(N(rem.saving)).get_amount();
+        spay_balance = get_balance(N(rem.spay)).get_amount();
+        vpay_balance = get_balance(N(rem.vpay)).get_amount();
+        BOOST_REQUIRE(saving_balance >= 2000'0000 + 1000);
+        BOOST_REQUIRE_EQUAL(spay_balance, 12000'0000 + 6000);
+        BOOST_REQUIRE(vpay_balance <= 6000'0000 + 3000);
+        BOOST_REQUIRE_EQUAL(saving_balance + spay_balance + vpay_balance, 20001'0000);
 
         for (auto prod: active_schedule.producers) {
            BOOST_TEST(get_pending_pervote_reward(prod.producer_name) > 0);
