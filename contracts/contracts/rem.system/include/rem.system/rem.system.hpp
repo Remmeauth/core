@@ -208,12 +208,12 @@ namespace eosiosystem {
    /**
     * Defines new global state parameters to store torewards distribution
     */
-   struct [[eosio::table("global5"), eosio::contract("rem.system")]] eosio_global_state5 {
-      eosio_global_state5() { }
+   struct [[eosio::table("globalrem"), eosio::contract("rem.system")]] eosio_global_rem_state {
+      eosio_global_rem_state() { }
       double  per_stake_share;
       double  per_vote_share;
 
-      EOSLIB_SERIALIZE( eosio_global_state5, (per_stake_share)(per_vote_share) )
+      EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share) )
    };
 
    /**
@@ -371,7 +371,7 @@ namespace eosiosystem {
     */
    typedef eosio::singleton< "global4"_n, eosio_global_state4 > global_state4_singleton;
 
-   typedef eosio::singleton< "global5"_n, eosio_global_state5 > global_state5_singleton;
+   typedef eosio::singleton< "globalrem"_n, eosio_global_rem_state > global_rem_state_singleton;
 
    //   static constexpr uint32_t     max_inflation_rate = 5;  // 5% annual inflation
    static constexpr uint32_t     seconds_per_day = 24 * 3600;
@@ -553,12 +553,12 @@ namespace eosiosystem {
          global_state2_singleton _global2;
          global_state3_singleton _global3;
          global_state4_singleton _global4;
-         global_state5_singleton _global5;
+         global_rem_state_singleton _globalrem;
          eosio_global_state      _gstate;
          eosio_global_state2     _gstate2;
          eosio_global_state3     _gstate3;
          eosio_global_state4     _gstate4;
-         eosio_global_state5     _gstate5;
+         eosio_global_rem_state  _gremstate;
          rammarket               _rammarket;
          rex_pool_table          _rexpool;
          rex_fund_table          _rexfunds;
@@ -1321,7 +1321,7 @@ namespace eosiosystem {
          //defined in rem.system.cpp
          static eosio_global_state get_default_parameters();
          static eosio_global_state4 get_default_inflation_parameters();
-         static eosio_global_state5 get_default_parameters5();
+         static eosio_global_rem_state get_default_rem_parameters();
          symbol core_symbol()const;
          void update_ram_supply();
 
