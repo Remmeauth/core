@@ -241,12 +241,13 @@ namespace eosiosystem {
 
    void system_contract::update_voting_power( const name& voter, const asset& total_update )
    {
+      const auto ct = current_time_point();
       auto voter_itr = _voters.find( voter.value );
       if( voter_itr == _voters.end() ) {
          voter_itr = _voters.emplace( voter, [&]( auto& v ) {
             v.owner            = voter;
             v.staked           = total_update.amount;
-            v.stake_lock_time = current_time_point() + _gstate.stake_lock_period;
+            v.stake_lock_time =  ct + _gstate.stake_lock_period;
          });
       } else {
          _voters.modify( voter_itr, same_payer, [&]( auto& v ) {
@@ -254,9 +255,9 @@ namespace eosiosystem {
             if ( total_update.amount >= 0 ) {
                const auto restake_rate = double(total_update.amount) / v.staked;
                const auto prevstake_rate = 1 - restake_rate;
-               const auto time_to_stake_unlock = std::max( v.stake_lock_time - current_time_point(), microseconds{} );
+               const auto time_to_stake_unlock = std::max( v.stake_lock_time - ct, microseconds{} );
 
-               v.stake_lock_time = current_time_point()
+               v.stake_lock_time = ct
                      + microseconds{ static_cast< int64_t >( prevstake_rate * time_to_stake_unlock.count() ) }
                      + microseconds{ static_cast< int64_t >( restake_rate * _gstate.stake_lock_period.count() ) };
             }
