@@ -296,7 +296,6 @@ namespace eosiosystem {
       if( is_block_producer(from) && from == receiver )
       {
           const auto &vot = _voters.get(from.value, "user has no resources");
-          check(vot.locked_stake >= unstake_quantity.amount, "cannot undelegate more than was staked");
           check(vot.stake_lock_time <= current_time_point(), "cannot undelegate during stake lock period");
 
           _voters.modify(vot, from, [&](auto &v) {
