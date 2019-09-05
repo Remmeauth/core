@@ -92,10 +92,10 @@ public:
       return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "eosio_global_state", data, abi_serializer_max_time );
    }
 
-   fc::variant get_global_state5() {
-      vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(global5), N(global5) );
+   fc::variant get_global_rem_state() {
+      vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(globalrem), N(globalrem) );
       if (data.empty()) std::cout << "\nData is empty\n" << std::endl;
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "eosio_global_state5", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "eosio_global_rem_state", data, abi_serializer_max_time );
    }
 
     auto delegate_bandwidth( name from, name receiver, asset stake_quantity, uint8_t transfer = 1) {
@@ -409,8 +409,8 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         BOOST_REQUIRE_THROW(base_tester::push_action(config::system_account_name, N(setvoteshare), config::system_account_name, mvo()("share",  0.0)), eosio_assert_message_exception);
         set_pervote_share(0.2);
         set_perstake_share(0.7);
-        BOOST_REQUIRE(get_global_state5()["per_vote_share"].as_double() == 0.2);
-        BOOST_REQUIRE(get_global_state5()["per_stake_share"].as_double() == 0.7);
+        BOOST_REQUIRE(get_global_rem_state()["per_vote_share"].as_double() == 0.2);
+        BOOST_REQUIRE(get_global_rem_state()["per_stake_share"].as_double() == 0.7);
 
         BOOST_REQUIRE_THROW(torewards(N(b1), config::system_account_name, core_from_string("20000.0000")), missing_auth_exception);
         torewards(config::system_account_name, config::system_account_name, core_from_string("20000.0000"));
@@ -424,8 +424,8 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         set_perstake_share(0.6);
         set_pervote_share(0.3);
-        BOOST_REQUIRE(get_global_state5()["per_vote_share"].as_double() == 0.3);
-        BOOST_REQUIRE(get_global_state5()["per_stake_share"].as_double() == 0.6);
+        BOOST_REQUIRE(get_global_rem_state()["per_vote_share"].as_double() == 0.3);
+        BOOST_REQUIRE(get_global_rem_state()["per_stake_share"].as_double() == 0.6);
 
         torewards(config::system_account_name, config::system_account_name, core_from_string("1.0000"));
         saving_balance = get_balance(N(rem.saving)).get_amount();
