@@ -611,10 +611,7 @@ namespace eosiosystem {
          }
 
        [[eosio::action]]
-       void setstakeshare( double share );
-
-       [[eosio::action]]
-       void setvoteshare( double share );
+       void setrwrdratio( double stake_share, double vote_share );
 
        [[eosio::action]]
        void setlockperiod( uint64_t period_in_days);
@@ -1304,8 +1301,7 @@ namespace eosiosystem {
          using setpriv_action = eosio::action_wrapper<"setpriv"_n, &system_contract::setpriv>;
          using setalimits_action = eosio::action_wrapper<"setalimits"_n, &system_contract::setalimits>;
          using setparams_action = eosio::action_wrapper<"setparams"_n, &system_contract::setparams>;
-         using setstakeshare_action = eosio::action_wrapper<"setstakeshare"_n, &system_contract::setstakeshare>;
-         using setvoteshare_action = eosio::action_wrapper<"setvoteshare"_n, &system_contract::setvoteshare>;
+         using setrwrdratio_action = eosio::action_wrapper<"setrwrdratio"_n, &system_contract::setrwrdratio>;
          using setlockperiod_action = eosio::action_wrapper<"setlockperiod"_n, &system_contract::setlockperiod>;
          using setunloperiod_action = eosio::action_wrapper<"setunloperiod"_n, &system_contract::setunloperiod>;
 

@@ -83,20 +83,14 @@ namespace eosiosystem {
       _globalrem.set( _gremstate, _self );
    }
 
-   void system_contract::setstakeshare( double share ) {
+   void system_contract::setrwrdratio( double stake_share, double vote_share ) {
       require_auth(_self);
 
-      check(share > 0, "share must be positive");
-      _gremstate.per_stake_share = share;
-      check(_gremstate.per_stake_share + _gremstate.per_vote_share < 1.0, "perstake and pervote shares together must be less than 1.0");
-   }
-
-   void system_contract::setvoteshare( double share ) {
-      require_auth(_self);
-
-      check(share > 0, "share must be positive");
-      _gremstate.per_vote_share = share;
-      check(_gremstate.per_stake_share + _gremstate.per_vote_share < 1.0, "perstake and pervote shares together must be less than 1.0");
+      check(stake_share > 0, "share must be positive");
+      check(vote_share > 0, "share must be positive");
+      check(stake_share + vote_share < 1.0, "perstake and pervote shares together must be less than 1.0");
+      _gremstate.per_stake_share = stake_share;
+      _gremstate.per_vote_share = vote_share;
    }
 
    void system_contract::setlockperiod( uint64_t period_in_days ) {
@@ -399,7 +393,7 @@ EOSIO_DISPATCH( eosiosystem::system_contract,
      // native.hpp (newaccount definition is actually in rem.system.cpp)
      (newaccount)(updateauth)(deleteauth)(linkauth)(unlinkauth)(canceldelay)(onerror)(setabi)
      // rem.system.cpp
-     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setstakeshare)(setvoteshare)
+     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setrwrdratio)
      (setlockperiod)(setunloperiod)(activate)(rmvproducer)(updtrevision)(bidname)(bidrefund)(setinflation)
      // rex.cpp
      (deposit)(withdraw)(buyrex)(unstaketorex)(sellrex)(cnclrexorder)(rentcpu)(rentnet)(fundcpuloan)(fundnetloan)
