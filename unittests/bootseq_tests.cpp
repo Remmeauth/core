@@ -170,17 +170,10 @@ public:
        return r;
     }
 
-    auto set_perstake_share(double share) {
-       auto r = base_tester::push_action(config::system_account_name, N(setstakeshare), config::system_account_name, mvo()
-          ("share",  share)
-          );
-       produce_block();
-       return r;
-    }
-
-    auto set_pervote_share(double share) {
-       auto r = base_tester::push_action(config::system_account_name, N(setvoteshare), config::system_account_name, mvo()
-          ("share",  share)
+    auto set_reward_ratio( double stake_share, double vote_share ) {
+       auto r = base_tester::push_action(config::system_account_name, N(setrwrdratio), config::system_account_name, mvo()
+          ("stake_share",  stake_share)
+          ("vote_share", vote_share)
           );
        produce_block();
        return r;
@@ -405,10 +398,13 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         //prodp       - 9
         //prodq-produ - 12
 
-        BOOST_REQUIRE_THROW(base_tester::push_action(config::system_account_name, N(setstakeshare), config::system_account_name, mvo()("share",  0.7)), eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(base_tester::push_action(config::system_account_name, N(setvoteshare), config::system_account_name, mvo()("share",  0.0)), eosio_assert_message_exception);
-        set_pervote_share(0.2);
-        set_perstake_share(0.7);
+        BOOST_REQUIRE_THROW(base_tester::push_action(config::system_account_name, N(setrwrdratio),
+                                                     config::system_account_name, mvo()("stake_share",  0.5)("vote_share", 0.5)),
+                            eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(base_tester::push_action(config::system_account_name, N(setrwrdratio),
+                                                     config::system_account_name, mvo()("stake_share",  0.0)("vote_share", 0.5)),
+                            eosio_assert_message_exception);
+        set_reward_ratio(0.7, 0.2);
         BOOST_REQUIRE(get_global_rem_state()["per_vote_share"].as_double() == 0.2);
         BOOST_REQUIRE(get_global_rem_state()["per_stake_share"].as_double() == 0.7);
 
@@ -422,8 +418,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         BOOST_REQUIRE(vpay_balance <= 4000'0000);
         BOOST_REQUIRE_EQUAL(saving_balance + spay_balance + vpay_balance, 20000'0000);
 
-        set_perstake_share(0.6);
-        set_pervote_share(0.3);
+        set_reward_ratio(0.6, 0.3);
         BOOST_REQUIRE(get_global_rem_state()["per_vote_share"].as_double() == 0.3);
         BOOST_REQUIRE(get_global_rem_state()["per_stake_share"].as_double() == 0.6);
 
