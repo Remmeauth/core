@@ -1236,6 +1236,44 @@ struct list_producers_subcommand {
    }
 };
 
+
+struct list_voters_subcommand {
+   bool print_json = false;
+   uint32_t limit = 50;
+   std::string lower;
+
+   list_voters_subcommand(CLI::App* actionRoot) {
+      auto list_producers = actionRoot->add_subcommand("listproducers", localized("List producers"));
+      list_producers->add_flag("--json,-j", print_json, localized("Output in JSON format"));
+      list_producers->add_option("-l,--limit", limit, localized("The maximum number of rows to return"));
+      list_producers->add_option("-L,--lower", lower, localized("lower bound value of key, defaults to first"));
+      list_producers->set_callback([this] {
+         auto rawResult = call(get_voters_func, fc::mutable_variant_object
+            ("json", true)("lower_bound", lower)("limit", limit));
+         if ( print_json ) {
+            std::cout << fc::json::to_pretty_string(rawResult) << std::endl;
+            return;
+         }
+         auto result = rawResult.as<eosio::chain_apis::read_only::get_producers_result>();
+         if ( result.rows.empty() ) {
+            std::cout << "No producers found" << std::endl;
+            return;
+         }
+         auto weight = result.total_producer_vote_weight;
+         if ( !weight )
+            weight = 1;
+         printf("%-13s %-57s %-59s %s\n", "Producer", "Producer key", "Url", "Scaled votes");
+         for ( auto& row : result.rows )
+            printf("%-13.13s %-57.57s %-59.59s %1.4f\n",
+                   row["owner"].as_string().c_str(),
+                   row["producer_key"].as_string().c_str(),
+                   row["url"].as_string().c_str());
+         if ( !result.more.empty() )
+            std::cout << "-L " << result.more << " for more" << std::endl;
+      });
+   }
+};
+
 struct get_schedule_subcommand {
    bool print_json = false;
 
@@ -2203,13 +2241,17 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
                std::cout << indent << "<not voted>" << std::endl;
             }
 
-            auto vote_mature_time = fc::time_point_sec::from_iso_string( obj["vote_mature_time"].as_string() );
-            auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+            const auto last_reassertion_time = fc::time_point_sec::from_iso_string( obj["last_reassertion_time"].as_string() );
+            const auto vote_is_reasserted = (last_reassertion_time + fc::days(7)) > fc::time_point::now();
+
+            const auto vote_mature_time = fc::time_point_sec::from_iso_string( obj["vote_mature_time"].as_string() );
+            const auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
 
             std::cout << std::endl << "voter info:" << std::endl
+                      << indent << "vote is re-asserted: " << std::right << std::setw(20) << (vote_is_reasserted ? "yes" : "no") << std::endl
                       << indent << "stake locked until: " << std::right << std::setw(21) << string(vote_mature_time) << std::endl
                       << indent << "weeks to vote mature: " << std::setw(16) << std::right << weeks_to_mature << "/25" << std::endl
-                      << indent << "power: " << std::right << std::setw(34) << std::fixed << setprecision(3) << weeks_to_mature / 25.0 << std::endl;
+                      << indent << "power: " << std::right << std::setw(34) << std::fixed << setprecision(3) << (1.0 -weeks_to_mature / 25.0) << std::endl;
          } else {
             std::cout << "proxy:" << indent << proxy << std::endl;
          }
