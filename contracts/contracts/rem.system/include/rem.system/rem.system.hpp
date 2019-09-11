@@ -203,7 +203,7 @@ namespace eosiosystem {
    };
 
    /**
-    * Defines new global state parameters to store torewards distribution
+    * Defines new global state parameters to store remme specific parameters
     */
    struct [[eosio::table("globalrem"), eosio::contract("rem.system")]] eosio_global_rem_state {
       eosio_global_rem_state() { }
@@ -226,6 +226,28 @@ namespace eosiosystem {
                                                 (producer_stake_threshold)(stake_lock_period)(stake_unlock_period)
                                                 (reassertion_period) )
    };
+
+   /**
+    * Defines new global state parameters to store inflation rate and distribution
+    */
+   struct [[eosio::table("rotations"), eosio::contract("rem.system")]] rotation_state {
+      std::deque<name>  prods_by_rotation_time;
+      std::deque<name>  standby_prods_by_rotation_time;
+
+      name              bp_out;
+      name              sbp_in;
+      time_point        last_rotation_time;
+      microseconds      rotation_period;
+      uint32_t          standby_prods_to_rotate;
+
+      EOSLIB_SERIALIZE( rotation_state, (prods_by_rotation_time)(standby_prods_by_rotation_time)
+         (bp_out)(sbp_in)(last_rotation_time)(rotation_period)(standby_prods_to_rotate) )
+   };
+
+   /**
+    * Global state singleton added in version 1.0
+    */
+   typedef eosio::singleton< "rotations"_n, rotation_state >   rotation_state_singleton;
 
    /**
     * Defines `producer_info` structure to be stored in `producer_info` table, added after version 1.0
@@ -571,6 +593,9 @@ namespace eosiosystem {
          rex_fund_table          _rexfunds;
          rex_balance_table       _rexbalance;
          rex_order_table         _rexorders;
+
+         rotation_state_singleton _rotation;
+         rotation_state           _grotation;
 
       public:
          static constexpr eosio::name active_permission{"active"_n};
@@ -1426,6 +1451,9 @@ namespace eosiosystem {
 
          // Block producer should reassert its status (via voting) every reassertion_period days
          bool vote_is_reasserted( eosio::time_point last_reassertion_time ) const;
+         
+         //defined in rotation.cpp
+         std::vector<eosio::producer_key> get_rotated_schedule();
 
          template <auto system_contract::*...Ptrs>
          class registration {
