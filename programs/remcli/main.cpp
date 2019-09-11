@@ -72,6 +72,7 @@ Options:
 ```
 */
 
+#include <algorithm>
 #include <pwd.h>
 #include <string>
 #include <vector>
@@ -2201,6 +2202,14 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
             } else {
                std::cout << indent << "<not voted>" << std::endl;
             }
+
+            auto vote_mature_time = fc::time_point_sec::from_iso_string( obj["vote_mature_time"].as_string() );
+            auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+
+            std::cout << std::endl << "voter info:" << std::endl
+                      << indent << "stake locked until: " << std::right << std::setw(21) << string(vote_mature_time) << std::endl
+                      << indent << "weeks to vote mature: " << std::setw(16) << std::right << weeks_to_mature << "/25" << std::endl
+                      << indent << "power: " << std::right << std::setw(34) << std::fixed << setprecision(3) << weeks_to_mature / 25.0 << std::endl;
          } else {
             std::cout << "proxy:" << indent << proxy << std::endl;
          }
