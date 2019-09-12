@@ -1243,7 +1243,7 @@ struct list_voters_subcommand {
    std::string lower;
 
    list_voters_subcommand(CLI::App* actionRoot) {
-      auto list_producers = actionRoot->add_subcommand("listproducers", localized("List producers"));
+      auto list_producers = actionRoot->add_subcommand("listvoters", localized("List voters"));
       list_producers->add_flag("--json,-j", print_json, localized("Output in JSON format"));
       list_producers->add_option("-l,--limit", limit, localized("The maximum number of rows to return"));
       list_producers->add_option("-L,--lower", lower, localized("lower bound value of key, defaults to first"));
@@ -1254,14 +1254,12 @@ struct list_voters_subcommand {
             std::cout << fc::json::to_pretty_string(rawResult) << std::endl;
             return;
          }
-         auto result = rawResult.as<eosio::chain_apis::read_only::get_producers_result>();
+         auto result = rawResult.as<eosio::chain_apis::read_only::get_voters_result>();
          if ( result.rows.empty() ) {
             std::cout << "No producers found" << std::endl;
             return;
          }
-         auto weight = result.total_producer_vote_weight;
-         if ( !weight )
-            weight = 1;
+
          printf("%-13s %-57s %-59s %s\n", "Producer", "Producer key", "Url", "Scaled votes");
          for ( auto& row : result.rows )
             printf("%-13.13s %-57.57s %-59.59s %1.4f\n",
