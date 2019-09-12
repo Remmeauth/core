@@ -1697,10 +1697,34 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
          break;
       }
       copy_inline_row(*kv_index.find(boost::make_tuple(table_id->id, it->primary_key)), data);
-      if (p.json)
-         result.rows.emplace_back( abis.binary_to_variant( abis.get_table_type(N(producers)), data, abi_serializer_max_time, shorten_abi_errors ) );
-      else
-         result.rows.emplace_back(fc::variant(data));
+
+      fc::variant data_var;
+      if( p.json ) {
+         data_var = abis.binary_to_variant( abis.get_table_type(N(producers)), data, abi_serializer_max_time, shorten_abi_errors );
+      } else {
+         data_var = fc::variant( data );
+      }
+
+      auto t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, config::system_account_name, N(voters) ));
+      if (t_id != nullptr) {
+         const auto &idx = d.get_index<key_value_index, by_scope_primary>();
+         auto voter_it = idx.find(boost::make_tuple( t_id->id, name{it->primary_key} ));
+         if ( voter_it != idx.end() ) {
+            vector<char> data;
+            copy_inline_row(*voter_it, data);
+
+            fc::variant voter_info;
+            if (p.json) {
+               voter_info = abis.binary_to_variant(abis.get_table_type(N(voters)), data, abi_serializer_max_time, shorten_abi_errors);
+            } else {
+               voter_info = fc::variant(data);
+            }
+
+            data_var = fc::mutable_variant_object(std::move(data_var))("voter", fc::variant(voter_info));
+         }
+      }
+
+      result.rows.emplace_back( std::move(data_var) );
    }
 
    result.total_producer_vote_weight = get_global_row(d, abi, abis, abi_serializer_max_time, shorten_abi_errors)["total_producer_vote_weight"].as_double();
@@ -1748,13 +1772,11 @@ read_only::get_voters_result read_only::get_voters( const read_only::get_voters_
 
          copy_inline_row(*it, data);
          if (p.json)
+         
             result.rows.emplace_back( abis.binary_to_variant( abis.get_table_type(N(voters)), data, abi_serializer_max_time, shorten_abi_errors ) );
          else
             result.rows.emplace_back(fc::variant(data));         
       }
-
-      fc::variant row = fc::mutable_variant_object()("error", "No error");
-      result.rows.push_back(row);
    }
    catch (...) {
       FC_LOG_MESSAGE(error, "Exception in: ${func}", ("func",__FUNCTION__));
