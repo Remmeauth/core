@@ -164,11 +164,17 @@ public:
 
     fc::variant get_attribute_info( const account_name& attribute ) {
         vector<char> data = get_row_by_account( N(rem.attr), attribute, N(attrinfo), attribute );
+        if (data.empty()) {
+            return fc::variant();
+        }
         return abi_ser.binary_to_variant( "attribute_info", data, abi_serializer_max_time );
     }
 
     fc::variant get_account_attribute( const account_name& account, const account_name& issuer, const account_name& attribute ) {
         vector<char> data = get_row_by_account( N(rem.attr), account, N(attributes), issuer );
+        if (data.empty()) {
+            return fc::variant();
+        }
         const auto attr_obj = abi_ser.binary_to_variant( "attribute_data", data, abi_serializer_max_time );
         const auto arr = attr_obj["attributes"].get_array();
         for (const auto& elem: arr) {
