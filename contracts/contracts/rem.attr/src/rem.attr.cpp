@@ -7,14 +7,14 @@ namespace eosio {
    {
       require_auth(owner);
 
-      attributes_table attributes( _self, owner.value );
-      const auto& attr = attributes.get( issuer.value, "account does not have this attribute set by provided issuer" );
-      const auto attr_it = attr.attributes.find(attribute_name);
-      check( attr_it != attr.attributes.end() && !attr_it->second.pending.empty(), "nothing to confirm" );
-      attributes.modify( attr, same_payer, [&]( auto& attr ) {
-         auto& account_attribute = attr.attributes[attribute_name];
-         account_attribute.data.swap(account_attribute.pending);
-         account_attribute.pending.clear();
+      attributes_table attributes( _self, attribute_name.value );
+      auto idx = attributes.get_index<"reciss"_n>();
+      const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(owner, issuer) );
+      check( attr_it != idx.end() && !attr_it->attribute.pending.empty(), "nothing to confirm" );
+      print("\n\n", attr_it->attribute.pending.size(), "\n\n");
+      idx.modify( attr_it, same_payer, [&]( auto& attr ) {
+         attr.attribute.data.swap(attr.attribute.pending);
+         attr.attribute.pending.clear();
       });
    }
 
@@ -24,7 +24,7 @@ namespace eosio {
       check( type >= 0 && type < static_cast<int32_t>( data_type::MaxVal ), "attribute type is out of range" );
       check( ptype >= 0 && ptype < static_cast<int32_t>( privacy_type::MaxVal ), "attribute privacy type is out of range" );
 
-      attribute_info_table attributes_info( _self, attribute_name.value );
+      attribute_info_table attributes_info( _self, _self.value );
       check( attributes_info.find( attribute_name.value ) == attributes_info.end(), "attribute with this name already exists" );
 
       attributes_info.emplace( _self, [&]( auto& attr ) {
@@ -34,54 +34,106 @@ namespace eosio {
       });
    }
 
+   void attribute::invalidate( const name& attribute_name )
+   {
+      require_auth( _self );
+
+      attribute_info_table attributes_info( _self, _self.value );
+      const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
+
+      attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
+         a.valid = false;
+      });
+   }
+
+   void attribute::remove( const name& attribute_name )
+   {
+      require_auth( _self );
+
+      attribute_info_table attributes_info( _self, _self.value );
+      const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
+
+      attributes_table attributes( _self, attribute_name.value );
+      check( attributes.begin() == attributes.end(), "unable to delete" );
+      attributes_info.erase(attrinfo);
+   }
+
    void attribute::setattr( const name& issuer, const name& receiver, const name& attribute_name, const std::vector<char>& value )
    {
       require_auth( issuer );
       require_recipient( receiver );
       check( !value.empty(), "value is empty" );
 
-      attribute_info_table attributes_info( _self, attribute_name.value );
+      attribute_info_table attributes_info( _self, _self.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
+      check(attrinfo.next_id < std::numeric_limits<uint64_t>::max(), "attribute storage is full");
+      check( attrinfo.is_valid(), "this attribute is beeing deleted" );
       check_permission(issuer, receiver, attrinfo.ptype);
 
-      const auto attribute_setter = [&]( auto& attr ) {
-         attr.issuer = issuer;
-         if (need_confirm(attrinfo.ptype)) {
-            attr.attributes[attribute_name].pending = value;
-         }
-         else {
-            attr.attributes[attribute_name].data = value;
-         }
-      };
+      const auto id = attrinfo.next_id;
 
-      attributes_table attributes( _self, receiver.value );
-      const auto attr_it = attributes.find( issuer.value );
-      if ( attr_it == attributes.end() ) {
-         attributes.emplace( issuer, attribute_setter);
+      attributes_table attributes( _self, attribute_name.value );
+      auto idx = attributes.get_index<"reciss"_n>();
+      const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(receiver, issuer) );
+      if ( attr_it == idx.end() ) {
+         attributes.emplace( issuer, [&]( auto& attr ) {
+            attr.id = id;
+            attr.issuer = issuer;
+            attr.receiver = receiver;
+            if (need_confirm(attrinfo.ptype)) {
+               attr.attribute.pending = value;
+            }
+            else {
+               attr.attribute.data = value;
+            }
+         });
       } else {
-         attributes.modify( attr_it, issuer, attribute_setter);
+         idx.modify( attr_it, issuer, [&]( auto& attr ) {
+            attr.issuer = issuer;
+            attr.receiver = receiver;
+            if (need_confirm(attrinfo.ptype)) {
+               attr.attribute.pending = value;
+            }
+            else {
+               attr.attribute.data = value;
+            }
+         });
       }
+
+      attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
+         a.next_id += 1;
+      });
    }
 
    void attribute::unsetattr( const name& issuer, const name& receiver, const name& attribute_name )
    {
-      attribute_info_table attributes_info( _self, attribute_name.value );
+      attribute_info_table attributes_info( _self, _self.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
 
-      if (need_confirm(attrinfo.ptype)) {
-         check( has_auth(issuer) || has_auth(receiver), "missing required authority" );
-      }
-      else {
-         require_auth( issuer );
+      if (attrinfo.is_valid()) { // when attribute became invalid anyone can unset
+         if (need_confirm(attrinfo.ptype)) {
+            check(has_auth(issuer) || has_auth(receiver), "missing required authority");
+         } else {
+            require_auth(issuer);
+         }
       }
       require_recipient( receiver );
 
-      attributes_table attributes( _self, receiver.value );
-      const auto& attr = attributes.get( issuer.value, "attribute hasn`t been set for account" );
-      const auto attr_it = attr.attributes.find(attribute_name);
-      check( attr_it != attr.attributes.end(), "attribute hasn`t been set for account" );
-      attributes.modify( attr, issuer, [&]( auto& attr ) {
-         attr.attributes.erase(attr_it);
+      attributes_table attributes( _self, attribute_name.value );
+      auto idx = attributes.get_index<"reciss"_n>();
+      const auto attr_it = idx.require_find( attribute_data::combine_receiver_issuer(receiver, issuer), "attribute hasn`t been set for account" );
+      const auto erased_id = attr_it->id;
+      idx.erase(attr_it);
+      if (erased_id != attrinfo.next_id - 1) {
+         const auto attr_to_move = attributes.get(attrinfo.next_id - 1);
+         attributes.erase(attr_to_move);
+         attributes.emplace( attr_to_move.issuer, [&]( auto& attr ) {
+            attr = attr_to_move;
+            attr.id = erased_id;
+         });
+      }
+      attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
+         a.next_id -= 1;
       });
    }
 

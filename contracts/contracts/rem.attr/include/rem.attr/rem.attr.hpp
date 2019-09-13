@@ -16,15 +16,23 @@ namespace eosio {
       void create( const name& attribute_name, int32_t type, int32_t ptype );
 
       [[eosio::action]]
+      void invalidate( const name& attribute_name );
+
+      [[eosio::action]]
+      void remove( const name& attribute_name );
+
+      [[eosio::action]]
       void setattr( const name& issuer, const name& receiver, const name& attribute_name, const std::vector<char>& value );
 
       [[eosio::action]]
       void unsetattr( const name& issuer, const name& receiver, const name& attribute_name );
 
-      using confirm_action   = eosio::action_wrapper<"confirm"_n,     &attribute::confirm>;
-      using create_action    = eosio::action_wrapper<"create"_n,       &attribute::create>;
-      using setattr_action   = eosio::action_wrapper<"setattr"_n,     &attribute::setattr>;
-      using unsetattr_action = eosio::action_wrapper<"unsetattr"_n, &attribute::unsetattr>;
+      using confirm_action    = eosio::action_wrapper<"confirm"_n,       &attribute::confirm>;
+      using create_action     = eosio::action_wrapper<"create"_n,         &attribute::create>;
+      using invalidate_action = eosio::action_wrapper<"invalidate"_n, &attribute::invalidate>;
+      using remove_action     = eosio::action_wrapper<"remove"_n,         &attribute::remove>;
+      using setattr_action    = eosio::action_wrapper<"setattr"_n,       &attribute::setattr>;
+      using unsetattr_action  = eosio::action_wrapper<"unsetattr"_n,   &attribute::unsetattr>;
 
    private:
       enum class data_type : int32_t { Boolean = 0, Int, LargeInt, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, MaxVal };
@@ -34,9 +42,15 @@ namespace eosio {
          name    attribute_name;
          int32_t type;
          int32_t ptype;
+         bool valid = true;
+
+         uint64_t next_id = 0;
 
          uint64_t primary_key() const { return attribute_name.value; }
+         bool is_valid() const { return valid; }
       };
+      typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
+
 
       struct attribute_t {
          std::vector<char>  data;
@@ -44,14 +58,27 @@ namespace eosio {
       };
 
       struct [[eosio::table]] attribute_data {
-         name                        issuer;
-         std::map<name, attribute_t> attributes;
+         uint64_t     id;
+         name         receiver;
+         name         issuer;
+         attribute_t  attribute;
 
-         uint64_t primary_key() const { return issuer.value; }
+         uint64_t primary_key() const { return id; }
+         uint64_t by_receiver() const { return receiver.value; }
+         uint64_t by_issuer()   const { return issuer.value; }
+         uint128_t by_receiver_issuer() const { return combine_receiver_issuer(receiver, issuer); }
+
+         static uint128_t combine_receiver_issuer(name receiver, name issuer)
+         {
+            uint128_t result = receiver.value;
+            result <<= 64;
+            result |= issuer.value;
+            return result;
+         }
       };
-
-      typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
-      typedef eosio::multi_index< "attributes"_n, attribute_data > attributes_table;
+      typedef eosio::multi_index< "attributes"_n, attribute_data,
+         indexed_by<"reciss"_n, const_mem_fun<attribute_data, uint128_t, &attribute_data::by_receiver_issuer>  >
+         > attributes_table;
 
       void check_permission(const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;
