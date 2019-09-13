@@ -1691,6 +1691,9 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
                boost::make_tuple(secondary_table_id->id, lower.value)));
    }();
 
+   const auto voter_table_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, config::system_account_name, N(voters) ));
+   const auto &idx = d.get_index<key_value_index, by_scope_primary>();
+
    for( ; it != secondary_index_by_secondary.end() && it->t_id == secondary_table_id->id; ++it ) {
       if (result.rows.size() >= p.limit || fc::time_point::now() > stopTime) {
          result.more = name{it->primary_key}.to_string();
@@ -1705,21 +1708,15 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
          data_var = fc::variant( data );
       }
 
-      auto t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, config::system_account_name, N(voters) ));
-      if (t_id != nullptr) {
-         const auto &idx = d.get_index<key_value_index, by_scope_primary>();
-         auto voter_it = idx.find(boost::make_tuple( t_id->id, name{it->primary_key} ));
+      // we do not inject voter info into binary representation to not break ABI
+      if (p.json && voter_table_id != nullptr) {
+         auto voter_it = idx.find(boost::make_tuple( voter_table_id->id, name{it->primary_key} ));
+
          if ( voter_it != idx.end() ) {
             vector<char> data;
             copy_inline_row(*voter_it, data);
 
-            fc::variant voter_info;
-            if (p.json) {
-               voter_info = abis.binary_to_variant(abis.get_table_type(N(voters)), data, abi_serializer_max_time, shorten_abi_errors);
-            } else {
-               voter_info = fc::variant(data);
-            }
-
+            fc::variant voter_info = abis.binary_to_variant(abis.get_table_type(N(voters)), data, abi_serializer_max_time, shorten_abi_errors);
             data_var = fc::mutable_variant_object(std::move(data_var))
                ("vote_mature_time", voter_info["vote_mature_time"])
                ("last_reassertion_time", voter_info["last_reassertion_time"]);
