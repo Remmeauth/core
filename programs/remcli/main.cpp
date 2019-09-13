@@ -1223,13 +1223,23 @@ struct list_producers_subcommand {
          auto weight = result.total_producer_vote_weight;
          if ( !weight )
             weight = 1;
-         printf("%-13s %-57s %-59s %s\n", "Producer", "Producer key", "Url", "Scaled votes");
-         for ( auto& row : result.rows )
-            printf("%-13.13s %-57.57s %-59.59s %1.4f\n",
+         printf("%-13s %-57s %-59s %-12s %19s %15s\n", "Producer", "Producer key", "Url", "Scaled votes", "Vote is re-asserted", "Vote maturing rate");
+         for ( auto& row : result.rows ) {
+            const auto last_reassertion_time = fc::time_point_sec::from_iso_string( row["last_reassertion_time"].as_string() );
+            const auto vote_is_reasserted = (last_reassertion_time + fc::days(7)) > fc::time_point::now();
+
+            const auto vote_mature_time = fc::time_point_sec::from_iso_string( row["vote_mature_time"].as_string() );
+            const auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+
+            printf("%-13.13s %-57.57s %-59.59s %-12.4f %19s %15li/25\n",
                    row["owner"].as_string().c_str(),
                    row["producer_key"].as_string().c_str(),
                    row["url"].as_string().c_str(),
-                   row["total_votes"].as_double() / weight);
+                   row["total_votes"].as_double() / weight,
+                   (vote_is_reasserted ? "Yes" : "No"),
+                   weeks_to_mature
+                  );
+         }
          if ( !result.more.empty() )
             std::cout << "-L " << result.more << " for more" << std::endl;
       });
