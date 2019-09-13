@@ -135,47 +135,6 @@ namespace eosiosystem {
             });
          }
          update_pervote_shares();
-
-         //TODO: update prods_by_rotation_time and standby_prods_by_rotation_time
-         auto sortedprods = _producers.get_index<"prototalvote"_n>();
-         std::vector<name> top_prods;
-         std::vector<name> rotating_standby;
-         std::deque<name> prods_by_rotation_time;
-         std::deque<name> standby_prods_by_rotation_time;
-         top_prods.reserve(max_block_producers);
-         auto prod_it = sortedprods.begin();
-         for (; top_prods.size() < max_block_producers &&
-                prod_it != sortedprods.end() && 0 < prod_it->total_votes && prod_it->active(); prod_it++) {
-            top_prods.push_back(prod_it->owner);
-            if (std::find(std::begin(_grotation.prods_by_rotation_time), std::end(_grotation.prods_by_rotation_time), prod_it->owner) ==
-                  std::end(_grotation.prods_by_rotation_time)) {
-               //insert new producers
-               prods_by_rotation_time.push_back(prod_it->owner);
-            }
-         }
-         if (top_prods.size() == max_block_producers) {
-            for (; rotating_standby.size() < _grotation.standby_prods_to_rotate &&
-                   prod_it != sortedprods.end() && 0 < prod_it->total_votes && prod_it->active(); prod_it++) {
-               rotating_standby.push_back(prod_it->owner);
-               if (std::find(std::begin(_grotation.standby_prods_by_rotation_time), std::end(_grotation.standby_prods_by_rotation_time), prod_it->owner) ==
-                     std::end(_grotation.standby_prods_by_rotation_time)) {
-                  //insert new standby producers
-                  standby_prods_by_rotation_time.push_back(prod_it->owner);
-               }
-            }
-         }
-         for (auto it = std::rbegin(_grotation.prods_by_rotation_time); it != std::rend(_grotation.prods_by_rotation_time); it++) {
-            if (std::find(std::begin(top_prods), std::end(top_prods), *it) != std::end(top_prods)) {
-               prods_by_rotation_time.push_front(*it);
-            }
-         }
-         for (auto it = std::rbegin(_grotation.standby_prods_by_rotation_time); it != std::rend(_grotation.standby_prods_by_rotation_time); it++) {
-            if (std::find(std::begin(rotating_standby), std::end(rotating_standby), *it) != std::end(rotating_standby)) {
-               standby_prods_by_rotation_time.push_front(*it);
-            }
-         }
-         _grotation.prods_by_rotation_time = prods_by_rotation_time;
-         _grotation.standby_prods_by_rotation_time = standby_prods_by_rotation_time;
       }
 
       if( _gstate.last_pervote_bucket_fill == time_point() )  /// start the presses
