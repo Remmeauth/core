@@ -89,15 +89,14 @@ namespace eosiosystem {
       }
 
       //get top21 list and replace rotated out producer with standby if rotation pair is set
-      auto schedule = std::move(top_prods);
       if (_grotation.bp_out != name(0) && _grotation.sbp_in != name(0)) {
-         const auto bp_it = std::find_if(std::begin(schedule), std::end(schedule),
+         const auto bp_it = std::find_if(std::begin(top_prods), std::end(top_prods),
             [this](const auto& prod_key) { return prod_key.producer_name == _grotation.bp_out; });
-         if (bp_it != std::end(schedule)) {
+         if (bp_it != std::end(top_prods)) {
             const auto& prod = _producers.get(_grotation.sbp_in.value);
             *bp_it = eosio::producer_key{ prod.owner, prod.producer_key };
          }
       }
-      return schedule;
+      return top_prods;
    }
 } /// namespace eosiosystem

@@ -98,22 +98,16 @@ namespace eosiosystem {
    void system_contract::update_elected_producers( const block_timestamp& block_time ) {
       _gstate.last_producer_schedule_update = block_time;
 
-      auto top_producers = get_rotated_schedule();
-      if ( top_producers.size() == 0 || top_producers.size() < _gstate.last_producer_schedule_size ) {
+      auto producers = get_rotated_schedule();
+      if ( producers.size() == 0 || producers.size() < _gstate.last_producer_schedule_size ) {
          return;
       }
 
       /// sort by producer name
-      std::sort( top_producers.begin(), top_producers.end() );
-
-      std::vector<eosio::producer_key> producers;
-
-      producers.reserve(top_producers.size());
-      for( const auto& item : top_producers )
-         producers.push_back(item);
+      std::sort( producers.begin(), producers.end() );
 
       if( set_proposed_producers( producers ) >= 0 ) {
-         _gstate.last_producer_schedule_size = static_cast<decltype(_gstate.last_producer_schedule_size)>( top_producers.size() );
+         _gstate.last_producer_schedule_size = static_cast<decltype(_gstate.last_producer_schedule_size)>( producers.size() );
       }
    }
 
