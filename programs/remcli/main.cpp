@@ -876,7 +876,7 @@ void ensure_remvault_running(CLI::App* app) {
     if (app->get_subcommand("create")->got_subcommand("key")) // create key does not require wallet
        return;
     if (auto* subapp = app->get_subcommand("system")) {
-       if (subapp->got_subcommand("listproducers") || subapp->got_subcommand("listbw") || subapp->got_subcommand("bidnameinfo")) // system list* do not require wallet
+       if (subapp->got_subcommand("listproducers") || subapp->got_subcommand("listvoters") || subapp->got_subcommand("listbw") || subapp->got_subcommand("bidnameinfo")) // system list* do not require wallet
          return;
     }
     if (wallet_url != default_wallet_url)
@@ -1256,16 +1256,26 @@ struct list_voters_subcommand {
          }
          auto result = rawResult.as<eosio::chain_apis::read_only::get_voters_result>();
          if ( result.rows.empty() ) {
-            std::cout << "No producers found" << std::endl;
+            std::cout << "No voters found" << std::endl;
             return;
          }
 
-         printf("%-13s %-57s %-59s %s\n", "Producer", "Producer key", "Url", "Scaled votes");
-         for ( auto& row : result.rows )
-            printf("%-13.13s %-57.57s %-59.59s %1.4f\n",
+         printf("%-13s %-21.21s %-19s %-18s %s\n", "Voter", "Last vote weight", "Vote is re-asserted", "Vote maturing rate", "Staked");
+         for ( auto& row : result.rows ) {
+            const auto last_reassertion_time = fc::time_point_sec::from_iso_string( row["last_reassertion_time"].as_string() );
+            const auto vote_is_reasserted = (last_reassertion_time + fc::days(7)) > fc::time_point::now();
+
+            const auto vote_mature_time = fc::time_point_sec::from_iso_string( row["vote_mature_time"].as_string() );
+            const auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+
+            printf("%-13s %-21.21s %19s %15li/25 %s\n",
                    row["owner"].as_string().c_str(),
-                   row["producer_key"].as_string().c_str(),
-                   row["url"].as_string().c_str());
+                   row["last_vote_weight"].as_string().c_str(),
+                   (vote_is_reasserted ? "Yes" : "No"),
+                   weeks_to_mature,
+                   row["staked"].as_string().c_str()
+                  );
+         }
          if ( !result.more.empty() )
             std::cout << "-L " << result.more << " for more" << std::endl;
       });
@@ -3826,6 +3836,7 @@ int main( int argc, char** argv ) {
    auto unapproveProducer = unapprove_producer_subcommand(voteProducer);
 
    auto listProducers = list_producers_subcommand(system);
+   auto listVoters = list_voters_subcommand(system);
 
    auto delegateBandWidth = delegate_bandwidth_subcommand(system);
    auto undelegateBandWidth = undelegate_bandwidth_subcommand(system);

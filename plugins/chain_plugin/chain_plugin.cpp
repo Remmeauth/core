@@ -1720,7 +1720,9 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
                voter_info = fc::variant(data);
             }
 
-            data_var = fc::mutable_variant_object(std::move(data_var))("voter", fc::variant(voter_info));
+            data_var = fc::mutable_variant_object(std::move(data_var))
+               ("vote_mature_time", voter_info["vote_mature_time"])
+               ("last_reassertion_time", voter_info["last_reassertion_time"]);
          }
       }
 
