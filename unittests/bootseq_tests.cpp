@@ -437,11 +437,13 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         BOOST_TEST(active_schedule.producers.at(13).producer_name == "prodn");
         BOOST_TEST(active_schedule.producers.at(14).producer_name == "prodo");
         BOOST_TEST(active_schedule.producers.at(15).producer_name == "prodp");
-        BOOST_TEST(active_schedule.producers.at(16).producer_name == "prodq");
-        BOOST_TEST(active_schedule.producers.at(17).producer_name == "prodr");
-        BOOST_TEST(active_schedule.producers.at(18).producer_name == "prods");
-        BOOST_TEST(active_schedule.producers.at(19).producer_name == "prodt");
-        BOOST_TEST(active_schedule.producers.at(20).producer_name == "produ");
+        BOOST_TEST(active_schedule.producers.at(16).producer_name == "prodr");
+        BOOST_TEST(active_schedule.producers.at(17).producer_name == "prods");
+        BOOST_TEST(active_schedule.producers.at(18).producer_name == "prodt");
+        BOOST_TEST(active_schedule.producers.at(19).producer_name == "produ");
+        BOOST_TEST(active_schedule.producers.at(20).producer_name == "runnerup1");
+        BOOST_TEST(get_rotated_producers().first == N(prodq));
+        BOOST_TEST(get_rotated_producers().second == N(runnerup1));
         BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
 
         BOOST_REQUIRE_THROW(base_tester::push_action(config::system_account_name, N(setrwrdratio),
@@ -480,61 +482,8 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         for (auto prod: active_schedule.producers) {
            BOOST_TEST(get_pending_pervote_reward(prod.producer_name) > 0);
         }
+        BOOST_TEST(get_pending_pervote_reward(N(prodq)) == 0);
 
-        produce_blocks_until_schedule_is_changed(2000);
-        produce_block();
-        //schedule isn`t changed so no expected_produced_blocks calculated
-        for( auto prod : producer_candidates ) {
-            BOOST_REQUIRE(get_expected_produced_blocks(prod) == 0);
-        }
-
-        //update active schedule so we can check pending rewards after next schedule becomes active
-        active_schedule = control->head_block_state()->active_schedule;
-        BOOST_REQUIRE(active_schedule.producers.size() == 21);
-        BOOST_TEST(active_schedule.producers.at(0).producer_name == "proda");
-        BOOST_TEST(active_schedule.producers.at(1).producer_name == "prodb");
-        BOOST_TEST(active_schedule.producers.at(2).producer_name == "prodc");
-        BOOST_TEST(active_schedule.producers.at(3).producer_name == "prodd");
-        BOOST_TEST(active_schedule.producers.at(4).producer_name == "prode");
-        BOOST_TEST(active_schedule.producers.at(5).producer_name == "prodf");
-        BOOST_TEST(active_schedule.producers.at(6).producer_name == "prodg");
-        BOOST_TEST(active_schedule.producers.at(7).producer_name == "prodh");
-        BOOST_TEST(active_schedule.producers.at(8).producer_name == "prodi");
-        BOOST_TEST(active_schedule.producers.at(9).producer_name == "prodj");
-        BOOST_TEST(active_schedule.producers.at(10).producer_name == "prodk");
-        BOOST_TEST(active_schedule.producers.at(11).producer_name == "prodl");
-        BOOST_TEST(active_schedule.producers.at(12).producer_name == "prodm");
-        BOOST_TEST(active_schedule.producers.at(13).producer_name == "prodn");
-        BOOST_TEST(active_schedule.producers.at(14).producer_name == "prodo");
-        BOOST_TEST(active_schedule.producers.at(15).producer_name == "prodp");
-        BOOST_TEST(active_schedule.producers.at(16).producer_name == "prodr");
-        BOOST_TEST(active_schedule.producers.at(17).producer_name == "prods");
-        BOOST_TEST(active_schedule.producers.at(18).producer_name == "prodt");
-        BOOST_TEST(active_schedule.producers.at(19).producer_name == "produ");
-        BOOST_TEST(active_schedule.producers.at(20).producer_name == "runnerup1");
-        BOOST_TEST(get_rotated_producers().first == N(prodq));
-        BOOST_TEST(get_rotated_producers().second == N(runnerup1));
-        BOOST_TEST(get_pending_pervote_reward(N(runnerup1)) == 0);
-        BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
-
-        produce_block();
-        //Counters of expected_produced_blocks
-        //proda-prodl - 36
-        //prodm       - 45
-        //prodn-prodo - 48
-        //prodp       - 37
-        //prodq-produ - 36
-        for (auto prod: { N(proda), N(prodb), N(prodc), N(prode), N(prodf), N(prodg), N(prodh), N(prodi), N(prodj), N(prodk), N(prodl) }) {
-           BOOST_TEST(get_expected_produced_blocks(prod) == 36);
-        }
-        BOOST_TEST(get_expected_produced_blocks(N(prodm)) == 45); //first producer in round
-        for (auto prod: { N(prodn), N(prodo) }) {
-           BOOST_TEST(get_expected_produced_blocks(prod) == 48);
-        }
-        BOOST_TEST(get_expected_produced_blocks(N(prodp)) == 37); //last producer in round
-        for (auto prod: { N(prodq), N(prodr), N(prods), N(prodt), N(produ) }) {
-           BOOST_TEST(get_expected_produced_blocks(prod) == 36);
-        }
         // make changes to top 21 producer list
         votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
                            N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
@@ -542,18 +491,34 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
                            N(runnerup2)} );
         BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
         produce_blocks_until_schedule_is_changed(2000);
-        produce_blocks(2);
+        produce_block();
+        //schedule isn`t changed so no expected_produced_blocks calculated
+        for( auto prod : producer_candidates ) {
+           BOOST_REQUIRE(get_expected_produced_blocks(prod) == 0);
+        }
+        produce_block();
         BOOST_TEST(get_rotated_producers().first == N(prodq));
         BOOST_TEST(get_rotated_producers().second == N(runnerup1));
         BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
 
-        BOOST_TEST(get_expected_produced_blocks(N(prodq)) == 36); //wasn`t in second schedule, so expected_produced_blocks haven`t changed
-        for (auto prod: { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg), N(prodh), N(prodi), N(prodj), N(prodk), N(prodl) }) {
-           BOOST_TEST(get_expected_produced_blocks(prod) == 72);
+        //Counters of expected_produced_blocks
+        //proda-prodl - 36
+        //prodm       - 45
+        //prodn-prodo - 48
+        //prodp       - 37
+        //prodr-produ - 36
+        //runnerup1   - 36
+        BOOST_TEST(get_pending_pervote_reward(N(prodq)) == 0); //prodq was rotated out
+        for (auto prod: { N(proda), N(prodb), N(prodc), N(prode), N(prodf), N(prodg), N(prodh), N(prodi), N(prodj), N(prodk), N(prodl) }) {
+            BOOST_TEST(get_expected_produced_blocks(prod) == 36);
         }
-        BOOST_TEST(get_expected_produced_blocks(N(prodm)) == 70);
-        for (auto prod: { N(prodn), N(prodo), N(prodp), N(prodr), N(prods), N(prodt), N(produ) }) {
-           BOOST_TEST(get_expected_produced_blocks(prod) == 72);
+        BOOST_TEST(get_expected_produced_blocks(N(prodm)) == 45); //first producer in round
+        for (auto prod: { N(prodn), N(prodo) }) {
+            BOOST_TEST(get_expected_produced_blocks(prod) == 48);
+        }
+        BOOST_TEST(get_expected_produced_blocks(N(prodp)) == 37); //last producer in round
+        for (auto prod: { N(prodr), N(prods), N(prodt), N(produ) }) {
+            BOOST_TEST(get_expected_produced_blocks(prod) == 36);
         }
         BOOST_TEST(get_expected_produced_blocks(N(runnerup1)) == 36);
 

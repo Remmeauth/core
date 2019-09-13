@@ -264,13 +264,17 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_less_than_4_standby_test, rotation_tester
         for( auto prod : producer_candidates ) {
             votepro(prod, { prod });
         }
+        //After this voting producers table looks like this:
+        //Top21:
+        // (0-4) prodq, prodr, prods, prodt, produ - 141'000'000'0000 votes each
+        // (5-9) proda, prodb, prodc, prodd, prode - 131'000'000'0000 votes each
+        // (10-20) prodf, prodg, prodh, prodi, prodj, prodk, prodl, prodm, prodn, prodo, prodp - 101'000'000'0000 votes each
+        //Standby:
+        // (21-23) runnerup1, runnerup2, runnerup3 - 21'000'000'0000 votes each
+        //
+        //So the first rotetion will be prodq(first in top21)-runnerup1(first in standby list)
 
         produce_blocks(4);
-        produce_block();
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodp", "prodq", "prodr", "prods", "prodt", "produ" });
-
-        produce_blocks_until_schedule_is_changed(2000);
         produce_block();
         test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
                         "prodl", "prodm", "prodn", "prodo", "prodp", "prodr", "prods", "prodt", "produ", "runnerup1" });
@@ -284,6 +288,17 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_less_than_4_standby_test, rotation_tester
                           N(runnerup2)} );
         produce_blocks_until_schedule_is_changed(2000);
         produce_blocks(2);
+        //After this voting producers table looks like this:
+        //Top21:
+        // (0-4) prodq, prodr, prods, prodt, produ - 141'000'000'0000 votes each
+        // (5-9) proda, prodb, prodc, prodd, prode - 131'000'000'0000 votes each
+        // (10) runnerup2 - 121'000'000'0000 votes
+        // (11-20) prodf, prodg, prodh, prodi, prodj, prodk, prodl, prodm, prodn, prodo - 101'000'000'0000 votes each
+        //Standby:
+        // (21) prodp - 101'000'000'0000 votes
+        // (22-23) runnerup1, runnerup3 - 21'000'000'0000 votes each
+        //
+        //Rotation is the same
         test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
                         "prodl", "prodm", "prodn", "prodo", "prodr", "prods", "prodt", "produ", "runnerup1", "runnerup2" });
         BOOST_TEST(get_rotated_producers().first == N(prodq)); //bp out
@@ -292,6 +307,17 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_less_than_4_standby_test, rotation_tester
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(12 * 3600));
         produce_blocks_until_schedule_is_changed(2000);
         produce_blocks(2);
+        //Producers table is the same:
+        //Top21:
+        // (0-4) prodq, prodr, prods, prodt, produ - 141'000'000'0000 votes each
+        // (5-9) proda, prodb, prodc, prodd, prode - 131'000'000'0000 votes each
+        // (10) runnerup2 - 121'000'000'0000 votes
+        // (11-20) prodf, prodg, prodh, prodi, prodj, prodk, prodl, prodm, prodn, prodo - 101'000'000'0000 votes each
+        //Standby:
+        // (21) prodp - 101'000'000'0000 votes
+        // (22-23) runnerup1, runnerup3 - 21'000'000'0000 votes each
+        //
+        //Rotation has changed after 12 hours: prodr-runnerup3
         test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
                         "prodl", "prodm", "prodn", "prodo", "prodq", "prods", "prodt", "produ", "runnerup2", "runnerup3" });
         BOOST_TEST(get_rotated_producers().first == N(prodr)); //bp out
@@ -386,11 +412,6 @@ BOOST_FIXTURE_TEST_CASE( rotation_cancelled_after_bp_has_been_unvoted_test, rota
         produce_blocks(4);
         produce_block();
         test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodp", "prodq", "prodr", "prods", "prodt", "produ" });
-
-        produce_blocks_until_schedule_is_changed(2000);
-        produce_block();
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
                         "prodl", "prodm", "prodn", "prodo", "prodp", "prodr", "prods", "prodt", "produ", "runnerup1" });
         BOOST_TEST(get_rotated_producers().first == N(prodq)); //bp out
         BOOST_TEST(get_rotated_producers().second == N(runnerup1)); //standby in
@@ -407,12 +428,14 @@ BOOST_FIXTURE_TEST_CASE( rotation_cancelled_after_bp_has_been_unvoted_test, rota
         produce_blocks(2);
         test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
                         "prodl", "prodm", "prodn", "prodo", "prodp", "prodr", "prods", "prodt", "produ", "runnerup3" });
+        //rotation must be dropped due to prodq loosing his votes
         BOOST_TEST(get_rotated_producers().first == name(0)); //bp out
         BOOST_TEST(get_rotated_producers().second == name(0)); //standby in
 
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(12 * 3600));
         produce_blocks_until_schedule_is_changed(2000);
         produce_blocks(2);
+        return;
         test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
                         "prodl", "prodm", "prodn", "prodo", "prodp", "prods", "prodt", "produ", "runnerup2", "runnerup3" });
         BOOST_TEST(get_rotated_producers().first == N(prodr)); //bp out
