@@ -435,7 +435,6 @@ BOOST_FIXTURE_TEST_CASE( rotation_cancelled_after_bp_has_been_unvoted_test, rota
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(12 * 3600));
         produce_blocks_until_schedule_is_changed(2000);
         produce_blocks(2);
-        return;
         test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
                         "prodl", "prodm", "prodn", "prodo", "prodp", "prods", "prodt", "produ", "runnerup2", "runnerup3" });
         BOOST_TEST(get_rotated_producers().first == N(prodr)); //bp out
