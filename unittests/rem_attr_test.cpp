@@ -162,6 +162,22 @@ public:
         return r;
     }
 
+    auto invalidate_attr( name attribute_name ) {
+        auto r = base_tester::push_action(N(rem.attr), N(invalidate), N(rem.attr), mvo()
+            ("attribute_name", attribute_name)
+        );
+        produce_block();
+        return r;
+    }
+
+    auto remove_attr( name attribute_name ) {
+        auto r = base_tester::push_action(N(rem.attr), N(remove), N(rem.attr), mvo()
+            ("attribute_name", attribute_name)
+        );
+        produce_block();
+        return r;
+    }
+
     fc::variant get_attribute_info( const account_name& attribute ) {
         vector<char> data = get_row_by_account( N(rem.attr), N(rem.attr), N(attrinfo), attribute );
         if (data.empty()) {
@@ -172,21 +188,32 @@ public:
 
     fc::variant get_account_attribute( const account_name& account, const account_name& issuer, const account_name& attribute ) {
       //TODO: figure out how to retrieve object by secondary index
-       eosio::chain::uint128_t secondary_index_value = account.value;
-       secondary_index_value <<= 64;
-       secondary_index_value |= issuer.value;
+//       eosio::chain::uint128_t secondary_index_value = account.value;
+//       secondary_index_value <<= 64;
+//       secondary_index_value |= issuer.value;
 
-        vector<char> data = get_row_by_account( N(rem.attr), account, N(attributes), issuer );
-        if (data.empty()) {
-            return fc::variant();
-        }
-        const auto attr_obj = abi_ser.binary_to_variant( "attribute_data", data, abi_serializer_max_time );
-        const auto arr = attr_obj["attributes"].get_array();
-        for (const auto& elem: arr) {
-            if (elem["key"].as_string() == attribute.to_string()) {
-                return elem["value"];
-            }
-        }
+       const auto& db = control->db();
+       const auto* t_id = db.find<chain::table_id_object, chain::by_code_scope_table>( boost::make_tuple( N(rem.attr), attribute, N(attributes) ) );
+       if ( !t_id ) {
+          return fc::variant();
+       }
+
+       const auto& idx = db.get_index<chain::key_value_index, chain::by_scope_primary>();
+
+       vector<char> data;
+       for (auto it = idx.lower_bound( boost::make_tuple( t_id->id, 0 ) ); it != idx.end() && it->t_id == t_id->id; it++) {
+          if (it->value.empty()) {
+             continue;
+          }
+          data.resize( it->value.size() );
+          memcpy( data.data(), it->value.data(), data.size() );
+
+          const auto attr_obj = abi_ser.binary_to_variant( "attribute_data", data, abi_serializer_max_time );
+          if (attr_obj["receiver"].as_string() == account.to_string() &&
+              attr_obj["issuer"].as_string() == issuer.to_string()) {
+             return attr_obj["attribute"];
+          }
+       }
         return fc::variant();
     }
 
@@ -335,12 +362,12 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
             auto& attr_ref = attr.get();
             set_attr(attr_ref.issuer, attr_ref.receiver, attr_ref.attribute_name, attr_ref.value);
 
-//            const auto attribute_obj = get_account_attribute(attr_ref.receiver, attr_ref.issuer, attr_ref.attribute_name);
-//            auto data = attribute_obj["data"].as_string();
-//            if (data.empty()) {
-//               data = attribute_obj["pending"].as_string();
-//            }
-//            BOOST_TEST(attr_ref.isValueOk(data));
+            const auto attribute_obj = get_account_attribute(attr_ref.receiver, attr_ref.issuer, attr_ref.attribute_name);
+            auto data = attribute_obj["data"].as_string();
+            if (data.empty()) {
+               data = attribute_obj["pending"].as_string();
+            }
+            BOOST_TEST(attr_ref.isValueOk(data));
         }
 
         // issuer b1 does not have authorization
@@ -359,22 +386,22 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_REQUIRE_THROW(set_attr(N(rem.attr), N(proda), N(name), "06426c61697a65"), eosio_assert_message_exception);
 
         //check that PublicConfirmedPointer/PrivateConfirmedPointer attributes are not confirmed
-//        BOOST_TEST(get_account_attribute(    N(proda),     N(prodb),    N(crosschain)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute(    N(proda),     N(prodb),    N(crosschain)) ["pending"].as_string() == "");
-//        BOOST_TEST(get_account_attribute(    N(proda),  N(rem.attr),          N(tags)) ["data"].as_string()    == "");
-//        BOOST_TEST(get_account_attribute(    N(proda),  N(rem.attr),          N(tags)) ["pending"].as_string() != ""); //not confirmed
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["data"].as_string()    == "");
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() != ""); //not confirmed
-//        BOOST_TEST(get_account_attribute(    N(prodb),  N(rem.attr),       N(creator)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),  N(rem.attr),       N(creator)) ["pending"].as_string() == "");
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),       N(creator)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),       N(creator)) ["pending"].as_string() == "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),          N(name)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),          N(name)) ["pending"].as_string() == "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),     N(proda),      N(largeint)) ["data"].as_string()    == "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),     N(proda),      N(largeint)) ["pending"].as_string() != ""); //not confirmed
-//        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["data"].as_string()    == "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute(    N(proda),     N(prodb),    N(crosschain)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(    N(proda),     N(prodb),    N(crosschain)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(    N(proda),  N(rem.attr),          N(tags)) ["data"].as_string()    == "");
+        BOOST_TEST(get_account_attribute(    N(proda),  N(rem.attr),          N(tags)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["data"].as_string()    == "");
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute(    N(prodb),  N(rem.attr),       N(creator)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(    N(prodb),  N(rem.attr),       N(creator)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),       N(creator)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),       N(creator)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),          N(name)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),          N(name)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(proda),      N(largeint)) ["data"].as_string()    == "");
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(proda),      N(largeint)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["data"].as_string()    == "");
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["pending"].as_string() != ""); //not confirmed
 
         // only proda is allowed to confirm his attributes
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(confirm), N(rem.attr), mvo()("owner", "proda")("issuer", "prodb")("attribute_name", "tags")),
@@ -393,31 +420,37 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         confirm_attr( N(rem.attr),  N(rem.attr),      N(tags));
         confirm_attr(    N(prodb),     N(proda),  N(largeint));
         confirm_attr(    N(prodb),     N(prodb),  N(largeint));
-//        BOOST_TEST(get_account_attribute(    N(proda), N(rem.attr),          N(tags)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute(    N(proda), N(rem.attr),          N(tags)) ["pending"].as_string() == "");
-//        BOOST_TEST(get_account_attribute( N(rem.attr), N(rem.attr),          N(tags)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute( N(rem.attr), N(rem.attr),          N(tags)) ["pending"].as_string() == "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),    N(proda),      N(largeint)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),    N(proda),      N(largeint)) ["pending"].as_string() == "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),    N(prodb),      N(largeint)) ["data"].as_string()    != "");
-//        BOOST_TEST(get_account_attribute(    N(prodb),    N(prodb),      N(largeint)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(    N(proda), N(rem.attr),          N(tags)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(    N(proda), N(rem.attr),          N(tags)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute( N(rem.attr), N(rem.attr),          N(tags)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute( N(rem.attr), N(rem.attr),          N(tags)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(    N(prodb),    N(proda),      N(largeint)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(    N(prodb),    N(proda),      N(largeint)) ["pending"].as_string() == "");
+        BOOST_TEST(get_account_attribute(    N(prodb),    N(prodb),      N(largeint)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(    N(prodb),    N(prodb),      N(largeint)) ["pending"].as_string() == "");
         // Reset attribute
         set_attr(N(rem.attr), N(rem.attr), N(tags), "02013103323334023536023739");
         // Check that it hasn`t been confirmed yet
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() != ""); //not confirmed
         // Confirm attribute
         confirm_attr(N(rem.attr), N(rem.attr), N(tags));
         // Check that it have been confirmed
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() == ""); //confirmed
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),          N(tags)) ["pending"].as_string() == ""); //confirmed
 
-//        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(nonexisting)),  eosio_assert_message_exception); //nonexisting
-//        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodc),      N(crosschain)),   eosio_assert_message_exception); //account does not have attribute
-//        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(crosschain)),   eosio_assert_message_exception); //only issuer can unset
-//        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(proda),      N(tags)),         eosio_assert_message_exception); //only issuer or receiver can unset
-//        BOOST_REQUIRE_THROW(unset_attr(N(prodb),      N(rem.attr),   N(tags)),         eosio_assert_message_exception); //only issuer or receiver can unset
-//        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(creator)),      eosio_assert_message_exception); //only contract owner can unset
-//        BOOST_REQUIRE_THROW(unset_attr(N(rem.attr),   N(proda),      N(name)),         eosio_assert_message_exception); //only receiver can unset
-//        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodb),      N(largeint)),     eosio_assert_message_exception); //only issuer or receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(nonexisting)),  eosio_assert_message_exception); //nonexisting
+        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodc),      N(crosschain)),   eosio_assert_message_exception); //account does not have attribute
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(crosschain)),   eosio_assert_message_exception); //only issuer can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(proda),      N(tags)),         eosio_assert_message_exception); //only issuer or receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(prodb),      N(rem.attr),   N(tags)),         eosio_assert_message_exception); //only issuer or receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(creator)),      eosio_assert_message_exception); //only contract owner can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(rem.attr),   N(proda),      N(name)),         eosio_assert_message_exception); //only receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodb),      N(largeint)),     eosio_assert_message_exception); //only issuer or receiver can unset
+
+        BOOST_REQUIRE_THROW(remove_attr(N(crosschain)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(tags)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(creator)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(name)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(largeint)), eosio_assert_message_exception);
 
         unset_attr(N(prodb),      N(proda),      N(crosschain));
         unset_attr(N(rem.attr),   N(proda),      N(tags));
@@ -429,14 +462,32 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         // receiver can unset PublicConfirmedPointer
         base_tester::push_action(N(rem.attr), N(unsetattr), N(prodb), mvo()("issuer", "proda")("receiver", "prodb")("attribute_name", "largeint"));
         produce_block();
-//        BOOST_TEST(get_account_attribute( N(proda),        N(prodb),  N(crosschain)).is_null());
-//        BOOST_TEST(get_account_attribute( N(proda),     N(rem.attr),        N(tags)).is_null());
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),        N(tags)).is_null());
-//        BOOST_TEST(get_account_attribute( N(prodb),     N(rem.attr),     N(creator)).is_null());
-//        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),     N(creator)).is_null());
-//        BOOST_TEST(get_account_attribute( N(prodb),        N(prodb),        N(name)).is_null());
-//        BOOST_TEST(get_account_attribute( N(prodb),        N(prodb),    N(largeint)).is_null());
-//        BOOST_TEST(get_account_attribute( N(prodb),        N(proda),    N(largeint)).is_null());
+        BOOST_TEST(get_account_attribute( N(proda),        N(prodb),  N(crosschain)).is_null());
+        BOOST_TEST(get_account_attribute( N(proda),     N(rem.attr),        N(tags)).is_null());
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),        N(tags)).is_null());
+        BOOST_TEST(get_account_attribute( N(prodb),     N(rem.attr),     N(creator)).is_null());
+        BOOST_TEST(get_account_attribute( N(rem.attr),  N(rem.attr),     N(creator)).is_null());
+        BOOST_TEST(get_account_attribute( N(prodb),        N(prodb),        N(name)).is_null());
+        BOOST_TEST(get_account_attribute( N(prodb),        N(prodb),    N(largeint)).is_null());
+        BOOST_TEST(get_account_attribute( N(prodb),        N(proda),    N(largeint)).is_null());
+
+        BOOST_REQUIRE_THROW(remove_attr(N(crosschain)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(tags)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(creator)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(name)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(largeint)), eosio_assert_message_exception);
+
+        invalidate_attr(N(crosschain));
+        invalidate_attr(N(tags));
+        invalidate_attr(N(creator));
+        invalidate_attr(N(name));
+        invalidate_attr(N(largeint));
+
+        remove_attr(N(crosschain));
+        remove_attr(N(tags));
+        remove_attr(N(creator));
+        remove_attr(N(name));
+        remove_attr(N(largeint));
 
     } FC_LOG_AND_RETHROW()
 }
