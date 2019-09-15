@@ -11,7 +11,6 @@ namespace eosio {
       auto idx = attributes.get_index<"reciss"_n>();
       const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(owner, issuer) );
       check( attr_it != idx.end() && !attr_it->attribute.pending.empty(), "nothing to confirm" );
-      print("\n\n", attr_it->attribute.pending.size(), "\n\n");
       idx.modify( attr_it, same_payer, [&]( auto& attr ) {
          attr.attribute.data.swap(attr.attribute.pending);
          attr.attribute.pending.clear();
@@ -52,6 +51,7 @@ namespace eosio {
 
       attribute_info_table attributes_info( _self, _self.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
+      check( !attrinfo.is_valid(), "call invalidate first" );
 
       attributes_table attributes( _self, attribute_name.value );
       check( attributes.begin() == attributes.end(), "unable to delete" );
@@ -87,6 +87,9 @@ namespace eosio {
                attr.attribute.data = value;
             }
          });
+         attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
+            a.next_id += 1;
+         });
       } else {
          idx.modify( attr_it, issuer, [&]( auto& attr ) {
             attr.issuer = issuer;
@@ -99,10 +102,6 @@ namespace eosio {
             }
          });
       }
-
-      attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
-         a.next_id += 1;
-      });
    }
 
    void attribute::unsetattr( const name& issuer, const name& receiver, const name& attribute_name )
@@ -125,11 +124,12 @@ namespace eosio {
       const auto erased_id = attr_it->id;
       idx.erase(attr_it);
       if (erased_id != attrinfo.next_id - 1) {
-         const auto attr_to_move = attributes.get(attrinfo.next_id - 1);
-         attributes.erase(attr_to_move);
+         const auto& attr_to_move = attributes.get(attrinfo.next_id - 1);
+         auto moved_attr = attr_to_move;
+         moved_attr.id = erased_id;
+         attributes.erase(attr_to_move); //erase before emplace to avoid error when ram payer has no free RAM
          attributes.emplace( attr_to_move.issuer, [&]( auto& attr ) {
-            attr = attr_to_move;
-            attr.id = erased_id;
+            attr = moved_attr;
          });
       }
       attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
@@ -156,4 +156,4 @@ namespace eosio {
 
 } /// namespace eosio
 
-EOSIO_DISPATCH( eosio::attribute, (confirm)(create)(setattr)(unsetattr) )
+EOSIO_DISPATCH( eosio::attribute, (confirm)(create)(invalidate)(remove)(setattr)(unsetattr) )
