@@ -1149,6 +1149,14 @@ namespace eosiosystem {
          void torewards( const name& payer, const asset& amount );
 
          /**
+          * Claim part of locked stake.
+          *
+          * @param owner -account that want to take stake.
+          */
+         [[eosio::action]]
+         void claimpartly(const name& owner);
+
+         /**
           * Set privilege status for an account.
           *
           * @details Allows to set privilege status for an account (turn it on/off).
@@ -1293,6 +1301,7 @@ namespace eosiosystem {
          using regproxy_action = eosio::action_wrapper<"regproxy"_n, &system_contract::regproxy>;
          using claimrewards_action = eosio::action_wrapper<"claimrewards"_n, &system_contract::claimrewards>;
          using torewards_action = eosio::action_wrapper<"torewards"_n, &system_contract::torewards>;
+         using claimdaily_action = eosio::action_wrapper<"claimpartly"_n, &system_contract::claimpartly>;
 
          using rmvproducer_action = eosio::action_wrapper<"rmvproducer"_n, &system_contract::rmvproducer>;
          using updtrevision_action = eosio::action_wrapper<"updtrevision"_n, &system_contract::updtrevision>;

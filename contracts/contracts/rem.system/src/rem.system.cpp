@@ -403,5 +403,5 @@ EOSIO_DISPATCH( eosiosystem::system_contract,
      // voting.cpp
      (regproducer)(unregprod)(voteproducer)(regproxy)
      // producer_pay.cpp
-     (onblock)(claimrewards)(torewards)
+     (onblock)(claimrewards)(torewards)(claimpartly)
 )

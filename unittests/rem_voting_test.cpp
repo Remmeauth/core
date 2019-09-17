@@ -151,6 +151,12 @@ public:
         return r;
     }
 
+    auto claim_daily(name owner) {
+        auto r = base_tester::push_action( config::system_account_name, N(claimpartly), owner, mvo()("owner",  owner ));
+        produce_block();
+        return r;
+    }
+
     void set_lock_period(uint64_t mature_period ) {
         base_tester::push_action(config::system_account_name, N(setlockperiod),config::system_account_name,  mvo()("period_in_days", mature_period));
         produce_block();
@@ -799,6 +805,66 @@ BOOST_FIXTURE_TEST_CASE( stake_lock_period_test, voting_tester ) {
       }
    }
    FC_LOG_AND_RETHROW()
+}
+
+BOOST_FIXTURE_TEST_CASE( claimpartly_during_unlock_period_test, voting_tester ) {
+   try {
+
+      auto voter = get_voter_info( "proda" );
+      const auto producers = { N(b1), N(proda), N(whale1), N(whale2), N(whale3) };
+      for( const auto& producer : producers ) {
+         register_producer(producer);
+      }
+      for( const auto& producer : producers ) {
+         votepro( producer, { N(proda) } );
+      }
+
+       //Check if stake_locke_time have initial date after producer registration
+       BOOST_CHECK( fc::microseconds(0) != microseconds_since_epoch_of_iso_string(voter["stake_lock_time"]));
+
+       //Skip 180 days to call unregistration
+       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600)); // +180 days
+
+       //Making producer inactive
+       unregister_producer( N(proda) );
+
+       voter = get_voter_info( "proda" );
+       auto current_time = fc::microseconds(1593404351000000);
+       auto unlock_period = fc::days(180);
+       BOOST_CHECK(microseconds_since_epoch_of_iso_string(voter["stake_lock_time"]) == current_time + unlock_period);
+
+       // Stake proda = 500'000'0000 - 1000 = 4999999000
+       BOOST_CHECK(voter["locked_stake"].as<int64_t>() == 4999999000 );
+
+       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600));
+       voter = get_voter_info( "proda" );
+
+       BOOST_REQUIRE_THROW(undelegate_bandwidth( N(proda), N(proda), core_from_string("499999.9000")), eosio_assert_message_exception);
+
+       claim_daily( N(proda) );
+
+       //Cannot claim more than once a day
+       BOOST_REQUIRE_THROW(claim_daily( N(proda) ) , eosio_assert_message_exception);
+
+       auto first_day_claim_amount = 27777772;
+       BOOST_CHECK(get_balance(N(proda)).get_amount() == first_day_claim_amount);
+
+       //Check amount after 7 days
+       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(7 * 24 * 3600));
+       claim_daily( N(proda) );
+
+       auto week_claim_amount = 211795299;
+       BOOST_CHECK(get_balance(N(proda)).get_amount() == first_day_claim_amount+week_claim_amount);
+
+       //Check amount after 30 days
+       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600));
+       claim_daily( N(proda) );
+
+       auto month_claim_amount = 811094452;
+       BOOST_CHECK(get_balance(N(proda)).get_amount() == first_day_claim_amount+week_claim_amount+month_claim_amount);
+
+
+   } FC_LOG_AND_RETHROW()
 }
 
 BOOST_AUTO_TEST_SUITE_END()

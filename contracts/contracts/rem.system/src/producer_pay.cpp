@@ -308,4 +308,28 @@ namespace eosiosystem {
       _gstate.perstake_bucket         += to_per_stake_pay;
    }
 
+   void system_contract::claimpartly( const name& owner ) {
+        require_auth( owner );
+
+        const auto& voter = _voters.get( owner.value );
+        check( current_time_point() >= (voter.last_claim_time + eosio::days(1)), "fund can be recieved once per day");
+
+        auto last_claim_time = !voter.last_claim_time.time_since_epoch().count() ?
+                               eosio::days(1).count() : current_time_point().time_since_epoch().count() - voter.last_claim_time.time_since_epoch().count();
+
+        auto recieved_stake = static_cast<int64_t> (voter.locked_stake * (double) last_claim_time / _gstate.stake_unlock_period.count() );
+
+        _voters.modify(voter, owner, [&](auto& v) {
+            v.last_claim_time = current_time_point();
+            v.locked_stake -= recieved_stake;
+        });
+
+        token::issue_action issue_act{ token_account, { {_self, active_permission} } };
+        issue_act.send( _self, asset(recieved_stake, core_symbol()), "issue tokens for producer pay and savings" );
+
+        token::transfer_action transfer_act{ token_account, { {_self, active_permission} } };
+
+        transfer_act.send( _self, owner, asset(recieved_stake, core_symbol()), "unallocated inflation" );
+    }
+
 } //namespace eosiosystem
