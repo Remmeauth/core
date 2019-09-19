@@ -828,41 +828,46 @@ BOOST_FIXTURE_TEST_CASE( claimpartly_during_unlock_period_test, voting_tester ) 
        //Making producer inactive
        unregister_producer( N(proda) );
 
+       //Skip 180 days to call unregistration
+       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600)); // +180 days
+
        voter = get_voter_info( "proda" );
        auto current_time = fc::microseconds(1593404351000000);
        auto unlock_period = fc::days(180);
        BOOST_CHECK(microseconds_since_epoch_of_iso_string(voter["stake_lock_time"]) == current_time + unlock_period);
 
        // Stake proda = 500'000'0000 - 1000 = 4999999000
-       BOOST_CHECK(voter["locked_stake"].as<int64_t>() == 4999999000 );
+       auto staked = 4999999000;
+       BOOST_CHECK(voter["locked_stake"].as<int64_t>() == staked );
 
        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600));
-       voter = get_voter_info( "proda" );
 
-       BOOST_REQUIRE_THROW(undelegate_bandwidth( N(proda), N(proda), core_from_string("499999.9000")), eosio_assert_message_exception);
+       //Cannot undelegate all stake at once after unlock period starts
+       BOOST_REQUIRE_THROW(undelegate_bandwidth( N(proda), N(proda), asset(staked)), eosio_assert_message_exception);
 
-       claim_daily( N(proda) );
-
-       //Cannot claim more than once a day
-       BOOST_REQUIRE_THROW(claim_daily( N(proda) ) , eosio_assert_message_exception);
-
+       //Check amount after 1 day claim
        auto first_day_claim_amount = 27777772;
-       BOOST_CHECK(get_balance(N(proda)).get_amount() == first_day_claim_amount);
+       undelegate_bandwidth( N(proda), N(proda), asset(first_day_claim_amount));
 
-       //Check amount after 7 days
+       //Cannot undelegate twice a day
+       BOOST_REQUIRE_THROW(undelegate_bandwidth( N(proda), N(proda), asset(first_day_claim_amount)), eosio_assert_message_exception);
+
+       voter = get_voter_info( "proda" );
+       BOOST_CHECK(voter["locked_stake"].as<int64_t>() == staked - first_day_claim_amount );
+
+       //Check amount after 7 days claim
        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(7 * 24 * 3600));
-       claim_daily( N(proda) );
-
        auto week_claim_amount = 211795299;
-       BOOST_CHECK(get_balance(N(proda)).get_amount() == first_day_claim_amount+week_claim_amount);
+       undelegate_bandwidth( N(proda), N(proda), asset(week_claim_amount));
+       voter = get_voter_info( "proda" );
+       BOOST_CHECK(voter["locked_stake"].as<int64_t>() == staked - (first_day_claim_amount + week_claim_amount));
 
-       //Check amount after 30 days
+       //Check amount after 30 days claim
        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600));
-       claim_daily( N(proda) );
-
        auto month_claim_amount = 811094452;
-       BOOST_CHECK(get_balance(N(proda)).get_amount() == first_day_claim_amount+week_claim_amount+month_claim_amount);
-
+       undelegate_bandwidth( N(proda), N(proda), asset(month_claim_amount));
+       voter = get_voter_info( "proda" );
+       BOOST_CHECK(voter["locked_stake"].as<int64_t>() == staked - (first_day_claim_amount + week_claim_amount + month_claim_amount));
 
    } FC_LOG_AND_RETHROW()
 }

@@ -293,18 +293,28 @@ namespace eosiosystem {
       check( _gstate.total_activated_stake >= min_activated_stake,
              "cannot undelegate bandwidth until the chain is activated (at least 15% of all tokens participate in voting)" );
 
-      if( is_block_producer(from) && from == receiver )
-      {
-          const auto &vot = _voters.get(from.value, "user has no resources");
-          check(vot.stake_lock_time <= current_time_point(), "cannot undelegate during stake lock period");
+      const auto &voter = _voters.get(from.value, "user has no resources");
+      check(voter.locked_stake >= unstake_quantity.amount, "cannot undelegate more than was staked");
+      check(voter.stake_lock_time <= current_time_point(), "cannot undelegate during stake lock period");
 
-          _voters.modify(vot, from, [&](auto &v) {
-              v.locked_stake -= unstake_quantity.amount;
-              v.last_claim_time = current_time_point();
-          });
-      }
+      check(voter.locked_stake != 0 , "Cannot undelegate, because there is no stake lock");
+      check(current_time_point() >= (voter.last_claim_time + eosio::days(1)), "fund can be recieved once per day");
 
-      changebw( from, receiver, -unstake_quantity, false);
+      auto last_claim_time = !voter.last_claim_time.time_since_epoch().count() ?
+                                 eosio::days(1).count() : current_time_point().time_since_epoch().count() -
+                                                          voter.last_claim_time.time_since_epoch().count();
+
+      auto received_stake = static_cast<int64_t> (voter.locked_stake * (double) last_claim_time /
+                                                 _gstate.stake_unlock_period.count());
+
+      check(unstake_quantity.amount <= received_stake, "cannot undelegate more");
+
+      _voters.modify(voter, from, [&](auto &v) {
+            v.last_claim_time = current_time_point();
+            v.locked_stake -= unstake_quantity.amount;
+      });
+
+      changebw( from, receiver, -unstake_quantity , false);
    } // undelegatebw
 
 
