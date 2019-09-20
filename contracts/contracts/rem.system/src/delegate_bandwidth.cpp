@@ -293,26 +293,33 @@ namespace eosiosystem {
       check( _gstate.total_activated_stake >= min_activated_stake,
              "cannot undelegate bandwidth until the chain is activated (at least 15% of all tokens participate in voting)" );
 
-      const auto &voter = _voters.get(from.value, "user has no resources");
-      check(voter.locked_stake >= unstake_quantity.amount, "cannot undelegate more than was staked");
-      check(voter.stake_lock_time <= current_time_point(), "cannot undelegate during stake lock period");
 
-      check(voter.locked_stake != 0 , "Cannot undelegate, because there is no stake lock");
-      check(current_time_point() >= (voter.last_claim_time + eosio::days(1)), "fund can be recieved once per day");
+      // we apply stake-lock rules only for self-delegated stake.
+      if ( from == receiver )
+      {
+         const auto& voter = _voters.get(from.value, "user has no resources");
 
-      auto last_claim_time = !voter.last_claim_time.time_since_epoch().count() ?
-                                 eosio::days(1).count() : current_time_point().time_since_epoch().count() -
-                                                          voter.last_claim_time.time_since_epoch().count();
+         check(voter.stake_lock_time <= current_time_point(), "cannot undelegate during stake lock period");
+         check(voter.locked_stake != 0 , "insufficient locked amount");
 
-      auto received_stake = static_cast<int64_t> (voter.locked_stake * (double) last_claim_time /
-                                                 _gstate.stake_unlock_period.count());
+         const auto ct = current_time_point();
+         check( ct - voter.last_undelegate_time > eosio::days(1), "already undelegated within past day" );
 
-      check(unstake_quantity.amount <= received_stake, "cannot undelegate more");
+         auto unclaimed_days = (ct - voter.last_undelegate_time);
+         if ( unclaimed_days == ct.time_since_epoch() ) {
+            unclaimed_days = eosio::days( 1 );
+         }
 
-      _voters.modify(voter, from, [&](auto &v) {
-            v.last_claim_time = current_time_point();
-            v.locked_stake -= unstake_quantity.amount;
-      });
+         auto undelegate_limit = voter.locked_stake * unclaimed_days.count() / _gstate.stake_unlock_period.count() / eosio::days( 1 ).count();
+         check(unstake_quantity.amount < undelegate_limit, "insufficient unlocked amount");
+
+         undelegate_limit = std::min(unstake_quantity.amount, undelegate_limit);
+
+         _voters.modify(voter, from, [&](auto &v) {
+               v.last_undelegate_time = ct;
+               v.locked_stake -= undelegate_limit;
+         });
+      }
 
       changebw( from, receiver, -unstake_quantity , false);
    } // undelegatebw

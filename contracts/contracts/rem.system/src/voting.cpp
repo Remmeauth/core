@@ -83,11 +83,6 @@ namespace eosiosystem {
    void system_contract::unregprod( const name& producer ) {
       require_auth( producer );
 
-      const auto &voter = _voters.get(producer.value, "user has no resources");
-      check( voter.stake_lock_time <= current_time_point(), "producers are not allowed to unregister during stake lock period" );
-
-      claimrewards(producer);
-
       const auto& prod = _producers.get( producer.value, "producer not found" );
       if (prod.active()) {
          user_resources_table totals_tbl( _self, producer.value );
@@ -97,10 +92,6 @@ namespace eosiosystem {
 
       _producers.modify( prod, same_payer, [&]( producer_info& info ){
          info.deactivate();
-      });
-
-      _voters.modify(voter, producer, [&](auto &v) {
-         v.stake_lock_time = current_time_point() + _gstate.stake_unlock_period;
       });
    }
 

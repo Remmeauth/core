@@ -151,12 +151,6 @@ public:
         return r;
     }
 
-    auto claim_daily(name owner) {
-        auto r = base_tester::push_action( config::system_account_name, N(claimpartly), owner, mvo()("owner",  owner ));
-        produce_block();
-        return r;
-    }
-
     void set_lock_period(uint64_t mature_period ) {
         base_tester::push_action(config::system_account_name, N(setlockperiod),config::system_account_name,  mvo()("period_in_days", mature_period));
         produce_block();
