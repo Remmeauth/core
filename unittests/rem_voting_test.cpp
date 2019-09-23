@@ -775,20 +775,20 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          BOOST_CHECK( (remaining_locked_stake - 10 * one_day_undelegate_limit) == voter["locked_stake"].as<int64_t>() );
       }
 
-      // +180 Days
+      // +170 Days
       {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(180) );
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(170) );
 
-         const auto remaining_locked_stake = 469'598'6718;
+         const auto minimal_account_stake = 100'0000; // minimum stake for account 100.0000 REM
+         const auto remaining_locked_stake = 469'598'6718 - 100'0000;
 
          // cannot undelegate more than locked
-         // BOOST_REQUIRE_THROW( undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake + 1 } ), eosio_assert_message_exception );
+         BOOST_REQUIRE_THROW( undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake + minimal_account_stake + 1 } ), eosio_assert_message_exception );
          
          undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake } );
 
          auto voter = get_voter_info("proda");
-         std::cout << "locked: " << voter["locked_stake"].as<int64_t>() << "\texpected: " << (remaining_locked_stake - remaining_locked_stake) << std::endl;
-         BOOST_CHECK( 0 == voter["locked_stake"].as<int64_t>() );
+         BOOST_CHECK( minimal_account_stake == voter["locked_stake"].as<int64_t>() );
       }
    } FC_LOG_AND_RETHROW()
 }
