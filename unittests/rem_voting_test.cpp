@@ -743,7 +743,7 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
 
       // We are not allowed to undelegate during stake lock period
       {
-         BOOST_REQUIRE_THROW( undelegate_bandwidth( N(proda), N(proda), core_from_string("1.0000") ), eosio_assert_message_exception );
+         BOOST_REQUIRE_EXCEPTION( undelegate_bandwidth( N(proda), N(proda), core_from_string("1.0000") ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: cannot undelegate during stake lock period") );
       }
       
 
@@ -755,7 +755,7 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          // 499'999'9000 * 1 / 180 = 2'777'7772
          const auto one_day_undelegate_limit = 2'777'7772LL;
 
-         BOOST_REQUIRE_THROW( undelegate_bandwidth( N(proda), N(proda), asset{ one_day_undelegate_limit + 1 } ), eosio_assert_message_exception );
+         BOOST_REQUIRE_EXCEPTION( undelegate_bandwidth( N(proda), N(proda), asset{ one_day_undelegate_limit + 1 } ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: insufficient unlocked amount") );
          undelegate_bandwidth( N(proda), N(proda), asset{ one_day_undelegate_limit } );
 
          auto voter = get_voter_info("proda");
@@ -775,15 +775,15 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          BOOST_CHECK( (remaining_locked_stake - 10 * one_day_undelegate_limit) == voter["locked_stake"].as<int64_t>() );
       }
 
-      // +170 Days
+      // +180 Days
       {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(170) );
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(180) );
 
          const auto minimal_account_stake = 100'0000; // minimum stake for account 100.0000 REM
          const auto remaining_locked_stake = 469'598'6718 - 100'0000;
 
          // cannot undelegate more than locked
-         BOOST_REQUIRE_THROW( undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake + minimal_account_stake + 1 } ), eosio_assert_message_exception );
+         BOOST_REQUIRE_EXCEPTION( undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake + minimal_account_stake + 1 } ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: insufficient locked amount") );
          
          undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake } );
 
