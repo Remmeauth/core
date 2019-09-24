@@ -17,14 +17,14 @@ struct OnExit
 
    void _print()
    {
-      print( _title );
+      print( _title, "[ " );
       std::for_each(
          std::begin( _prods ), std::end( _prods ),
          [this](const auto& prod) {
-            print( "'", prod.producer_name.to_string(), "'\t" );
+            print( "'", prod.producer_name.to_string(), "' " );
          }
       );
-      print( "\n\n" );
+      print( "]\n" );
    }
 
    std::string _title;
@@ -62,6 +62,33 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
       return top21_prods;
    }
 
+   const auto& to_out = top21_prods.back(); // top21
+
+   // check if current top21 was in top21 in previous schedule
+   const auto inTop21 = std::find_if(
+      std::begin(_gstate.last_schedule),
+      std::end(_gstate.last_schedule),
+      [top21Name = to_out.producer_name]( const auto& prod ){ 
+         return prod.first == top21Name;
+      }
+   );
+   
+   // check if current top21 was in top25 in previous schedule
+   const auto inTop25 = std::find_if(
+      std::begin(_grotation.standby_rotation),
+      std::end(_grotation.standby_rotation),
+      [top21Name = to_out.producer_name]( const auto& prod ){ 
+         return prod.producer_name == top21Name;
+      }
+   );
+
+   // check if someone new managed to reach to top21
+   if ( inTop21 == std::end(_gstate.last_schedule) && inTop25 == std::end(_grotation.standby_rotation) ) {
+      _grotation.last_rotation_time = eosio::current_time_point();
+      _grotation.standby_rotation.push_back( to_out ); 
+
+      return top21_prods;
+   }
 
    std::vector<eosio::producer_key> rotation;
 

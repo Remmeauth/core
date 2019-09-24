@@ -37,27 +37,27 @@ static std::vector<genesis_account> test_genesis( {
     {N(whale1),    70'000'000'0000ll},
     {N(whale2),    40'000'000'0000ll},
     {N(whale3),    20'000'000'0000ll},
-    {N(proda),      1'000'000'0000ll},
-    {N(prodb),      1'000'000'0000ll},
-    {N(prodc),      1'000'000'0000ll},
-    {N(prodd),      1'000'000'0000ll},
-    {N(prode),      1'000'000'0000ll},
-    {N(prodf),      1'000'000'0000ll},
-    {N(prodg),      1'000'000'0000ll},
-    {N(prodh),      1'000'000'0000ll},
-    {N(prodi),      1'000'000'0000ll},
-    {N(prodj),      1'000'000'0000ll},
-    {N(prodk),      1'000'000'0000ll},
-    {N(prodl),      1'000'000'0000ll},
-    {N(prodm),      1'000'000'0000ll},
-    {N(prodn),      1'000'000'0000ll},
-    {N(prodo),      1'000'000'0000ll},
-    {N(prodp),      1'000'000'0000ll},
-    {N(prodq),      1'000'000'0000ll},
-    {N(prodr),      1'000'000'0000ll},
-    {N(prods),      1'000'000'0000ll},
-    {N(prodt),      1'000'000'0000ll},
-    {N(produ),      1'000'000'0000ll},
+    {N(proda),      2'000'000'0000ll},
+    {N(prodb),      2'000'000'0000ll},
+    {N(prodc),      2'000'000'0000ll},
+    {N(prodd),      2'000'000'0000ll},
+    {N(prode),      2'000'000'0000ll},
+    {N(prodf),      2'000'000'0000ll},
+    {N(prodg),      2'000'000'0000ll},
+    {N(prodh),      2'000'000'0000ll},
+    {N(prodi),      2'000'000'0000ll},
+    {N(prodj),      2'000'000'0000ll},
+    {N(prodk),      2'000'000'0000ll},
+    {N(prodl),      2'000'000'0000ll},
+    {N(prodm),      2'000'000'0000ll},
+    {N(prodn),      2'000'000'0000ll},
+    {N(prodo),      2'000'000'0000ll},
+    {N(prodp),      2'000'000'0000ll},
+    {N(prodq),      2'000'000'0000ll},
+    {N(prodr),      2'000'000'0000ll},
+    {N(prods),      2'000'000'0000ll},
+    {N(prodt),      2'000'000'0000ll},
+    {N(produ),      2'000'000'0000ll},
     {N(runnerup1),  1'000'000'0000ll},
     {N(runnerup2),  1'000'000'0000ll},
     {N(runnerup3),  1'000'000'0000ll},
@@ -253,6 +253,11 @@ rotation_tester::rotation_tester() {
 
 BOOST_AUTO_TEST_SUITE(rotation_tests)
 
+// Expected schedule versions:
+// V1: top21[proda - prodt, produ], top25[], rotation[]
+// V2: top21[proda - prodt, produ], top25[], rotation[]
+// V3: top21[proda - prodt, produ], top25[], rotation[]
+// ...
 BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
     try {
         const auto producer_candidates = std::vector< account_name >{
@@ -273,8 +278,27 @@ BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
 
         // Initial producers setup
         {
-            produce_blocks_for_n_rounds(2);
+            produce_blocks(2);
             const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_REQUIRE( 
+                std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        const auto rotation_period = fc::hours(4);
+
+        // Next round
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
@@ -287,25 +311,11 @@ BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
 
         // Next round
         {
-            produce_blocks_for_n_rounds(1);
-
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
             const auto active_schedule = control->head_block_state()->active_schedule;
-            BOOST_REQUIRE( 
-                std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
-                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
-                                return rhs == lhs.producer_name;
-                            }
-                )
-            );
-        }
 
-
-        // Next round
-        {
-            produce_blocks_for_n_rounds(1);
-
-            const auto active_schedule = control->head_block_state()->active_schedule;
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
@@ -317,12 +327,21 @@ BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
         }
     } FC_LOG_AND_RETHROW()
 }
+
+// Expected schedule versions:
+// V1: top21[proda - prodt, produ],     top25[runnerup1-runnerup4], rotation[runnerup1, runnerup2, runnerup3, runnerup4, produ]
+// V2: top21[proda - prodt, runnerup1], top25[runnerup1-runnerup4], rotation[runnerup2, runnerup3, runnerup4, produ, runnerup1]
+// V3: top21[proda - prodt, runnerup2], top25[runnerup1-runnerup4], rotation[runnerup3, runnerup4, produ, runnerup1, runnerup2]
+// V4: top21[proda - prodt, runnerup3], top25[runnerup1-runnerup4], rotation[runnerup4, produ, runnerup1, runnerup2, runnerup3]
+// V5: top21[proda - prodt, runnerup4], top25[runnerup1-runnerup4], rotation[produ, runnerup1, runnerup2, runnerup3, runnerup4]
+// V6: top21[proda - prodt, produ],     top25[runnerup1-runnerup4], rotation[runnerup1, runnerup2, runnerup3, runnerup4, produ]
+// ...
 BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
     try {
         auto producer_candidates = std::vector< account_name >{
             N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
             N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)            
+            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)
         };
 
         // Register producers
@@ -488,69 +507,234 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
     } FC_LOG_AND_RETHROW()
 }
 
-/*
-BOOST_FIXTURE_TEST_CASE( rotation_cancelled_after_bp_has_been_unvoted_test, rotation_tester ) {
+// Expected schedule versions:
+// V1: top21[proda - produ],                   top25[runnerup1-runnerup4],                    rotation[runnerup1, runnerup2, runnerup3, runnerup4, produ]
+// V2: top21[produ, proda - prods, runnerup1], top25[runnerup1-runnerup4],                    rotation[runnerup2, runnerup3, runnerup4, prodt, runnerup1]
+// V3: top21[produ, proda - prods, runnerup2], top25[runnerup1-runnerup4],                    rotation[runnerup3, runnerup4, prodt, runnerup1, runnerup2]
+// V4: top21[proda - prods, produ, runnerup3], top25[runnerup3, prodt, runnerup1, runnerup2], rotation[runnerup4, prodt, runnerup1, runnerup2, runnerup3]
+BOOST_FIXTURE_TEST_CASE( top_25_reordered_test, rotation_tester ) {
     try {
-        delegate_bandwidth(N(rem.stake), N(runnerup4), asset(300'000'0000));
-        delegate_bandwidth(N(rem.stake), N(runnerup5), asset(300'000'0000));
-
-        auto producer_candidates = {
+        auto producer_candidates = std::vector< account_name >{
             N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
             N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
             N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ),
-            N(runnerup1), N(runnerup2), N(runnerup3)
+            N(runnerup1), N(runnerup2), N(runnerup3),  N(runnerup4), N(runnerup5)
         };
 
         // Register producers
         for( auto pro : producer_candidates ) {
             register_producer(pro);
         }
-        register_producer(N(runnerup4));
-        register_producer(N(runnerup5));
 
+        votepro( N(b1), producer_candidates );
+        votepro( N(whale1), producer_candidates);
+        votepro( N(whale2), producer_candidates );
+        votepro( N(whale3), producer_candidates );
 
-        votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
-                          N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-                          N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        votepro( N(whale2), {N(runnerup1), N(runnerup2), N(runnerup3)} );
-        votepro( N(whale3), {N(proda), N(prodb), N(prodc), N(prodd), N(prode)} );
-        votepro( N(whale4), {N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        for( auto prod : producer_candidates ) {
-            votepro(prod, { prod });
+        // Initial schedule should be proda-produ
+        {
+            produce_blocks(2);
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_REQUIRE( 
+                std::equal( std::begin( producer_candidates ), std::begin( producer_candidates ) + 21,
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
         }
 
-        produce_blocks(4);
-        produce_block();
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodp", "prodr", "prods", "prodt", "produ", "runnerup1" });
-        BOOST_TEST(get_rotated_producers().first == N(prodq)); //bp out
-        BOOST_TEST(get_rotated_producers().second == N(runnerup1)); //standby in
+        const auto rotation_period = fc::hours(4);
 
-        //add more standby
-        votepro( N(whale2), { N(runnerup1), N(runnerup2), N(runnerup3), N(runnerup4), N(runnerup5) } );
+        // produ votes for himself reaching top1
+        // top21: produ, proda-prods
+        // top25: prodt, runnerup1-runnerup4
+        // prodt was in top25 of previous schedule so it will be rotated
+        {
+            // active schedule is sorted by name acutally
+            auto rota = std::vector< account_name >{
+                N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(produ), N(runnerup1)
+            };
 
-        // make changes to top 21 producer list
-        votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
-                          N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-                          N(prodo), N(prodp), N(prodr), N(prods), N(prodt), N(produ),
-                          N(runnerup3)} );
-        produce_blocks_until_schedule_is_changed(2000);
-        produce_blocks(2);
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodp", "prodr", "prods", "prodt", "produ", "runnerup3" });
-        //rotation must be dropped due to prodq loosing his votes
-        BOOST_TEST(get_rotated_producers().first == name(0)); //bp out
-        BOOST_TEST(get_rotated_producers().second == name(0)); //standby in
+            votepro( N(produ), { N(produ) } );
 
-        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(12 * 3600));
-        produce_blocks_until_schedule_is_changed(2000);
-        produce_blocks(2);
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodp", "prods", "prodt", "produ", "runnerup2", "runnerup3" });
-        BOOST_TEST(get_rotated_producers().first == N(prodr)); //bp out
-        BOOST_TEST(get_rotated_producers().second == N(runnerup2)); //standby in
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
 
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        // Next round
+        {
+            // active schedule is sorted by name acutally
+            auto rota = std::vector< account_name >{
+                N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(produ), N(runnerup2)
+            };
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        // proda-prods, produ, runnerup4 votes for themselves
+        // top21: proda-prods, produ, runnerup4 
+        // top25: prodt, runnerup1-runnerup3
+        // runnerup4 was in top25 of previous schedule so it will be rotated
+        {
+            // active schedule is sorted by name acutally
+            auto rota = std::vector< account_name >{
+                N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(produ), N(runnerup4)
+            };
+
+            for( auto pro: rota ) {
+                votepro( pro, { pro } );
+            }
+
+            rota.back() = N(runnerup3);
+
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
     } FC_LOG_AND_RETHROW()
 }
-*/
+
+// Expected schedule versions:
+// V1: top21[proda - prodt, produ],     top25[runnerup1-runnerup4],        rotation[runnerup1, runnerup2, runnerup3, runnerup4, produ]
+// V2: top21[proda - prodt, runnerup5], top25[produ, runnerup1-runnerup3], rotation[runnerup5, runnerup1, runnerup2, runnerup3, produ]
+// V3: top21[proda - prodt, runnerup5], top25[produ, runnerup1-runnerup3], rotation[runnerup1, runnerup2, runnerup3, produ, runnerup5]
+BOOST_FIXTURE_TEST_CASE( new_top_21_test, rotation_tester ) {
+    try {
+        auto producer_candidates = std::vector< account_name >{
+            N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+            N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ),
+            N(runnerup1), N(runnerup2), N(runnerup3),  N(runnerup4), N(runnerup5)
+        };
+
+        // Register producers
+        for( auto pro : producer_candidates ) {
+            register_producer(pro);
+        }
+
+        votepro( N(b1), producer_candidates );
+        votepro( N(whale1), producer_candidates);
+        votepro( N(whale2), producer_candidates );
+        votepro( N(whale3), producer_candidates );
+
+        // Initial schedule should be proda-produ
+        {
+            produce_blocks(2);
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_REQUIRE( 
+                std::equal( std::begin( producer_candidates ), std::begin( producer_candidates ) + 21,
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+
+        const auto rotation_period = fc::hours(4);
+
+        // produ-prodt voted for themselves getting additional 2'000'000'0000 votes
+        // produ,runnerup1-runnerup4 did not voted for themselves
+        // runnerup5 voted for himselve getting additional 1'000'000'0000 votes
+        // top21: proda-prodt, runnerup5
+        // top25: produ, runnerup1-runnerup3
+        {
+            auto rota = std::vector< account_name >{
+                N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(runnerup5)
+            };
+
+            for (auto pro : rota) {
+                votepro(pro, { pro });
+            }
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        {
+            auto rota = std::vector< account_name >{
+                N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(runnerup1)
+            };
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            // std::cout << "expected: " << std::endl;
+            // std::copy( std::begin( rota ), std::end( rota ), std::ostream_iterator< account_name >( std::cout, ", " ) );
+
+            // std::cout << "\nactual: " << std::endl;
+            // std::transform( std::begin( active_schedule.producers ), std::end( active_schedule.producers ), std::ostream_iterator< account_name >( std::cout, ", "), []( const auto& prod_key ){ return prod_key.producer_name; } );
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+    } FC_LOG_AND_RETHROW()
+}
+
 BOOST_AUTO_TEST_SUITE_END()
