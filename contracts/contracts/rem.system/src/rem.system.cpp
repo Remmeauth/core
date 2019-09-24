@@ -53,7 +53,7 @@ namespace eosiosystem {
       _gremstate = _globalrem.exists() ? _globalrem.get() : get_default_rem_parameters();
 
       _grotation = _rotation.get_or_create(_self, rotation_state{
-         .last_rotation_time      = time_point(),
+         .last_rotation_time      = time_point{},
          .rotation_period         = eosio::hours(4),
          .standby_prods_to_rotate = 4
       });

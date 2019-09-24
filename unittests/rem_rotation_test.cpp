@@ -32,43 +32,43 @@ struct genesis_account {
    uint64_t     initial_balance;
 };
 
- static std::vector<genesis_account> test_genesis( {
-                                              {N(b1),       100'000'000'0000ll},
-                                              {N(whale4),    40'000'000'0000ll},
-                                              {N(whale3),    30'000'000'0000ll},
-                                              {N(whale2),    20'000'000'0000ll},
-                                              {N(proda),      1'000'000'0000ll},
-                                              {N(prodb),      1'000'000'0000ll},
-                                              {N(prodc),      1'000'000'0000ll},
-                                              {N(prodd),      1'000'000'0000ll},
-                                              {N(prode),      1'000'000'0000ll},
-                                              {N(prodf),      1'000'000'0000ll},
-                                              {N(prodg),      1'000'000'0000ll},
-                                              {N(prodh),      1'000'000'0000ll},
-                                              {N(prodi),      1'000'000'0000ll},
-                                              {N(prodj),      1'000'000'0000ll},
-                                              {N(prodk),      1'000'000'0000ll},
-                                              {N(prodl),      1'000'000'0000ll},
-                                              {N(prodm),      1'000'000'0000ll},
-                                              {N(prodn),      1'000'000'0000ll},
-                                              {N(prodo),      1'000'000'0000ll},
-                                              {N(prodp),      1'000'000'0000ll},
-                                              {N(prodq),      1'000'000'0000ll},
-                                              {N(prodr),      1'000'000'0000ll},
-                                              {N(prods),      1'000'000'0000ll},
-                                              {N(prodt),      1'000'000'0000ll},
-                                              {N(produ),      1'000'000'0000ll},
-                                              {N(runnerup1),  1'000'000'0000ll},
-                                              {N(runnerup2),  1'000'000'0000ll},
-                                              {N(runnerup3),  1'000'000'0000ll},
-                                              {N(minow1),         1'100'0000ll},
-                                              {N(minow2),         1'050'0000ll},
-                                              {N(minow3),         1'050'0000ll},
-                                              {N(masses),   500'000'000'0000ll}
-                                           });
+static std::vector<genesis_account> test_genesis( {
+    {N(b1),       100'000'000'0000ll},
+    {N(whale1),    70'000'000'0000ll},
+    {N(whale2),    40'000'000'0000ll},
+    {N(whale3),    20'000'000'0000ll},
+    {N(proda),      1'000'000'0000ll},
+    {N(prodb),      1'000'000'0000ll},
+    {N(prodc),      1'000'000'0000ll},
+    {N(prodd),      1'000'000'0000ll},
+    {N(prode),      1'000'000'0000ll},
+    {N(prodf),      1'000'000'0000ll},
+    {N(prodg),      1'000'000'0000ll},
+    {N(prodh),      1'000'000'0000ll},
+    {N(prodi),      1'000'000'0000ll},
+    {N(prodj),      1'000'000'0000ll},
+    {N(prodk),      1'000'000'0000ll},
+    {N(prodl),      1'000'000'0000ll},
+    {N(prodm),      1'000'000'0000ll},
+    {N(prodn),      1'000'000'0000ll},
+    {N(prodo),      1'000'000'0000ll},
+    {N(prodp),      1'000'000'0000ll},
+    {N(prodq),      1'000'000'0000ll},
+    {N(prodr),      1'000'000'0000ll},
+    {N(prods),      1'000'000'0000ll},
+    {N(prodt),      1'000'000'0000ll},
+    {N(produ),      1'000'000'0000ll},
+    {N(runnerup1),  1'000'000'0000ll},
+    {N(runnerup2),  1'000'000'0000ll},
+    {N(runnerup3),  1'000'000'0000ll},
+    {N(runnerup4),  1'000'000'0000ll},
+    {N(runnerup5),  1'000'000'0000ll}
+} );
 
 class rotation_tester : public TESTER {
 public:
+   rotation_tester();
+
    void deploy_contract( bool call_init = true ) {
       set_code( config::system_account_name, contracts::rem_system_wasm() );
       set_abi( config::system_account_name, contracts::rem_system_abi().data() );
@@ -137,6 +137,16 @@ public:
       return r;
    }
 
+   void votepro( account_name voter, vector<account_name> producers ) {
+      std::sort( producers.begin(), producers.end() );
+      base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
+                           ("voter", name(voter))
+                           ("proxy", name(0) )
+                           ("producers", producers)
+               );
+      produce_blocks();
+   };
+
    std::pair<name, name> get_rotated_producers() {
       auto data = get_row_by_account(config::system_account_name, config::system_account_name, N(rotations), N(rotations));
       if (data.empty()) {
@@ -165,13 +175,13 @@ public:
    }
 
    uint32_t produce_blocks_until_schedule_is_changed(const uint32_t max_blocks) {
-      const auto current_version = control->active_producers().version;
-      uint32_t blocks_produced = 0;
-      while (control->active_producers().version == current_version && blocks_produced < max_blocks) {
-         produce_block();
-         blocks_produced++;
-      }
-      return blocks_produced;
+       const auto current_version = control->active_producers().version;
+       uint32_t blocks_produced = 0;
+       while (control->active_producers().version == current_version && blocks_produced < max_blocks) {
+           produce_block();
+           blocks_produced++;
+       }
+       return blocks_produced;
    }
 
    void test_schedule(const std::vector<std::string>& expected_schedule) {
@@ -186,59 +196,69 @@ public:
    abi_serializer abi_ser;
 };
 
+rotation_tester::rotation_tester() {
+   // Create rem.msig and rem.token
+   create_accounts({N(rem.msig), N(rem.token), N(rem.ram), N(rem.ramfee), N(rem.stake), N(rem.bpay), N(rem.spay), N(rem.vpay), N(rem.saving) });
+
+   // Set code for the following accounts:
+   //  - rem (code: rem.bios) (already set by tester constructor)
+   //  - rem.msig (code: rem.msig)
+   //  - rem.token (code: rem.token)
+   set_code_abi(N(rem.msig),
+               contracts::rem_msig_wasm(),
+               contracts::rem_msig_abi().data());//, &rem_active_pk);
+   set_code_abi(N(rem.token),
+               contracts::rem_token_wasm(),
+               contracts::rem_token_abi().data()); //, &rem_active_pk);
+
+   // Set privileged for rem.msig and rem.token
+   set_privileged(N(rem.msig));
+   set_privileged(N(rem.token));
+
+   // Verify rem.msig and rem.token is privileged
+   const auto& rem_msig_acc = get<account_metadata_object, by_name>(N(rem.msig));
+   BOOST_TEST(rem_msig_acc.is_privileged() == true);
+   const auto& rem_token_acc = get<account_metadata_object, by_name>(N(rem.token));
+   BOOST_TEST(rem_token_acc.is_privileged() == true);
+
+   // Create SYS tokens in rem.token, set its manager as rem
+   const auto max_supply     = core_from_string("1000000000.0000");
+   const auto initial_supply = core_from_string("900000000.0000");
+
+   create_currency(N(rem.token), config::system_account_name, max_supply);
+   // Issue the genesis supply of 1 billion SYS tokens to rem.system
+   issue(N(rem.token), config::system_account_name, config::system_account_name, initial_supply);
+
+   // Create genesis accounts
+   for( const auto& account : test_genesis ) {
+      create_account( account.aname, config::system_account_name );
+   }
+
+   deploy_contract();
+
+   // Buy ram and stake cpu and net for each genesis accounts
+   for( const auto& account : test_genesis ) {
+      const auto stake_quantity = account.initial_balance - 1000;
+
+      const auto r = delegate_bandwidth(N(rem.stake), account.aname, asset(stake_quantity));
+      BOOST_REQUIRE( !r->except_ptr );
+   }
+
+    // register whales as producers
+    const auto whales_as_producers = { N(b1), N(whale1), N(whale2), N(whale3) };
+    for( const auto& producer : whales_as_producers ) {
+        register_producer(producer);
+    }
+}
+
 BOOST_AUTO_TEST_SUITE(rotation_tests)
 
-BOOST_FIXTURE_TEST_CASE( rotation_with_less_than_4_standby_test, rotation_tester ) {
+BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
     try {
-
-        // Create rem.msig and rem.token
-        create_accounts({N(rem.msig), N(rem.token), N(rem.ram), N(rem.ramfee), N(rem.stake), N(rem.vpay), N(rem.spay), N(rem.saving) });
-        set_code_abi(N(rem.msig),
-                     contracts::rem_msig_wasm(),
-                     contracts::rem_msig_abi().data());//, &rem_active_pk);
-        set_code_abi(N(rem.token),
-                     contracts::rem_token_wasm(),
-                     contracts::rem_token_abi().data()); //, &rem_active_pk);
-
-        // Set privileged for rem.msig and rem.token
-        set_privileged(N(rem.msig));
-        set_privileged(N(rem.token));
-
-
-        // Create SYS tokens in rem.token, set its manager as rem
-        auto max_supply = core_from_string("1000000000.0000");
-        auto initial_supply = core_from_string("900000000.0000");
-        create_currency(N(rem.token), config::system_account_name, max_supply);
-        // Issue the genesis supply of 1 billion SYS tokens to rem.system
-        issue(N(rem.token), config::system_account_name, config::system_account_name, initial_supply);
-
-        // Create genesis accounts
-        for( const auto& a : test_genesis ) {
-            create_account( a.aname, config::system_account_name );
-        }
-
-        deploy_contract();
-
-        // Buy ram and stake cpu and net for each genesis accounts
-        for( const auto& a : test_genesis ) {
-            auto stake_quantity = a.initial_balance - 1000;
-
-            auto r = delegate_bandwidth(N(rem.stake), a.aname, asset(stake_quantity));
-            BOOST_REQUIRE( !r->except_ptr );
-        }
-
-
-        // register whales as producers
-        const auto whales_as_producers = { N(b1), N(whale4), N(whale3), N(whale2) };
-        for( const auto& producer : whales_as_producers ) {
-            register_producer(producer);
-        }
-
-        auto producer_candidates = {
+        const auto producer_candidates = std::vector< account_name >{
             N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
             N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ),
-            N(runnerup1), N(runnerup2), N(runnerup3)
+            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)
         };
 
         // Register producers
@@ -246,135 +266,233 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_less_than_4_standby_test, rotation_tester
             register_producer(pro);
         }
 
-        // Vote for producers
-        auto votepro = [&]( account_name voter, vector<account_name> producers ) {
-            std::sort( producers.begin(), producers.end() );
-            base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
-                ("voter",  name(voter))
-                ("proxy", name(0) )
-                ("producers", producers)
+        votepro( N(b1), producer_candidates );
+        votepro( N(whale1), producer_candidates );
+        votepro( N(whale2), producer_candidates );
+        votepro( N(whale3), producer_candidates );
+
+        // Initial producers setup
+        {
+            produce_blocks_for_n_rounds(2);
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_REQUIRE( 
+                std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
             );
-        };
-        votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
-                          N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-                          N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        votepro( N(whale2), {N(runnerup1), N(runnerup2), N(runnerup3)} );
-        votepro( N(whale3), {N(proda), N(prodb), N(prodc), N(prodd), N(prode)} );
-        votepro( N(whale4), {N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        for( auto prod : producer_candidates ) {
-            votepro(prod, { prod });
         }
-        //After this voting producers table looks like this:
-        //Top21:
-        // (0-4) prodq, prodr, prods, prodt, produ - 141'000'000'0000 votes each
-        // (5-9) proda, prodb, prodc, prodd, prode - 131'000'000'0000 votes each
-        // (10-20) prodf, prodg, prodh, prodi, prodj, prodk, prodl, prodm, prodn, prodo, prodp - 101'000'000'0000 votes each
-        //Standby:
-        // (21-23) runnerup1, runnerup2, runnerup3 - 21'000'000'0000 votes each
-        //
-        //So the first rotetion will be prodq(first in top21)-runnerup1(first in standby list)
 
-        produce_blocks(4);
-        produce_block();
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodp", "prodr", "prods", "prodt", "produ", "runnerup1" });
-        BOOST_TEST(get_rotated_producers().first == N(prodq)); //bp out
-        BOOST_TEST(get_rotated_producers().second == N(runnerup1)); //standby in
+        // Next round
+        {
+            produce_blocks_for_n_rounds(1);
 
-        // make changes to top 21 producer list
-        votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
-                          N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-                          N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ),
-                          N(runnerup2)} );
-        produce_blocks_until_schedule_is_changed(2000);
-        produce_blocks(2);
-        //After this voting producers table looks like this:
-        //Top21:
-        // (0-4) prodq, prodr, prods, prodt, produ - 141'000'000'0000 votes each
-        // (5-9) proda, prodb, prodc, prodd, prode - 131'000'000'0000 votes each
-        // (10) runnerup2 - 121'000'000'0000 votes
-        // (11-20) prodf, prodg, prodh, prodi, prodj, prodk, prodl, prodm, prodn, prodo - 101'000'000'0000 votes each
-        //Standby:
-        // (21) prodp - 101'000'000'0000 votes
-        // (22-23) runnerup1, runnerup3 - 21'000'000'0000 votes each
-        //
-        //Rotation is the same
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodr", "prods", "prodt", "produ", "runnerup1", "runnerup2" });
-        BOOST_TEST(get_rotated_producers().first == N(prodq)); //bp out
-        BOOST_TEST(get_rotated_producers().second == N(runnerup1)); //standby in
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_REQUIRE( 
+                std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
 
-        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(12 * 3600));
-        produce_blocks_until_schedule_is_changed(2000);
-        produce_blocks(2);
-        //Producers table is the same:
-        //Top21:
-        // (0-4) prodq, prodr, prods, prodt, produ - 141'000'000'0000 votes each
-        // (5-9) proda, prodb, prodc, prodd, prode - 131'000'000'0000 votes each
-        // (10) runnerup2 - 121'000'000'0000 votes
-        // (11-20) prodf, prodg, prodh, prodi, prodj, prodk, prodl, prodm, prodn, prodo - 101'000'000'0000 votes each
-        //Standby:
-        // (21) prodp - 101'000'000'0000 votes
-        // (22-23) runnerup1, runnerup3 - 21'000'000'0000 votes each
-        //
-        //Rotation has changed after 12 hours: prodr-runnerup3
-        test_schedule({ "proda", "prodb", "prodc", "prodd", "prode", "prodf", "prodg", "prodh", "prodi", "prodj", "prodk",
-                        "prodl", "prodm", "prodn", "prodo", "prodq", "prods", "prodt", "produ", "runnerup2", "runnerup3" });
-        BOOST_TEST(get_rotated_producers().first == N(prodr)); //bp out
-        BOOST_TEST(get_rotated_producers().second == N(runnerup3)); //standby in
 
+        // Next round
+        {
+            produce_blocks_for_n_rounds(1);
+
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_REQUIRE( 
+                std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+    } FC_LOG_AND_RETHROW()
+}
+BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
+    try {
+        auto producer_candidates = std::vector< account_name >{
+            N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+            N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)            
+        };
+
+        // Register producers
+        for( auto pro : producer_candidates ) {
+            register_producer(pro);
+        }
+
+        auto runnerups = std::vector< account_name >{
+            N(runnerup1), N(runnerup2), N(runnerup3),  N(runnerup4)
+        };
+
+        // Register producers
+        for( auto pro : runnerups ) {
+            register_producer(pro);
+        }
+
+        votepro( N(b1), producer_candidates );
+        votepro( N(whale1), producer_candidates );
+        votepro( N(whale2), producer_candidates );
+        votepro( N(whale3), runnerups );
+
+        // After this voting producers table looks like this:
+        // Top21:
+        //  proda-produ: (100'000'000'0000 + 70'000'000'0000 + 40'000'000'0000) / 21 = 10'000'000'0000
+        // Standby (22-24):
+        //  runnerup1-runnerup3: 20'000'000'0000 / 3 = 6'600'000'0000
+        // 
+        // So the first schedule should be proda-produ
+        {
+            produce_blocks(2);
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_REQUIRE( 
+                std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        const auto rotation_period = fc::hours(4);
+
+        // Next round should be included runnerup1 instead of produ
+        {
+            auto rota = producer_candidates;
+            rota.back() = N(runnerup1);
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        // Next round should be included runnerup2 instead of runnerup1
+        {
+            auto rota = producer_candidates;
+            rota.back() = N(runnerup2);
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        // Next round should be included runnerup3 instead of runnerup2
+        {
+            auto rota = producer_candidates;
+            rota.back() = N(runnerup3);
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        // Next round should be included runnerup4 instead of runnerup3
+        {
+            auto rota = producer_candidates;
+            rota.back() = N(runnerup4);
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        // Next round should be included produ instead of runnerup4
+        {
+            auto rota = producer_candidates;
+            rota.back() = N(produ);
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
+
+        // Next round should be included runnerup1 instead of produ
+        {
+            auto rota = producer_candidates;
+            rota.back() = N(runnerup1);
+
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(rotation_period); // skip 4 hours (default rotation time) 
+            produce_blocks_until_schedule_is_changed(2000); // produce some blocks until new schedule (prev wait can leave as in a middle of schedule)
+            produce_blocks(2); // wait until schedule is accepted
+            const auto active_schedule = control->head_block_state()->active_schedule;
+
+            BOOST_REQUIRE( 
+                std::equal( std::begin( rota ), std::end( rota ),
+                            std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
+                            []( const account_name& rhs, const producer_key& lhs ) {
+                                return rhs == lhs.producer_name;
+                            }
+                )
+            );
+        }
     } FC_LOG_AND_RETHROW()
 }
 
+/*
 BOOST_FIXTURE_TEST_CASE( rotation_cancelled_after_bp_has_been_unvoted_test, rotation_tester ) {
     try {
-
-        // Create rem.msig and rem.token
-        create_accounts({N(rem.msig), N(rem.token), N(rem.ram), N(rem.ramfee), N(rem.stake), N(rem.vpay), N(rem.spay), N(rem.saving) });
-        set_code_abi(N(rem.msig),
-                     contracts::rem_msig_wasm(),
-                     contracts::rem_msig_abi().data());//, &rem_active_pk);
-        set_code_abi(N(rem.token),
-                     contracts::rem_token_wasm(),
-                     contracts::rem_token_abi().data()); //, &rem_active_pk);
-
-        // Set privileged for rem.msig and rem.token
-        set_privileged(N(rem.msig));
-        set_privileged(N(rem.token));
-
-
-        // Create SYS tokens in rem.token, set its manager as rem
-        auto max_supply = core_from_string("1000000000.0000");
-        auto initial_supply = core_from_string("900000000.0000");
-        create_currency(N(rem.token), config::system_account_name, max_supply);
-        // Issue the genesis supply of 1 billion SYS tokens to rem.system
-        issue(N(rem.token), config::system_account_name, config::system_account_name, initial_supply);
-
-        // Create genesis accounts
-        for( const auto& a : test_genesis ) {
-            create_account( a.aname, config::system_account_name );
-        }
-        create_account( N(runnerup4), config::system_account_name );
-        create_account( N(runnerup5), config::system_account_name );
-
-        deploy_contract();
-
-        // Buy ram and stake cpu and net for each genesis accounts
-        for( const auto& a : test_genesis ) {
-            auto stake_quantity = a.initial_balance - 1000;
-
-            auto r = delegate_bandwidth(N(rem.stake), a.aname, asset(stake_quantity));
-            BOOST_REQUIRE( !r->except_ptr );
-        }
         delegate_bandwidth(N(rem.stake), N(runnerup4), asset(300'000'0000));
         delegate_bandwidth(N(rem.stake), N(runnerup5), asset(300'000'0000));
-
-
-        // register whales as producers
-        const auto whales_as_producers = { N(b1), N(whale4), N(whale3), N(whale2) };
-        for( const auto& producer : whales_as_producers ) {
-            register_producer(producer);
-        }
 
         auto producer_candidates = {
             N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
@@ -390,15 +508,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_cancelled_after_bp_has_been_unvoted_test, rota
         register_producer(N(runnerup4));
         register_producer(N(runnerup5));
 
-        // Vote for producers
-        auto votepro = [&]( account_name voter, vector<account_name> producers ) {
-            std::sort( producers.begin(), producers.end() );
-            base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
-                ("voter",  name(voter))
-                ("proxy", name(0) )
-                ("producers", producers)
-            );
-        };
+
         votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
                           N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
                           N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
@@ -442,5 +552,5 @@ BOOST_FIXTURE_TEST_CASE( rotation_cancelled_after_bp_has_been_unvoted_test, rota
 
     } FC_LOG_AND_RETHROW()
 }
-
+*/
 BOOST_AUTO_TEST_SUITE_END()

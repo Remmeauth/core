@@ -231,17 +231,13 @@ namespace eosiosystem {
     * Defines new global state parameters to store inflation rate and distribution
     */
    struct [[eosio::table("rotations"), eosio::contract("rem.system")]] rotation_state {
-      std::deque<name>  prods_by_rotation_time;
-      std::deque<name>  standby_prods_by_rotation_time;
+      time_point   last_rotation_time;
+      microseconds rotation_period;
+      uint32_t     standby_prods_to_rotate;
 
-      name              bp_out;
-      name              sbp_in;
-      time_point        last_rotation_time;
-      microseconds      rotation_period;
-      uint32_t          standby_prods_to_rotate;
+      std::vector<eosio::producer_key>  standby_rotation;
 
-      EOSLIB_SERIALIZE( rotation_state, (prods_by_rotation_time)(standby_prods_by_rotation_time)
-         (bp_out)(sbp_in)(last_rotation_time)(rotation_period)(standby_prods_to_rotate) )
+      EOSLIB_SERIALIZE( rotation_state, (last_rotation_time)(rotation_period)(standby_prods_to_rotate)(standby_rotation) )
    };
 
    /**
