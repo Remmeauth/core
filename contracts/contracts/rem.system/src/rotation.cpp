@@ -130,9 +130,9 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
    _grotation.last_rotation_time = ct;
    _grotation.standby_rotation   = rotation;
 
-   OnExit printer_rota{ "Rotation: ", rotation };
-   OnExit printer_top25{ "Top25: ", standby };
-   OnExit printer_top21{ "Top21: ", top21_prods };
+   // OnExit printer_rota{ "Rotation: ", rotation };
+   // OnExit printer_top25{ "Top25: ", standby };
+   // OnExit printer_top21{ "Top21: ", top21_prods };
    return top21_prods;
 }
 

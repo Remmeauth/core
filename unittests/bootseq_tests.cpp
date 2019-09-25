@@ -231,20 +231,6 @@ public:
         return unpaid_blocks;
     }
 
-    std::pair<name, name> get_rotated_producers() {
-        auto data = get_row_by_account(config::system_account_name, config::system_account_name, N(rotations), N(rotations));
-        if (data.empty()) {
-            return std::make_pair(0, 0);
-        }
-
-        fc::variant v = abi_ser.binary_to_variant( "rotation_state", data, abi_serializer_max_time );
-        name bp_out;
-        name sbp_in;
-        fc::from_variant(v["bp_out"], bp_out);
-        fc::from_variant(v["sbp_in"], sbp_in);
-        return std::make_pair(bp_out, sbp_in);
-    }
-
     void set_code_abi(const account_name& account, const vector<uint8_t>& wasm, const char* abi, const private_key_type* signer = nullptr) {
        wdump((account));
         set_code(account, wasm, signer);
@@ -437,13 +423,11 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         BOOST_TEST(active_schedule.producers.at(13).producer_name == "prodn");
         BOOST_TEST(active_schedule.producers.at(14).producer_name == "prodo");
         BOOST_TEST(active_schedule.producers.at(15).producer_name == "prodp");
-        BOOST_TEST(active_schedule.producers.at(16).producer_name == "prodr");
-        BOOST_TEST(active_schedule.producers.at(17).producer_name == "prods");
-        BOOST_TEST(active_schedule.producers.at(18).producer_name == "prodt");
-        BOOST_TEST(active_schedule.producers.at(19).producer_name == "produ");
-        BOOST_TEST(active_schedule.producers.at(20).producer_name == "runnerup1");
-        BOOST_TEST(get_rotated_producers().first == N(prodq));
-        BOOST_TEST(get_rotated_producers().second == N(runnerup1));
+        BOOST_TEST(active_schedule.producers.at(16).producer_name == "prodq");
+        BOOST_TEST(active_schedule.producers.at(17).producer_name == "prodr");
+        BOOST_TEST(active_schedule.producers.at(18).producer_name == "prods");
+        BOOST_TEST(active_schedule.producers.at(19).producer_name == "prodt");
+        BOOST_TEST(active_schedule.producers.at(20).producer_name == "produ");
         BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
 
         BOOST_REQUIRE_THROW(base_tester::push_action(config::system_account_name, N(setrwrdratio),
@@ -482,7 +466,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         for (auto prod: active_schedule.producers) {
            BOOST_TEST(get_pending_pervote_reward(prod.producer_name) > 0);
         }
-        BOOST_TEST(get_pending_pervote_reward(N(prodq)) == 0);
 
         // make changes to top 21 producer list
         votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
@@ -497,8 +480,10 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
            BOOST_REQUIRE(get_expected_produced_blocks(prod) == 0);
         }
         produce_block();
-        BOOST_TEST(get_rotated_producers().first == N(prodq));
-        BOOST_TEST(get_rotated_producers().second == N(runnerup1));
+        active_schedule = control->head_block_state()->active_schedule;
+        BOOST_REQUIRE(active_schedule.producers.size() == 21);
+        BOOST_TEST(active_schedule.producers.at(19).producer_name == "produ");
+        BOOST_TEST(active_schedule.producers.at(20).producer_name == "runnerup2");
         BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
 
         //Counters of expected_produced_blocks
@@ -507,8 +492,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         //prodn-prodo - 48
         //prodp       - 37
         //prodr-produ - 36
-        //runnerup1   - 36
-        BOOST_TEST(get_pending_pervote_reward(N(prodq)) == 0); //prodq was rotated out
         for (auto prod: { N(proda), N(prodb), N(prodc), N(prode), N(prodf), N(prodg), N(prodh), N(prodi), N(prodj), N(prodk), N(prodl) }) {
             BOOST_TEST(get_expected_produced_blocks(prod) == 36);
         }
@@ -520,7 +503,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         for (auto prod: { N(prodr), N(prods), N(prodt), N(produ) }) {
             BOOST_TEST(get_expected_produced_blocks(prod) == 36);
         }
-        BOOST_TEST(get_expected_produced_blocks(N(runnerup1)) == 36);
 
         BOOST_TEST(get_balance(N(runnerup1)).get_amount() == 0);
         BOOST_TEST(get_balance(N(proda)).get_amount() == 0);

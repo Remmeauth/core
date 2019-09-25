@@ -147,20 +147,6 @@ public:
       produce_blocks();
    };
 
-   std::pair<name, name> get_rotated_producers() {
-      auto data = get_row_by_account(config::system_account_name, config::system_account_name, N(rotations), N(rotations));
-      if (data.empty()) {
-         return std::make_pair(0, 0);
-      }
-
-      fc::variant v = abi_ser.binary_to_variant( "rotation_state", data, abi_serializer_max_time );
-      name bp_out;
-      name sbp_in;
-      fc::from_variant(v["bp_out"], bp_out);
-      fc::from_variant(v["sbp_in"], sbp_in);
-      return std::make_pair(bp_out, sbp_in);
-   }
-
    void set_code_abi(const account_name& account, const vector<uint8_t>& wasm, const char* abi, const private_key_type* signer = nullptr) {
       wdump((account));
       set_code(account, wasm, signer);
