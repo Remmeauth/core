@@ -2,16 +2,18 @@
  *  @copyright defined in eos/LICENSE.txt
  */
 
+#include <rem.system/rem.system.hpp>
+
 #include <eosio/crypto.hpp>
 #include <eosio/dispatcher.hpp>
 
-#include <rem.system/rem.system.hpp>
+// #include <rem.attr/rem.attr.hpp>
 
-#include "producer_pay.cpp"
 #include "delegate_bandwidth.cpp"
-#include "voting.cpp"
 #include "exchange_state.cpp"
+#include "producer_pay.cpp"
 #include "rex.cpp"
+#include "voting.cpp"
 
 namespace eosiosystem {
 
@@ -336,11 +338,15 @@ namespace eosiosystem {
 
       user_resources_table  userres( _self, newact.value);
 
-      //TODO: add a check of special attritube when ready
-      const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
-      const double bytes_per_token = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-      const int64_t free_stake_amount = _gstate.min_account_stake;
-      const int64_t free_gift_bytes = bytes_per_token * free_stake_amount;
+      int64_t free_stake_amount = 0;
+      int64_t free_gift_bytes   = 0;
+
+      // if ( attribute::has_attribute( "rem.attr", creator, "account_gifter" ) ) {
+      //    const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
+      //    const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
+      //    free_stake_amount                  = _gstate.min_account_stake;
+      //    free_gift_bytes                    = bytes_per_token * free_stake_amount;
+      // }
 
       userres.emplace( newact, [&]( auto& res ) {
         res.owner = newact;

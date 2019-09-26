@@ -9,6 +9,8 @@ namespace eosio {
    public:
       using contract::contract;
 
+      static bool has_attribute( const name& owner, const name& issuer, const name& attribute_name );
+
       [[eosio::action]]
       void confirm( const name& owner, const name& issuer, const name& attribute_name );
 
