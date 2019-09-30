@@ -153,22 +153,6 @@ namespace eosio {
       return static_cast<privacy_type>(ptype) == privacy_type::PublicConfirmedPointer ||
          static_cast<privacy_type>(ptype) == privacy_type::PrivateConfirmedPointer;
    }
-
-   bool attribute::has_attribute( const name& attr_contract_account, const name& owner, const name& attribute_name )
-   {
-      attribute_info_table attributes_info( attr_contract_account, attr_contract_account.value );
-      const auto it = attributes_info.find( attribute_name.value );
-
-      if ( it == attributes_info.end() ) {
-         return false;
-      }
-
-      attributes_table attributes( attr_contract_account, attribute_name.value );
-      auto idx = attributes.get_index<"reciss"_n>();
-      const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(owner, owner) );
-
-      return attr_it == idx.end();
-   }
 } /// namespace eosio
 
 EOSIO_DISPATCH( eosio::attribute, (confirm)(create)(invalidate)(remove)(setattr)(unsetattr) )

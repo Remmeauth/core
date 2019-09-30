@@ -2,18 +2,18 @@
  *  @copyright defined in eos/LICENSE.txt
  */
 
-#include <rem.system/rem.system.hpp>
 
 #include <eosio/crypto.hpp>
 #include <eosio/dispatcher.hpp>
 
-// #include <rem.attr/rem.attr.hpp>
+#include <rem.system/rem.system.hpp>
+#include <rem.attr/rem.attr.hpp>
 
-#include "delegate_bandwidth.cpp"
-#include "exchange_state.cpp"
 #include "producer_pay.cpp"
-#include "rex.cpp"
+#include "delegate_bandwidth.cpp"
 #include "voting.cpp"
+#include "exchange_state.cpp"
+#include "rex.cpp"
 
 namespace eosiosystem {
 
@@ -341,12 +341,13 @@ namespace eosiosystem {
       int64_t free_stake_amount = 0;
       int64_t free_gift_bytes   = 0;
 
-      // if ( attribute::has_attribute( "rem.attr", creator, "account_gifter" ) ) {
-      //    const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
-      //    const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-      //    free_stake_amount                  = _gstate.min_account_stake;
-      //    free_gift_bytes                    = bytes_per_token * free_stake_amount;
-      // }
+      if ( eosio::attribute::has_attribute( name("rem.attr"), name("rem.attr"), creator, name("accgifter") ) ) {
+         print( "created account: ", newact.to_string(), "; by: ", creator.to_string() );
+         const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
+         const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
+         free_stake_amount                  = _gstate.min_account_stake;
+         free_gift_bytes                    = bytes_per_token * free_stake_amount;
+      }
 
       userres.emplace( newact, [&]( auto& res ) {
         res.owner = newact;
