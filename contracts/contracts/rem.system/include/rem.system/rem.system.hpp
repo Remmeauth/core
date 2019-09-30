@@ -213,7 +213,12 @@ namespace eosiosystem {
       double  per_stake_share;
       double  per_vote_share;
 
-      EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share) )
+      name gifter_attr_contract = name{"rem.attr"};
+      name gifter_attr_issuer   = name{"rem.attr"};
+      name gifter_attr_name     = name{"accgifter"};
+
+
+      EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)(gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name) )
    };
 
    /**
@@ -620,6 +625,21 @@ namespace eosiosystem {
 
        [[eosio::action]]
        void setunloperiod( uint64_t period_in_days);
+
+
+        // Actions:
+        /**
+         * setgiftcontra set contract that own attribute that allows to create accounts with gifted resources
+         * setgiftiss set issuer that own attribute that allows to create accounts with gifted resources
+         * setgiftattr   set attribute name that allows to create accounts with gifted resources
+         */
+       [[eosio::action]]
+       void setgiftcontra( name value );
+       [[eosio::action]]
+       void setgiftiss( name value);
+       [[eosio::action]]
+       void setgiftattr( name value );
+
 
          // Actions:
          /**
@@ -1328,6 +1348,10 @@ namespace eosiosystem {
          using setrwrdratio_action = eosio::action_wrapper<"setrwrdratio"_n, &system_contract::setrwrdratio>;
          using setlockperiod_action = eosio::action_wrapper<"setlockperiod"_n, &system_contract::setlockperiod>;
          using setunloperiod_action = eosio::action_wrapper<"setunloperiod"_n, &system_contract::setunloperiod>;
+
+         using setgiftcontra_action = eosio::action_wrapper<"setgiftcontra"_n, &system_contract::setgiftcontra>;
+         using setgiftiss_action    = eosio::action_wrapper<"setgiftiss"_n,    &system_contract::setgiftiss>;
+         using setgiftattr_action   = eosio::action_wrapper<"setgiftattr"_n,   &system_contract::setgiftattr>;
 
       private:
          // Implementation details:

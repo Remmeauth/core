@@ -300,7 +300,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          );
       }
 
-      // create and assign `accgifter` attribute to `rem`
+      // create and set `accgifter` attribute to `rem`
       {
          const auto acc_gifter_attr = create_attribute_t{.attr_name = acc_gifter_attr_name, .type = 0, .privacy_type = 3};
          create_attr(acc_gifter_attr.attr_name, acc_gifter_attr.type, acc_gifter_attr.privacy_type);
@@ -333,7 +333,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          BOOST_REQUIRE_EQUAL(total_stake["free_stake_amount"].as_uint64(), 50'0000);
       }
 
-      // assign `accgifter` attribute to `proda` so it can create account with gifted resources
+      // set `accgifter` attribute to `testram11111` so it can create account with gifted resources
       {
          // fixes `no balance object found`
          transfer( config::system_account_name, N(testram11111), asset{ 1050'000 } );
@@ -347,6 +347,17 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          const auto total_stake = get_total_stake(N(testram22222));
          BOOST_REQUIRE_EQUAL(total_stake["own_stake_amount"].as_uint64(), 0);
          BOOST_REQUIRE_EQUAL(total_stake["free_stake_amount"].as_uint64(), 100'0000);
+      }
+
+      // unset `accgifter` attribute to `testram11111`
+      {
+         unset_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name);
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name).is_null());
+
+         BOOST_REQUIRE_EXCEPTION(
+            create_account_with_resources(N(testram33333), N(testram11111), asset{100'0000}, false),
+            eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+         );
       }
    }
    FC_LOG_AND_RETHROW()

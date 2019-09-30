@@ -69,6 +69,7 @@ namespace eosiosystem {
       eosio_global_rem_state gs;
       gs.per_stake_share = 0.6;
       gs.per_vote_share = 0.3;
+
       return gs;
    }
 
@@ -107,6 +108,24 @@ namespace eosiosystem {
 
       check(period_in_days != 0, "unlock period cannot be zero");
       _gstate.stake_unlock_period = eosio::days(period_in_days);
+   }
+
+   void system_contract::setgiftcontra( name value ) {
+      require_auth(_self);
+
+      _gremstate.gifter_attr_contract = value;
+   }
+
+   void system_contract::setgiftiss( name value ) {
+      require_auth(_self);
+
+      _gremstate.gifter_attr_issuer = value;
+   }
+
+   void system_contract::setgiftattr( name value ) {
+      require_auth(_self);
+
+      _gremstate.gifter_attr_name = value;
    }
 
    void system_contract::setminstake( uint64_t min_account_stake ) {
@@ -341,8 +360,7 @@ namespace eosiosystem {
       int64_t free_stake_amount = 0;
       int64_t free_gift_bytes   = 0;
 
-      if ( eosio::attribute::has_attribute( name("rem.attr"), name("rem.attr"), creator, name("accgifter") ) ) {
-         print( "created account: ", newact.to_string(), "; by: ", creator.to_string() );
+      if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name ) ) {
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
          free_stake_amount                  = _gstate.min_account_stake;
