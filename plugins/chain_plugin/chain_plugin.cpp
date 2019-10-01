@@ -1691,14 +1691,12 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
                boost::make_tuple(secondary_table_id->id, lower.value)));
    }();
 
-
    for( ; it != secondary_index_by_secondary.end() && it->t_id == secondary_table_id->id; ++it ) {
       if (result.rows.size() >= p.limit || fc::time_point::now() > stopTime) {
          result.more = name{it->primary_key}.to_string();
          break;
       }
       copy_inline_row(*kv_index.find(boost::make_tuple(table_id->id, it->primary_key)), data);
-
       if (p.json)
          result.rows.emplace_back( abis.binary_to_variant( abis.get_table_type(N(producers)), data, abi_serializer_max_time, shorten_abi_errors ) );
       else
@@ -1750,7 +1748,6 @@ read_only::get_voters_result read_only::get_voters( const read_only::get_voters_
 
          copy_inline_row(*it, data);
          if (p.json)
-         
             result.rows.emplace_back( abis.binary_to_variant( abis.get_table_type(N(voters)), data, abi_serializer_max_time, shorten_abi_errors ) );
          else
             result.rows.emplace_back(fc::variant(data));         
@@ -1762,7 +1759,6 @@ read_only::get_voters_result read_only::get_voters( const read_only::get_voters_
       fc::variant row = fc::mutable_variant_object()("error", "Internal error");
       result.rows.push_back(row);
    }
-
 
    return result;
 }
