@@ -1228,8 +1228,8 @@ struct list_producers_subcommand {
             const auto last_reassertion_time = fc::time_point_sec::from_iso_string( row["last_reassertion_time"].as_string() );
             const auto vote_is_reasserted = (last_reassertion_time + fc::days(7)) > fc::time_point::now();
 
-            const auto vote_mature_time = fc::time_point_sec::from_iso_string( row["vote_mature_time"].as_string() );
-            const auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+            const auto stake_lock_time = fc::time_point_sec::from_iso_string( row["stake_lock_time"].as_string() );
+            const auto weeks_to_mature = std::max( (stake_lock_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
 
             printf("%-13.13s %-57.57s %-59.59s %-12.4f %19s %15li/25\n",
                    row["owner"].as_string().c_str(),
@@ -1275,8 +1275,8 @@ struct list_voters_subcommand {
             const auto last_reassertion_time = fc::time_point_sec::from_iso_string( row["last_reassertion_time"].as_string() );
             const auto vote_is_reasserted = (last_reassertion_time + fc::days(7)) > fc::time_point::now();
 
-            const auto vote_mature_time = fc::time_point_sec::from_iso_string( row["vote_mature_time"].as_string() );
-            const auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+            const auto stake_lock_time = fc::time_point_sec::from_iso_string( row["stake_lock_time"].as_string() );
+            const auto weeks_to_mature = std::max( (stake_lock_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
 
             printf("%-13s %-21.21s %19s %15li/25 %s\n",
                    row["owner"].as_string().c_str(),
@@ -2262,12 +2262,12 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
             const auto last_reassertion_time = fc::time_point_sec::from_iso_string( obj["last_reassertion_time"].as_string() );
             const auto vote_is_reasserted = (last_reassertion_time + fc::days(7)) > fc::time_point::now();
 
-            const auto vote_mature_time = fc::time_point_sec::from_iso_string( obj["vote_mature_time"].as_string() );
-            const auto weeks_to_mature = std::max( (vote_mature_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+            const auto stake_lock_time = fc::time_point_sec::from_iso_string( obj["stake_lock_time"].as_string() );
+            const auto weeks_to_mature = std::max( (stake_lock_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
 
             std::cout << std::endl << "voter info:" << std::endl
                       << indent << "vote is re-asserted: " << std::right << std::setw(20) << (vote_is_reasserted ? "yes" : "no") << std::endl
-                      << indent << "stake locked until: " << std::right << std::setw(21) << string(vote_mature_time) << std::endl
+                      << indent << "stake locked until: " << std::right << std::setw(21) << string(stake_lock_time) << std::endl
                       << indent << "weeks to vote mature: " << std::setw(16) << std::right << weeks_to_mature << "/25" << std::endl
                       << indent << "power: " << std::right << std::setw(34) << std::fixed << setprecision(3) << (1.0 -weeks_to_mature / 25.0) << std::endl;
          } else {

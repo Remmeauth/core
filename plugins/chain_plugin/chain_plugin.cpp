@@ -1718,7 +1718,7 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
 
             fc::variant voter_info = abis.binary_to_variant(abis.get_table_type(N(voters)), data, abi_serializer_max_time, shorten_abi_errors);
             data_var = fc::mutable_variant_object(std::move(data_var))
-               ("vote_mature_time", voter_info["vote_mature_time"])
+               ("stake_lock_time", voter_info["stake_lock_time"])
                ("last_reassertion_time", voter_info["last_reassertion_time"]);
          }
       }
