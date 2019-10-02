@@ -223,7 +223,8 @@ namespace eosiosystem {
 
       EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)
                                                 (gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name)
-                                                (producer_stake_threshold)(stake_lock_period)(stake_unlock_period)(reassertion_period) )
+                                                (producer_stake_threshold)(stake_lock_period)(stake_unlock_period)
+                                                (reassertion_period) )
    };
 
    /**
