@@ -629,9 +629,9 @@ namespace eosiosystem {
 
         // Actions:
         /**
-         * setgiftcontra set contract that own attribute that allows to create accounts with gifted resources
-         * setgiftiss set issuer that own attribute that allows to create accounts with gifted resources
-         * setgiftattr   set attribute name that allows to create accounts with gifted resources
+         * setgiftcontra - set contract that owns attribute that allows to create accounts with gifted resources
+         * setgiftiss    - set issuer that owns attribute that allows to create accounts with gifted resources
+         * setgiftattr   - set attribute name that allows to create accounts with gifted resources
          */
        [[eosio::action]]
        void setgiftcontra( name value );
