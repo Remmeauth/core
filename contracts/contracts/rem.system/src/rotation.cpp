@@ -3,35 +3,16 @@
 
 namespace eosiosystem {
 
-struct OnExit
-{
-   OnExit( const std::string& title, const std::vector<eosio::producer_key>& to_print ) :
-      _title{ title },
-      _prods{ to_print }
-   {
-   }
-
-   ~OnExit() {
-      _print();
-   }
-
-   void _print()
-   {
-      print( _title, "[ " );
-      std::for_each(
-         std::begin( _prods ), std::end( _prods ),
-         [this](const auto& prod) {
-            print( "'", prod.producer_name.to_string(), "' " );
-         }
-      );
-      print( "]\n" );
-   }
-
-   std::string _title;
-   const std::vector<eosio::producer_key>& _prods;
-};
-
-
+/**
+ * Rotation algorithm:
+ *  top20 is never rotated
+ *  while schedule doesn't change, rotate every 4hours each producer from top21-25
+ *    first goes top21 replaceing top21
+ *    then goes top22 replaceing top21
+ *    and so on..
+ *  if some producer nor from current schedule top21 neither from top25 reaches top21 position 
+ *  we should not rotate him, so we reset rotation to current time point and schedule him for further rotations.
+ */
 std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
    auto sorted_prods = _producers.get_index<"prototalvote"_n>();
 
@@ -49,20 +30,7 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
       return top21_prods;
    }
 
-   // top 21-25
-   std::vector<eosio::producer_key> standby;
-   prod_it = std::prev( prod_it );
-   for (; standby.size() < _grotation.standby_prods_to_rotate + 1 // top21 + top22-25
-         && 0 < prod_it->total_votes && prod_it->active() && prod_it != std::end(sorted_prods); ++prod_it) {
-      standby.push_back( eosio::producer_key{ prod_it->owner, prod_it->producer_key } );
-   }
-
-   // still nothing to rotate
-   if ( standby.size() <= 1 ) {
-      return top21_prods;
-   }
-
-   const auto& to_out = top21_prods.back(); // top21
+   const auto& to_out = top21_prods.back(); // candidate to be rotated
 
    // check if current top21 was in top21 in previous schedule
    const auto inTop21 = std::find_if(
@@ -82,11 +50,25 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
       }
    );
 
-   // check if someone new managed to reach to top21
+   // if someone nor from top21 neither from top25 reached top21 then start rotation from now
+   // and schedule top21 to be rotate in next schedules
    if ( inTop21 == std::end(_gstate.last_schedule) && inTop25 == std::end(_grotation.standby_rotation) ) {
       _grotation.last_rotation_time = eosio::current_time_point();
       _grotation.standby_rotation.push_back( to_out ); 
 
+      return top21_prods;
+   }
+
+   // top 21-25
+   std::vector<eosio::producer_key> standby;
+   prod_it = std::prev( prod_it );
+   for (; standby.size() < _grotation.standby_prods_to_rotate + 1 // top21 + top22-25
+         && 0 < prod_it->total_votes && prod_it->active() && prod_it != std::end(sorted_prods); ++prod_it) {
+      standby.push_back( eosio::producer_key{ prod_it->owner, prod_it->producer_key } );
+   }
+
+   // still nothing to rotate
+   if ( standby.size() <= 1 ) {
       return top21_prods;
    }
 
@@ -122,7 +104,8 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
 
    const auto ct = eosio::current_time_point();
    const auto next_rotation_time = _grotation.last_rotation_time + _grotation.rotation_period;
-   // not yet time for rotation
+
+   // rotation is done only once per 4hours
    if (next_rotation_time <= ct) {
       std::rotate( std::begin(rotation), std::begin(rotation) + 1, std::end(rotation) );
    }
@@ -130,9 +113,6 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
    _grotation.last_rotation_time = ct;
    _grotation.standby_rotation   = rotation;
 
-   // OnExit printer_rota{ "Rotation: ", rotation };
-   // OnExit printer_top25{ "Top25: ", standby };
-   // OnExit printer_top21{ "Top21: ", top21_prods };
    return top21_prods;
 }
 
