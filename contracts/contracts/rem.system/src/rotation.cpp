@@ -6,11 +6,11 @@ namespace eosiosystem {
 /**
  * Rotation algorithm:
  *  top20 is never rotated
- *  while schedule doesn't change, rotate every 4hours each producer from top21-25
- *    first goes top21 replaceing top21
- *    then goes top22 replaceing top21
+ *  until schedule is changed, every 4hours rotate each producer from top21-25
+ *    first goes top21 replacing top21
+ *    then goes top22 replacing top21
  *    and so on..
- *  if some producer nor from current schedule top21 neither from top25 reaches top21 position 
+ *  if some producer neither from current schedule top21 nor from top25 reaches top21 position 
  *  we should not rotate him, so we reset rotation to current time point and schedule him for further rotations.
  */
 std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
