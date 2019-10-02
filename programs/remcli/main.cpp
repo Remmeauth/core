@@ -1259,21 +1259,26 @@ struct list_voters_subcommand {
             return;
          }
 
-         printf("%-13s %-21.21s %-19s %-18s %s\n", "Voter", "Last vote weight", "Vote is re-asserted", "Vote maturing rate", "Staked");
+         printf("%-13s %-21.21s %-21.21s %-19s %-18s %s\n", "Voter", "Last vote weight", "Adjusted vote weight", "Guardian status", "Vote power maturity", "Staked");
          for ( auto& row : result.rows ) {
             const auto last_reassertion_time = fc::time_point_sec::from_iso_string( row["last_reassertion_time"].as_string() );
             const auto vote_is_reasserted = (last_reassertion_time + fc::days(7)) > fc::time_point::now();
 
-            const auto stake_lock_time = fc::time_point_sec::from_iso_string( row["stake_lock_time"].as_string() );
+            const auto stake_lock_time = fc::time_point_sec::from_iso_string( row["vote_mature_time"].as_string() );
             const auto weeks_to_mature = std::max( (stake_lock_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+            const auto eos_weight = std::pow( 2, int64_t((fc::time_point::now().sec_since_epoch() - (config::block_timestamp_epoch / 1000)) / fc::days(7).to_seconds()) / double(52) );
+            const auto rem_weight = 1.0 - weeks_to_mature / 25.0;
+            const auto real_votes = row["last_vote_weight"].as_double() / eos_weight / rem_weight;
 
-            printf("%-13s %-21.21s %19s %15li/25 %s\n",
-                   row["owner"].as_string().c_str(),
-                   row["last_vote_weight"].as_string().c_str(),
-                   (vote_is_reasserted ? "Yes" : "No"),
-                   weeks_to_mature,
-                   row["staked"].as_string().c_str()
-                  );
+            printf(
+               "%-13s %-21.8f %-21.8f %-19s %15li/25 %li\n",
+               row["owner"].as_string().c_str(),
+               row["last_vote_weight"].as_double(),
+               real_votes,
+               (vote_is_reasserted ? "Yes" : "No"),
+               (25 - weeks_to_mature),
+               row["staked"].as_int64()
+            );
          }
          if ( !result.more.empty() )
             std::cout << "-L " << result.more << " for more" << std::endl;
