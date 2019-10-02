@@ -297,14 +297,14 @@ namespace eosiosystem {
 
 
       // we apply stake-lock rules only for self-delegated stake.
+      const auto ct = current_time_point();
       if ( from == receiver )
       {
          const auto& voter = _voters.get(from.value, "user has no resources");
 
-         check(voter.stake_lock_time <= current_time_point(), "cannot undelegate during stake lock period");
+         check(voter.stake_lock_time <= ct, "cannot undelegate during stake lock period");
          check(voter.locked_stake != 0 && voter.locked_stake >= unstake_quantity.amount, "insufficient locked amount");
 
-         const auto ct = current_time_point();
          check( ct - voter.last_undelegate_time > eosio::days(1), "already undelegated within past day" );
 
          const auto unclaimed_days = voter.last_undelegate_time.time_since_epoch().count() ? (ct - voter.last_undelegate_time).count() / eosio::days( 1 ).count()
