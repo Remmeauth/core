@@ -228,7 +228,7 @@ namespace eosiosystem {
    };
 
    /**
-    * Defines new global state parameters to store inflation rate and distribution
+    * Defines new global state parameters to producer schedule rotation
     */
    struct [[eosio::table("rotations"), eosio::contract("rem.system")]] rotation_state {
       time_point   last_rotation_time;
@@ -1447,7 +1447,7 @@ namespace eosiosystem {
 
          // Block producer should reassert its status (via voting) every reassertion_period days
          bool vote_is_reasserted( eosio::time_point last_reassertion_time ) const;
-         
+
          //defined in rotation.cpp
          std::vector<eosio::producer_key> get_rotated_schedule();
 
