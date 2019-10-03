@@ -60,9 +60,8 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
    }
 
    // top 21-25
-   std::vector<eosio::producer_key> standby;
-   prod_it = std::prev( prod_it );
-   for (; standby.size() < _grotation.standby_prods_to_rotate + 1 // top21 + top22-25
+   std::vector<eosio::producer_key> standby;   
+   for (prod_it = std::prev( prod_it ); standby.size() < _grotation.standby_prods_to_rotate + 1 // top21 + top22-25
          && 0 < prod_it->total_votes && prod_it->active() && prod_it != std::end(sorted_prods); ++prod_it) {
       standby.push_back( eosio::producer_key{ prod_it->owner, prod_it->producer_key } );
    }
@@ -105,13 +104,12 @@ std::vector<eosio::producer_key> system_contract::get_rotated_schedule() {
    const auto ct = eosio::current_time_point();
    const auto next_rotation_time = _grotation.last_rotation_time + _grotation.rotation_period;
 
-   // rotation is done only once per 4hours
+   // rotation is done only once per 4 hours
    if (next_rotation_time <= ct) {
       std::rotate( std::begin(rotation), std::begin(rotation) + 1, std::end(rotation) );
+      _grotation.last_rotation_time = ct;
+      _grotation.standby_rotation   = rotation;
    }
-
-   _grotation.last_rotation_time = ct;
-   _grotation.standby_rotation   = rotation;
 
    return top21_prods;
 }

@@ -74,11 +74,23 @@ namespace eosiosystem {
    }
 
    eosio_global_rem_state system_contract::get_default_rem_parameters() {
-      eosio_global_rem_state gs;
-      gs.per_stake_share = 0.6;
-      gs.per_vote_share = 0.3;
+      const auto rem_state = eosio_global_rem_state{
+         .per_stake_share = 0.6,
+         .per_vote_share = 0.3,
 
-      return gs;
+         .gifter_attr_contract = name{"rem.attr"},
+         .gifter_attr_issuer   = name{"rem.attr"},
+         .gifter_attr_name     = name{"accgifter"},
+
+         .producer_stake_threshold = 250'000'0000LL,
+
+         .stake_lock_period = eosio::days(180),
+         .stake_unlock_period = eosio::days(180),
+
+         .reassertion_period = eosio::days( 7 )
+      };
+
+      return rem_state;
    }
 
    symbol system_contract::core_symbol()const {

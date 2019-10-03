@@ -170,15 +170,6 @@ public:
        return blocks_produced;
    }
 
-   void test_schedule(const std::vector<std::string>& expected_schedule) {
-       const auto active_schedule = control->head_block_state()->active_schedule;
-       BOOST_REQUIRE(active_schedule.producers.size() == expected_schedule.size());
-       for (size_t i = 0; i < expected_schedule.size(); i++) {
-           BOOST_TEST(active_schedule.producers.at(i).producer_name == expected_schedule.at(i));
-       }
-   }
-
-
    abi_serializer abi_ser;
 };
 

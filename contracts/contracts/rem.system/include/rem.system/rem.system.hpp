@@ -206,9 +206,8 @@ namespace eosiosystem {
     * Defines new global state parameters to store remme specific parameters
     */
    struct [[eosio::table("globalrem"), eosio::contract("rem.system")]] eosio_global_rem_state {
-      eosio_global_rem_state() { }
-      double  per_stake_share;
-      double  per_vote_share;
+      double  per_stake_share = 0.6;
+      double  per_vote_share  = 0.3;
 
       name gifter_attr_contract = name{"rem.attr"};
       name gifter_attr_issuer   = name{"rem.attr"};
@@ -216,7 +215,7 @@ namespace eosiosystem {
 
       int64_t producer_stake_threshold = 250'000'0000LL;
 
-      microseconds stake_lock_period = eosio::days(180);
+      microseconds stake_lock_period   = eosio::days(180);
       microseconds stake_unlock_period = eosio::days(180);
 
       microseconds reassertion_period = eosio::days( 7 );
