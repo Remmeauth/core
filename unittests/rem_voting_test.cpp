@@ -67,6 +67,40 @@ class voting_tester : public TESTER {
 public:
    voting_tester();
 
+   transaction_trace_ptr create_account_with_resources( account_name a, account_name creator, asset stake, bool transfer = true ) {
+      signed_transaction trx;
+      set_transaction_headers(trx);
+
+      authority owner_auth = authority( get_public_key( a, "owner" ) );
+
+      trx.actions.emplace_back( 
+         vector<permission_level>{{creator,config::active_name}},
+         newaccount{
+            .creator  = creator,
+            .name     = a,
+            .owner    = owner_auth,
+            .active   = authority( get_public_key( a, "active" ) )
+         }
+      );
+
+      trx.actions.emplace_back( 
+         get_action( 
+            config::system_account_name, 
+            N(delegatebw), 
+            vector<permission_level>{{creator,config::active_name}},
+            mvo()
+            ("from", creator)
+            ("receiver", a)
+            ("stake_quantity", stake )
+            ("transfer", transfer )
+         )
+      );
+
+      set_transaction_headers(trx);
+      trx.sign( get_private_key( creator, "active" ), control->get_chain_id()  );
+      return push_transaction( trx );
+   }
+
    void deploy_contract( bool call_init = true ) {
       set_code( config::system_account_name, contracts::rem_system_wasm() );
       set_abi( config::system_account_name, contracts::rem_system_abi().data() );
@@ -244,11 +278,21 @@ public:
       return r;
    }
 
-    fc::microseconds microseconds_since_epoch_of_iso_string( const fc::variant& v ) {
-        return time_point::from_iso_string( v.as_string() ).time_since_epoch();
-    }
+   auto refund( const name& to ) {
+      auto r = base_tester::push_action(
+         config::system_account_name, N(refund), to,
+         mvo()("owner", to)
+      );
 
-    abi_serializer abi_ser;
+      produce_block();
+      return r;
+   }
+
+   fc::microseconds microseconds_since_epoch_of_iso_string( const fc::variant& v ) {
+      return time_point::from_iso_string( v.as_string() ).time_since_epoch();
+   }
+
+   abi_serializer abi_ser;
 };
 
 voting_tester::voting_tester() {
@@ -641,7 +685,124 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          // staked:          799999999000
          const auto prod = get_producer_info( "proda" );
          BOOST_TEST_REQUIRE( 1.4489068753227643e+18 == prod["total_votes"].as_double() );
+      }
+   } FC_LOG_AND_RETHROW()
+}
 
+
+BOOST_FIXTURE_TEST_CASE( rem_delegated_vote_weight_test, voting_tester ) {
+   try {
+      // Register and vote to cross 15% activated resources threshold
+      const auto producer_candidates = { N(b1), N(whale1), N(whale2), N(whale3) };
+      for( const auto& producer : producer_candidates ) {
+         register_producer(producer);
+         votepro( producer, { producer } );
+      }
+      register_producer( N(proda) );
+
+      create_account_with_resources( N(remvoter1), config::system_account_name, asset{ 100'0000LL }, true );
+      create_account_with_resources( N(remvoter2), config::system_account_name, asset{ 100'0000LL }, true );
+      transfer( config::system_account_name, N(remvoter1), asset{ 100'0000LL } );
+      transfer( config::system_account_name, N(remvoter2), asset{ 100'0000LL } );
+
+      // initial state      
+      // 100.0 staked REM, 100.0 liquid REM
+      {
+         BOOST_REQUIRE_EQUAL( asset{ 100'0000LL }, get_balance( N(remvoter1) ) );
+         BOOST_REQUIRE_EQUAL( asset{ 100'0000LL }, get_balance( N(remvoter2) ) );
+
+         const auto remvoter1 = get_voter_info( "remvoter1" );
+         BOOST_TEST_REQUIRE( 100'0000 == remvoter1["staked"].as_int64() );
+         BOOST_TEST_REQUIRE( 0.0 == remvoter1["last_vote_weight"].as_double() );
+
+         const auto remvoter2 = get_voter_info( "remvoter2" );
+         BOOST_TEST_REQUIRE( remvoter2["staked"].as_int64() == remvoter1["staked"].as_int64() );
+         BOOST_TEST_REQUIRE( remvoter2["last_vote_weight"].as_double() == remvoter1["last_vote_weight"].as_double() );
+      }
+
+      // vote gain full power
+      {
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days( 180 )); // +180 days
+         for( const auto& producer : { N(remvoter1), N(remvoter2) } ) {
+            votepro( producer, { N(proda) } );
+         }
+
+         const auto remvoter1 = get_voter_info( "remvoter1" );
+         BOOST_TEST_REQUIRE( 100'0000 == remvoter1["staked"].as_int64() );
+
+         const auto remvoter2 = get_voter_info( "remvoter2" );
+         BOOST_TEST_REQUIRE( remvoter1["staked"].as_int64() == remvoter2["staked"].as_int64() );
+         BOOST_TEST_REQUIRE( remvoter1["last_vote_weight"].as_double() == remvoter2["last_vote_weight"].as_double() );
+
+         const auto proda = get_producer_info( "proda" );
+         BOOST_TEST_REQUIRE( (remvoter1["last_vote_weight"].as_double() + remvoter2["last_vote_weight"].as_double()) == proda["total_votes"].as_double() );
+      }
+
+      // delegate tokens without transfer shouldn't update staked or votepower
+      // expected remvoter1.last_vote_weight to be twice as much remvoter2.last_vote_weight
+      {
+         delegate_bandwidth( N(remvoter1), N(remvoter2), asset{ 100'0000LL }, false );
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days( 180 )); // +180 days
+         BOOST_REQUIRE_EQUAL( asset{ 0LL }, get_balance( N(remvoter1) ) );
+
+         
+         for( const auto& producer : { N(remvoter1), N(remvoter2) } ) {
+            votepro( producer, { N(proda) } );
+         }
+
+         const auto remvoter1 = get_voter_info( "remvoter1" );
+         BOOST_TEST_REQUIRE( 200'0000 == remvoter1["staked"].as_int64() );
+
+         const auto remvoter2 = get_voter_info( "remvoter2" );
+         BOOST_TEST_REQUIRE( 100'0000 == remvoter2["staked"].as_int64() );
+         BOOST_TEST_REQUIRE( remvoter1["last_vote_weight"].as_double() / 2.0 == remvoter2["last_vote_weight"].as_double() );
+      }
+
+      // undelegate delegated without transfer tokens shouldn't update staked or votepower
+      // undelegated tokens returns to unstaking state and after 72 hours to liquid state
+      // then we have to call refund action to return money to balance
+      // expected remvoter1.last_vote_weight to be the same as remvoter2.last_vote_weight
+      // expected proda lost 1/3 of total votes
+      {
+         const auto proda_votes_before_undelegate = get_producer_info( "proda" )["total_votes"].as_double();
+
+         undelegate_bandwidth( N(remvoter1), N(remvoter2), asset{ 100'0000LL } );
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours( 72 ));
+         refund( N(remvoter1) );
+         BOOST_REQUIRE_EQUAL( asset{ 100'0000LL }, get_balance( N(remvoter1) ) );
+         
+         for( const auto& producer : { N(remvoter1), N(remvoter2) } ) {
+            votepro( producer, { N(proda) } );
+         }
+
+         const auto remvoter1 = get_voter_info( "remvoter1" );
+         BOOST_TEST_REQUIRE( 100'0000 == remvoter1["staked"].as_int64() );
+
+         const auto remvoter2 = get_voter_info( "remvoter2" );
+         BOOST_TEST_REQUIRE( remvoter1["staked"].as_int64() == remvoter2["staked"].as_int64() );
+         BOOST_TEST_REQUIRE( remvoter1["last_vote_weight"].as_double() == remvoter2["last_vote_weight"].as_double() );
+         BOOST_TEST_REQUIRE( 2.0 * proda_votes_before_undelegate / 3.0 == get_producer_info( "proda" )["total_votes"].as_double() );
+      }
+
+
+      // delegate with transfer should update both staked and votepower
+      // expected remvoter1.last_vote_weight to be 2/3 of remvoter2.last_vote_weight
+      {
+         delegate_bandwidth( N(remvoter1), N(remvoter2), asset( 50'0000LL ), true );
+         BOOST_REQUIRE_EQUAL( asset{ 50'0000LL }, get_balance( N(remvoter1) ) );
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days( 180 )); // +180 days
+
+
+         for( const auto& producer : { N(remvoter1), N(remvoter2) } ) {
+            votepro( producer, { N(proda) } );
+         }
+
+         const auto remvoter1 = get_voter_info( "remvoter1" );
+         BOOST_TEST_REQUIRE( 100'0000 == remvoter1["staked"].as_int64() );
+
+         const auto remvoter2 = get_voter_info( "remvoter2" );
+         BOOST_TEST_REQUIRE( 150'0000 == remvoter2["staked"].as_int64() );
+         BOOST_TEST_REQUIRE( 3.0 * remvoter1["last_vote_weight"].as_double() / 2.0 == remvoter2["last_vote_weight"].as_double() );
       }
    } FC_LOG_AND_RETHROW()
 }
