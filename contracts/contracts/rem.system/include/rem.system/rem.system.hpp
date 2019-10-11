@@ -1081,7 +1081,7 @@ namespace eosiosystem {
           * @param owner - the owner of the tokens claimed.
           */
          [[eosio::action]]
-         void refund1( const name& owner );
+         void refundtostake( const name& owner );
 
          // functions defined in voting.cpp
 
@@ -1357,7 +1357,7 @@ namespace eosiosystem {
          using closerex_action = eosio::action_wrapper<"closerex"_n, &system_contract::closerex>;
          using undelegatebw_action = eosio::action_wrapper<"undelegatebw"_n, &system_contract::undelegatebw>;
          using refund_action = eosio::action_wrapper<"refund"_n, &system_contract::refund>;
-         using refund1_action = eosio::action_wrapper<"refund1"_n, &system_contract::refund1>;
+         using refundtostake_action = eosio::action_wrapper<"refundtostake"_n, &system_contract::refundtostake>;
          using regproducer_action = eosio::action_wrapper<"regproducer"_n, &system_contract::regproducer>;
          using unregprod_action = eosio::action_wrapper<"unregprod"_n, &system_contract::unregprod>;
          using setram_action = eosio::action_wrapper<"setram"_n, &system_contract::setram>;

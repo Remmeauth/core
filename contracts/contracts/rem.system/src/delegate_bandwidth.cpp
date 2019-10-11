@@ -345,15 +345,15 @@ namespace eosiosystem {
    }
 
 
-   void system_contract::refund1( const name& owner ) {
-      print("refund1");
+   void system_contract::refundtostake( const name& owner ) {
+      print("refundtostake");
       require_auth( owner );
 
       refunds_table refunds_tbl( _self, owner.value );
       auto req = refunds_tbl.get( owner.value, "refund request not found" );
       check( req.request_time + seconds(refund_delay_sec) <= current_time_point(), "refund is not available yet" );
 
-      print( "refund1: ", req.resource_amount.to_string());
+      print( "refundtostake: ", req.resource_amount.to_string());
       changebw( owner, owner, req.resource_amount, false );
    }
 

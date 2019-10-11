@@ -236,7 +236,7 @@ public:
 
    auto refund_to_stake( const name& to ) {
       auto r = base_tester::push_action(
-         config::system_account_name, N(refund1), to,
+         config::system_account_name, N(refundtostake), to,
          mvo()("owner", to)
       );
 
@@ -748,7 +748,7 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
 
          auto voter = get_voter_info("proda");
          BOOST_CHECK( expected_lock_period == microseconds_since_epoch_of_iso_string( voter["stake_lock_time"] ) );
-         BOOST_CHECK( initial_locked_stake == voter["locked_stake"].as_int64() );
+         BOOST_TEST( initial_locked_stake == voter["locked_stake"].as_int64() );
       }
 
       // We are not allowed to undelegate during stake lock period
@@ -782,7 +782,7 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          undelegate_bandwidth( N(proda), N(proda), asset{ 10 * one_day_undelegate_limit } );
 
          auto voter = get_voter_info("proda");
-         BOOST_CHECK( (remaining_locked_stake - 10 * one_day_undelegate_limit) == voter["locked_stake"].as_int64() );
+         BOOST_TEST( (remaining_locked_stake - 10 * one_day_undelegate_limit) == voter["locked_stake"].as_int64() );
       }
 
       // +180 Days
@@ -798,7 +798,7 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake } );
 
          auto voter = get_voter_info("proda");
-         BOOST_CHECK( minimal_account_stake == voter["locked_stake"].as_int64() );
+         BOOST_TEST( minimal_account_stake == voter["locked_stake"].as_int64() );
       }
 
       // +3 Days   
