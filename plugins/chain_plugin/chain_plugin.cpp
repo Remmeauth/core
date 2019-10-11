@@ -2354,12 +2354,29 @@ read_only::get_transaction_id_result read_only::get_transaction_id( const read_o
 }
 
 namespace detail {
-   struct ram_market_exchange_state_t {
-      asset  ignore1;
-      asset  ignore2;
-      double ignore3;
-      asset  core_symbol;
-      double ignore4;
+   struct eosio_global_state_t {
+      symbol                               core_symbol;
+
+      uint64_t                             ignore1;
+      uint64_t                             ignore2;
+      uint64_t                             ignore3;
+      int64_t                              ignore4;
+      std::vector<std::pair<name, double>> ignore5;
+      uint32_t                             ignore6;
+      eosio::chain::block_timestamp_type   ignore7;
+      eosio::chain::block_timestamp_type   ignore8;
+      time_point                           ignore9;
+      int64_t                              ignore10;
+      int64_t                              ignore11;
+      int64_t                              ignore12;
+      uint32_t                             ignore13;
+      int64_t                              ignore14;
+      int64_t                              ignore15;
+      time_point                           ignore16;
+      uint16_t                             ignore17;
+      double                               ignore18;
+      double                               ignore19;
+      eosio::chain::block_timestamp_type   ignore20;
    };
 }
 
@@ -2368,25 +2385,25 @@ chain::symbol read_only::extract_core_symbol()const {
 
    // The following code makes assumptions about the contract deployed on eosio account (i.e. the system contract) and how it stores its data.
    const auto& d = db.db();
-   const auto* t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( N(rem), N(rem), N(rammarket) ));
-   if( t_id != nullptr ) {
-      const auto &idx = d.get_index<key_value_index, by_scope_primary>();
-      auto it = idx.find(boost::make_tuple( t_id->id, eosio::chain::string_to_symbol_c(4,"RAMCORE") ));
-      if( it != idx.end() ) {
-         detail::ram_market_exchange_state_t ram_market_exchange_state;
 
-         fc::datastream<const char *> ds( it->value.data(), it->value.size() );
+   const auto* const table_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple(config::system_account_name, config::system_account_name, N(global)));
+   EOS_ASSERT(table_id, chain::contract_table_query_exception, "Missing table global");
 
-         try {
-            fc::raw::unpack(ds, ram_market_exchange_state);
-         } catch( ... ) {
-            return core_symbol;
-         }
+   const auto& kv_index = d.get_index<key_value_index, by_scope_primary>();
+   const auto it = kv_index.find(boost::make_tuple(table_id->id, N(global)));
+   EOS_ASSERT(it != kv_index.end(), chain::contract_table_query_exception, "Missing row in table global");
 
-         if( ram_market_exchange_state.core_symbol.get_symbol().valid() ) {
-            core_symbol = ram_market_exchange_state.core_symbol.get_symbol();
-         }
-      }
+   vector<char> data;
+   read_only::copy_inline_row(*it, data);
+   fc::datastream<const char *> ds( data.data(), data.size() );
+   detail::eosio_global_state_t eosio_global_state;
+   try {
+      fc::raw::unpack(ds, eosio_global_state);
+   } catch( ... ) {
+      return core_symbol;
+   }
+   if( eosio_global_state.core_symbol.valid() ) {
+      core_symbol = eosio_global_state.core_symbol;
    }
 
    return core_symbol;
@@ -2395,4 +2412,5 @@ chain::symbol read_only::extract_core_symbol()const {
 } // namespace chain_apis
 } // namespace eosio
 
-FC_REFLECT( eosio::chain_apis::detail::ram_market_exchange_state_t, (ignore1)(ignore2)(ignore3)(core_symbol)(ignore4) )
+FC_REFLECT( eosio::chain_apis::detail::eosio_global_state_t, (core_symbol)(ignore1)(ignore2)(ignore3)(ignore4)(ignore5)
+   (ignore6)(ignore7)(ignore8)(ignore9)(ignore10)(ignore11)(ignore12)(ignore13)(ignore14)(ignore15)(ignore16)(ignore17)(ignore18)(ignore19)(ignore20) )
