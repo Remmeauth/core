@@ -2403,7 +2403,7 @@ namespace detail {
 chain::symbol read_only::extract_core_symbol()const {
    symbol core_symbol(0);
 
-   // The following code makes assumptions about the contract deployed on eosio account (i.e. the system contract) and how it stores its data.
+   // The following code makes assumptions about the contract deployed on rem account (i.e. the system contract) and how it stores its data.
    const auto& d = db.db();
 
    const auto* const table_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple(config::system_account_name, config::system_account_name, N(global)));
