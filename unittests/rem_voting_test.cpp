@@ -762,12 +762,13 @@ BOOST_FIXTURE_TEST_CASE( rem_delegated_vote_weight_test, voting_tester ) {
       // undelegated tokens returns to unstaking state and after 72 hours to liquid state
       // then we have to call refund action to return money to balance
       // expected remvoter1.last_vote_weight to be the same as remvoter2.last_vote_weight
-      // expected proda lost 1/3 of total votes
       {
-         const auto proda_votes_before_undelegate = get_producer_info( "proda" )["total_votes"].as_double();
-
-         undelegate_bandwidth( N(remvoter1), N(remvoter2), asset{ 100'0000LL } );
+         // initiate undelegate process then undelegate whole stake
+         undelegate_bandwidth( N(remvoter1), N(remvoter2), asset{ 1'0000LL } );         
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days( 180 )); // +180 days
+         undelegate_bandwidth( N(remvoter1), N(remvoter2), asset{ 99'0000LL } );
          produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours( 72 ));
+
          refund( N(remvoter1) );
          BOOST_REQUIRE_EQUAL( asset{ 100'0000LL }, get_balance( N(remvoter1) ) );
          
@@ -781,7 +782,6 @@ BOOST_FIXTURE_TEST_CASE( rem_delegated_vote_weight_test, voting_tester ) {
          const auto remvoter2 = get_voter_info( "remvoter2" );
          BOOST_TEST_REQUIRE( remvoter1["staked"].as_int64() == remvoter2["staked"].as_int64() );
          BOOST_TEST_REQUIRE( remvoter1["last_vote_weight"].as_double() == remvoter2["last_vote_weight"].as_double() );
-         BOOST_TEST_REQUIRE( 2.0 * proda_votes_before_undelegate / 3.0 == get_producer_info( "proda" )["total_votes"].as_double() );
       }
 
 
