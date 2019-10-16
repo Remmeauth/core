@@ -2354,7 +2354,27 @@ read_only::get_transaction_id_result read_only::get_transaction_id( const read_o
 }
 
 namespace detail {
-   struct eosio_global_state_t {
+   struct blockchain_parameters_t {
+      uint64_t max_block_net_usage;
+      uint32_t target_block_net_usage_pct;
+      uint32_t max_transaction_net_usage;
+      uint32_t base_per_transaction_net_usage;
+      uint32_t net_usage_leeway;
+      uint32_t context_free_discount_net_usage_num;
+      uint32_t context_free_discount_net_usage_den;
+      uint32_t max_block_cpu_usage;
+      uint32_t target_block_cpu_usage_pct;
+      uint32_t max_transaction_cpu_usage;
+      uint32_t min_transaction_cpu_usage;
+      uint32_t max_transaction_lifetime;
+      uint32_t deferred_trx_expiration_window;
+      uint32_t max_transaction_delay;
+      uint32_t max_inline_action_size;
+      uint16_t max_inline_action_depth;
+      uint16_t max_authority_depth;
+   };
+
+   struct eosio_global_state_t : blockchain_parameters_t {
       symbol                               core_symbol;
 
       uint64_t                             ignore1;
@@ -2399,6 +2419,9 @@ chain::symbol read_only::extract_core_symbol()const {
    detail::eosio_global_state_t eosio_global_state;
    try {
       fc::raw::unpack(ds, eosio_global_state);
+   } catch (const fc::exception& e) {
+      elog("Failed to unpack global table: ${e}", ("e",e.to_detail_string()));
+      return core_symbol;
    } catch( ... ) {
       return core_symbol;
    }
@@ -2412,5 +2435,16 @@ chain::symbol read_only::extract_core_symbol()const {
 } // namespace chain_apis
 } // namespace eosio
 
-FC_REFLECT( eosio::chain_apis::detail::eosio_global_state_t, (core_symbol)(ignore1)(ignore2)(ignore3)(ignore4)(ignore5)
+
+FC_REFLECT( eosio::chain_apis::detail::blockchain_parameters_t,
+   (max_block_net_usage)(target_block_net_usage_pct)
+   (max_transaction_net_usage)(base_per_transaction_net_usage)(net_usage_leeway)
+   (context_free_discount_net_usage_num)(context_free_discount_net_usage_den)
+   (max_block_cpu_usage)(target_block_cpu_usage_pct)
+   (max_transaction_cpu_usage)(min_transaction_cpu_usage)
+   (max_transaction_lifetime)(deferred_trx_expiration_window)(max_transaction_delay)
+   (max_inline_action_size)(max_inline_action_depth)(max_authority_depth)
+)
+
+FC_REFLECT_DERIVED( eosio::chain_apis::detail::eosio_global_state_t, (eosio::chain_apis::detail::blockchain_parameters_t), (core_symbol)(ignore1)(ignore2)(ignore3)(ignore4)(ignore5)
    (ignore6)(ignore7)(ignore8)(ignore9)(ignore10)(ignore11)(ignore12)(ignore13)(ignore14)(ignore15)(ignore16)(ignore17)(ignore18)(ignore19)(ignore20) )
