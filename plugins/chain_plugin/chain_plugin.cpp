@@ -2407,7 +2407,9 @@ chain::symbol read_only::extract_core_symbol()const {
    const auto& d = db.db();
 
    const auto* const table_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple(config::system_account_name, config::system_account_name, N(global)));
-   EOS_ASSERT(table_id, chain::contract_table_query_exception, "Missing table global");
+   if (table_id == nullptr) {
+      return core_symbol;
+   }
 
    const auto& kv_index = d.get_index<key_value_index, by_scope_primary>();
    const auto it = kv_index.find(boost::make_tuple(table_id->id, N(global)));
