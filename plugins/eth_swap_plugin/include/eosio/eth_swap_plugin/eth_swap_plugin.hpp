@@ -76,7 +76,7 @@ std::string rem_token_id              = "REM";
 std::string eth_swap_contract_address = "0x9fB8A18fF402680b47387AE0F4e38229EC64f098";
 std::string eth_swap_request_event    = "0x0e918020302bf93eb479360905c1535ba1dbc8aeb6d20eff433206bf4c514e13";  // request swap event id in ethereum swap contract
 std::string return_chain_id           = "ethropsten";  // return chain identifier if case of swap cancellation
-std::string chain_id                  = "93ece941df27a5787a405383a66a7c26d04e80182adf504365710331ac0625a7";
+std::string chain_id                  = "";
 
 uint32_t request_swap_hex_data_length = 512;  // payload length of request swap event in hex symbols
 
