@@ -14,14 +14,14 @@ Some of the groundbreaking features include:
 1. Designed for Parallel Execution of Context Free Validation Logic
 1. Designed for Inter Blockchain Communication
 
-The Remme Protocol software is released under the open source MIT license and is offered “AS IS” without warranty of any kind, express or implied. Any security provided by the Remme Protocol software depends in part on how it is used, configured, and deployed. Remme Protocol is built upon many third-party libraries such as WABT (Apache License) and WAVM (BSD 3-clause) which are also provided “AS IS” without warranty of any kind. Without limiting the generality of the foregoing, Block.one makes no representation or guarantee that Remme Protocol or any third-party libraries will perform as intended or will be free of errors, bugs or faulty code. Both may fail in large or small ways that could completely or partially limit functionality or compromise computer systems. If you use or implement Remme Protocol, you do so at your own risk. In no event will Block.one be liable to any party for any damages whatsoever, even if it had been advised of the possibility of damage.  
+The Remme Protocol software is released under the open source MIT license and is offered “AS IS” without warranty of any kind, express or implied. Any security provided by the Remme Protocol software depends in part on how it is used, configured, and deployed. Remme Protocol is built upon many third-party libraries such as WABT (Apache License) and WAVM (BSD 3-clause) which are also provided “AS IS” without warranty of any kind. Without limiting the generality of the foregoing, Block.one makes no representation or guarantee that Remme Protocol or any third-party libraries will perform as intended or will be free of errors, bugs or faulty code. Both may fail in large or small ways that could completely or partially limit functionality or compromise computer systems. If you use or implement Remme Protocol, you do so at your own risk. In no event will Block.one be liable to any party for any damages whatsoever, even if it had been advised of the possibility of damage.
 
 Remme is neither launching nor operating any initial public blockchains based upon the Remme Protocol software. We caution those who wish to use blockchains built on Remme Protocol to carefully vet the companies and organizations launching blockchains based on Remme Protocol before disclosing any private keys to their derivative software.
 
 There is no public testnet running currently.
 
 ## Supported Operating Systems
-Remme Protocol currently supports the following operating systems:  
+Remme Protocol currently supports the following operating systems:
 1. Amazon Linux 2
 2. CentOS 7
 3. Ubuntu 16.04

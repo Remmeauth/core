@@ -15,6 +15,7 @@ import json
 from core_symbol import CORE_SYMBOL
 from testUtils import Utils
 from testUtils import Account
+from testUtils import BlockLogAction
 from Node import BlockType
 from Node import Node
 from WalletMgr import WalletMgr
@@ -387,7 +388,7 @@ class Cluster(object):
         Cluster.__LauncherCmdArr = cmdArr.copy()
 
         s=" ".join([("'{0}'".format(element) if (' ' in element) else element) for element in cmdArr.copy()])
-        Utils.Print("cmd: %s" % (s))
+        if Utils.Debug: Utils.Print("cmd: %s" % (s))
         if 0 != subprocess.call(cmdArr):
             Utils.Print("ERROR: Launcher failed to launch. failed cmd: %s" % (s))
             return False
@@ -964,7 +965,7 @@ class Cluster(object):
             if not silent: Utils.Print("Launcher failed to shut down eos cluster.")
             return None
 
-        p = re.compile('error', re.IGNORECASE)
+        p = re.compile(r"\berror\b", re.IGNORECASE)
         with open(Cluster.__bootlog) as bootFile:
             for line in bootFile:
                 if p.search(line):
@@ -1043,7 +1044,7 @@ class Cluster(object):
     def setDefaultProducers(self, node, total_nodes, number_of_producers, producer_keys):
         if number_of_producers == -1:
             setProdsFile = "setprods.json"
-            if Utils.Debug: 
+            if Utils.Debug:
                 Utils.Print("Reading in setprods file %s." % (setProdsFile))
 
             with open(setProdsFile, "r") as f:
@@ -1070,7 +1071,7 @@ class Cluster(object):
             setProdsStr += ' ] }'
             if Utils.Debug:
                 Utils.Print("setprods: %s" % (setProdsStr))
-            
+
             Utils.Print("Setting producers: %s." % (", ".join(prodNames)))
             opts = "--permission eosio@active"
             # pylint: disable=redefined-variable-type
@@ -1078,7 +1079,7 @@ class Cluster(object):
             if trans is None or not trans[0]:
                 Utils.Print("ERROR: Failed to set producer %s." % (keys["name"]))
                 return None
-        
+
         trans   = trans[1]
         transId = Node.getTransId(trans)
         if not node.waitForTransInBlock(transId):
@@ -1136,7 +1137,7 @@ class Cluster(object):
             return None
 
         return True
-        
+
 
     def bootstrap(self, biosNode, totalNodes, prodCount, totalProducers, pfSetupPolicy, onlyBios=False, onlySetProds=False, loadSystemContract=True):
         """
@@ -1216,7 +1217,7 @@ class Cluster(object):
         if not onlyBios:
             self.setDefaultProducers(biosNode, totalNodes, prodCount, producerKeys)
 
-        if onlySetProds: 
+        if onlySetProds:
             return biosNode
 
         systemAccounts = [
@@ -1260,7 +1261,7 @@ class Cluster(object):
             return None
 
         contract = "eosio.system"
-        trans = self.publishContract(biosNode, contract, eosioAccount.name)  
+        trans = self.publishContract(biosNode, contract, eosioAccount.name)
         if trans is None:
             Utils.Print("ERROR: Failed to publish contract %s." % (contract))
             return None
@@ -1615,9 +1616,9 @@ class Cluster(object):
 
         self.printBlockLog()
 
-    def getBlockLog(self, nodeExtension):
+    def getBlockLog(self, nodeExtension, blockLogAction=BlockLogAction.return_blocks, outputFile=None, first=None, last=None, throwException=False, silentErrors=False, exitOnError=False):
         blockLogDir=Utils.getNodeDataDir(nodeExtension, "blocks")
-        return Utils.getBlockLog(blockLogDir, exitOnError=False)
+        return Utils.getBlockLog(blockLogDir, blockLogAction=blockLogAction, outputFile=outputFile, first=first, last=last,  throwException=throwException, silentErrors=silentErrors, exitOnError=exitOnError)
 
     def printBlockLog(self):
         blockLogBios=self.getBlockLog("bios")

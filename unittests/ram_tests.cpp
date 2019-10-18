@@ -1,7 +1,3 @@
-/**
- *  @file api_tests.cpp
- *  @copyright defined in eos/LICENSE
- */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #include <boost/test/unit_test.hpp>
@@ -51,7 +47,7 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
    produce_blocks(10);
    PRINT_USAGE(testram11111)
    PRINT_USAGE(testram22222)
-   BOOST_REQUIRE_EQUAL( success(), stake( "eosio.stake", "testram11111", core_from_string("10.0000"), core_from_string("5.0000") ) );
+   BOOST_REQUIRE_EQUAL( success(), stake( name("eosio.stake"), name("testram11111"), core_from_string("10.0000"), core_from_string("5.0000") ) );
    produce_blocks(10);
    PRINT_USAGE(testram11111)
 
