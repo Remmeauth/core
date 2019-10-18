@@ -1010,7 +1010,9 @@ producer_plugin::runtime_options producer_plugin::get_runtime_options() const {
       my->_max_irreversible_block_age_us.count() < 0 ? -1 : my->_max_irreversible_block_age_us.count() / 1'000'000,
       my->_produce_time_offset_us,
       my->_last_block_time_offset_us,
-      my->_max_scheduled_transaction_time_per_block_ms
+      my->_max_scheduled_transaction_time_per_block_ms,
+      fc::optional<int32_t>(),
+      fc::optional<double>()
    };
 }
 
