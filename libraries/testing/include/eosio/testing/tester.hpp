@@ -238,8 +238,8 @@ namespace eosio { namespace testing {
             return traces;
          }
 
-         void                  set_before_preactivate_bios_contract();
-         void                  set_before_producer_authority_bios_contract();
+         //void                  set_before_preactivate_bios_contract();
+         //void                  set_before_producer_authority_bios_contract();
          void                  set_bios_contract();
 
          vector<producer_authority>  get_producer_authorities( const vector<account_name>& producer_names )const;

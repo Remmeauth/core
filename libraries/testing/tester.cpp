@@ -211,16 +211,15 @@ namespace eosio { namespace testing {
          case setup_policy::preactivate_feature_and_new_bios: {
             schedule_preactivate_protocol_feature();
             produce_block();
-            set_before_producer_authority_bios_contract();
+            set_bios_contract();
             break;
          }
          case setup_policy::full: {
             schedule_preactivate_protocol_feature();
             produce_block();
-            set_before_producer_authority_bios_contract();
+            set_bios_contract();
             preactivate_all_builtin_protocol_features();
             produce_block();
-            set_bios_contract();
             break;
          }
          case setup_policy::none:
@@ -1028,10 +1027,10 @@ namespace eosio { namespace testing {
 //      set_abi(config::system_account_name, contracts::before_preactivate_eosio_bios_abi().data());
 //   }
 
-   void base_tester::set_before_producer_authority_bios_contract() {
-      set_code(config::system_account_name, contracts::before_producer_authority_eosio_bios_wasm());
-      set_abi(config::system_account_name, contracts::before_producer_authority_eosio_bios_abi().data());
-   }
+//   void base_tester::set_before_producer_authority_bios_contract() {
+//      set_code(config::system_account_name, contracts::before_producer_authority_eosio_bios_wasm());
+//      set_abi(config::system_account_name, contracts::before_producer_authority_eosio_bios_abi().data());
+//   }
 
    void base_tester::set_bios_contract() {
       set_code(config::system_account_name, contracts::eosio_bios_wasm());
