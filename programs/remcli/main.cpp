@@ -889,7 +889,7 @@ void ensure_remvault_running(CLI::App* app) {
     if (app->get_subcommand("create")->got_subcommand("key")) // create key does not require wallet
        return;
     if (auto* subapp = app->get_subcommand("system")) {
-       if (subapp->got_subcommand("listproducers") || subapp->got_subcommand("listvoters") || subapp->got_subcommand("listbw") || subapp->got_subcommand("bidnameinfo")) // system list* do not require wallet
+       if (subapp->got_subcommand("listproducers") || subapp->got_subcommand("listvoters") || subapp->got_subcommand("listbw")) // system list* do not require wallet
          return;
     }
     if (wallet_url != default_wallet_url)
@@ -3941,8 +3941,9 @@ int main( int argc, char** argv ) {
    auto delegateBandWidth = delegate_bandwidth_subcommand(system);
    auto undelegateBandWidth = undelegate_bandwidth_subcommand(system);
    auto listBandWidth = list_bw_subcommand(system);
-   auto bidname = bidname_subcommand(system);
-   auto bidnameinfo = bidname_info_subcommand(system);
+   // disabled as unnecessary for now 
+   // auto bidname = bidname_subcommand(system);
+   // auto bidnameinfo = bidname_info_subcommand(system);
 
    auto claimRewards = claimrewards_subcommand(system);
 
@@ -3951,27 +3952,28 @@ int main( int argc, char** argv ) {
 
    auto cancelDelay = canceldelay_subcommand(system);
 
-   auto rex = system->add_subcommand("rex", localized("Actions related to REX (the resource exchange)"));
-   rex->require_subcommand();
-   auto deposit        = deposit_subcommand(rex);
-   auto withdraw       = withdraw_subcommand(rex);
-   auto buyrex         = buyrex_subcommand(rex);
-   auto lendrex        = lendrex_subcommand(rex);
-   auto unstaketorex   = unstaketorex_subcommand(rex);
-   auto sellrex        = sellrex_subcommand(rex);
-   auto cancelrexorder = cancelrexorder_subcommand(rex);
-   auto mvtosavings    = mvtosavings_subcommand(rex);
-   auto mvfromsavings  = mvfrsavings_subcommand(rex);
-   auto rentcpu        = rentcpu_subcommand(rex);
-   auto rentnet        = rentnet_subcommand(rex);
-   auto fundcpuloan    = fundcpuloan_subcommand(rex);
-   auto fundnetloan    = fundnetloan_subcommand(rex);
-   auto defcpuloan     = defcpuloan_subcommand(rex);
-   auto defnetloan     = defnetloan_subcommand(rex);
-   auto consolidate    = consolidate_subcommand(rex);
-   auto updaterex      = updaterex_subcommand(rex);
-   auto rexexec        = rexexec_subcommand(rex);
-   auto closerex       = closerex_subcommand(rex);
+   // disabled as unnecessary for now 
+   // auto rex = system->add_subcommand("rex", localized("Actions related to REX (the resource exchange)"));
+   // rex->require_subcommand();
+   // auto deposit        = deposit_subcommand(rex);
+   // auto withdraw       = withdraw_subcommand(rex);
+   // auto buyrex         = buyrex_subcommand(rex);
+   // auto lendrex        = lendrex_subcommand(rex);
+   // auto unstaketorex   = unstaketorex_subcommand(rex);
+   // auto sellrex        = sellrex_subcommand(rex);
+   // auto cancelrexorder = cancelrexorder_subcommand(rex);
+   // auto mvtosavings    = mvtosavings_subcommand(rex);
+   // auto mvfromsavings  = mvfrsavings_subcommand(rex);
+   // auto rentcpu        = rentcpu_subcommand(rex);
+   // auto rentnet        = rentnet_subcommand(rex);
+   // auto fundcpuloan    = fundcpuloan_subcommand(rex);
+   // auto fundnetloan    = fundnetloan_subcommand(rex);
+   // auto defcpuloan     = defcpuloan_subcommand(rex);
+   // auto defnetloan     = defnetloan_subcommand(rex);
+   // auto consolidate    = consolidate_subcommand(rex);
+   // auto updaterex      = updaterex_subcommand(rex);
+   // auto rexexec        = rexexec_subcommand(rex);
+   // auto closerex       = closerex_subcommand(rex);
 
 
    try {
