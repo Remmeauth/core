@@ -112,6 +112,7 @@ ecmd create account eosio eosio.stake $pubsyskey $pubsyskey
 ecmd create account eosio eosio.token $pubsyskey $pubsyskey
 ecmd create account eosio eosio.vpay $pubsyskey $pubsyskey
 ecmd create account eosio eosio.wrap $pubsyskey $pubsyskey
+ecmd create account eosio eosio.rex $pubsyskey $pubsyskey
 
 ecmd set contract eosio.token contracts/contracts/eosio.token eosio.token.wasm eosio.token.abi
 ecmd set contract eosio.msig contracts/contracts/eosio.msig eosio.msig.wasm eosio.msig.abi
