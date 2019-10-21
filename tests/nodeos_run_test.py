@@ -86,7 +86,6 @@ try:
         testSuccessful=True
         exit(0)
 
-    exit(0)
     Print("Validating system accounts after bootstrap")
     cluster.validateAccounts(None)
 
@@ -697,7 +696,6 @@ try:
 
     testSuccessful=True
 finally:
-    #TestHelper.shutdown(cluster, walletMgr, testSuccessful, killEosInstances, killWallet, keepLogs, killAll, dumpErrorDetails)
-    exit(0)
+    TestHelper.shutdown(cluster, walletMgr, testSuccessful, killEosInstances, killWallet, keepLogs, killAll, dumpErrorDetails)
 
 exit(0)
