@@ -63,7 +63,6 @@ try:
 
     if enableMongo and not cluster.isMongodDbRunning():
         errorExit("MongoDb doesn't seem to be running.")
-
     if localTest and not dontLaunch:
         cluster.killall(allInstances=killAll)
         cluster.cleanup()
@@ -87,6 +86,7 @@ try:
         testSuccessful=True
         exit(0)
 
+    exit(0)
     Print("Validating system accounts after bootstrap")
     cluster.validateAccounts(None)
 
@@ -697,6 +697,7 @@ try:
 
     testSuccessful=True
 finally:
-    TestHelper.shutdown(cluster, walletMgr, testSuccessful, killEosInstances, killWallet, keepLogs, killAll, dumpErrorDetails)
+    #TestHelper.shutdown(cluster, walletMgr, testSuccessful, killEosInstances, killWallet, keepLogs, killAll, dumpErrorDetails)
+    exit(0)
 
 exit(0)

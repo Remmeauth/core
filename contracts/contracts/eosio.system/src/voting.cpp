@@ -1,49 +1,53 @@
-/**
- *  @copyright defined in eos/LICENSE.txt
- */
-
 #include <eosio/crypto.hpp>
 #include <eosio/datastream.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/multi_index.hpp>
+#include <eosio/permission.hpp>
 #include <eosio/privileged.hpp>
 #include <eosio/serialize.hpp>
 #include <eosio/singleton.hpp>
-#include <eosio/transaction.hpp>
 
 #include <eosio.system/eosio.system.hpp>
 #include <eosio.token/eosio.token.hpp>
 
+#include <type_traits>
+#include <limits>
+#include <set>
 #include <algorithm>
 #include <cmath>
 
 namespace eosiosystem {
 
    using eosio::const_mem_fun;
+   using eosio::current_time_point;
    using eosio::indexed_by;
+   using eosio::microseconds;
    using eosio::singleton;
-   using eosio::transaction;
-   using namespace std::string_literals;
 
+   eosio::block_signing_authority convert_to_block_signing_authority( const eosio::public_key& producer_key ) {
+      return eosio::block_signing_authority_v0{ .threshold = 1, .keys = {{producer_key, 1}} };
+   }
 
-   void system_contract::regproducer( const name& producer, const eosio::public_key& producer_key, const std::string& url, uint16_t location ) {
-      check( url.size() < 512, "url too long" );
-      check( producer_key != eosio::public_key(), "public key should not be the default value" );
-      require_auth( producer );
-
-      // TODO implement as constexpr string
-      static const auto stake_err = "user should stake at least "s + std::to_string( producer_stake_threshold ) + " REM to become a producer"s;
-      check( does_satisfy_stake_requirement( producer ), stake_err );
-
+   void system_contract::register_producer( const name& producer, const eosio::block_signing_authority& producer_authority, const std::string& url, uint16_t location ) {
       auto prod = _producers.find( producer.value );
       const auto ct = current_time_point();
 
+      eosio::public_key producer_key{};
+
+      std::visit( [&](auto&& auth ) {
+         if( auth.keys.size() == 1 ) {
+            // if the producer_authority consists of a single key, use that key in the legacy producer_key field
+            producer_key = auth.keys[0].key;
+         }
+      }, producer_authority );
+
       if ( prod != _producers.end() ) {
          _producers.modify( prod, producer, [&]( producer_info& info ){
-            info.producer_key = producer_key;
-            info.is_active    = true;
-            info.url          = url;
-            info.location     = location;
+            info.producer_key       = producer_key;
+            info.is_active          = true;
+            info.url                = url;
+            info.location           = location;
+            info.producer_authority.emplace( producer_authority );
             if ( info.last_claim_time == time_point() )
                info.last_claim_time = ct;
          });
@@ -59,13 +63,14 @@ namespace eosiosystem {
          }
       } else {
          _producers.emplace( producer, [&]( producer_info& info ){
-            info.owner           = producer;
-            info.total_votes     = 0;
-            info.producer_key    = producer_key;
-            info.is_active       = true;
-            info.url             = url;
-            info.location        = location;
-            info.last_claim_time = ct;
+            info.owner              = producer;
+            info.total_votes        = 0;
+            info.producer_key       = producer_key;
+            info.is_active          = true;
+            info.url                = url;
+            info.location           = location;
+            info.last_claim_time    = ct;
+            info.producer_authority.emplace( producer_authority );
          });
          _producers2.emplace( producer, [&]( producer_info2& info ){
             info.owner                     = producer;
@@ -73,6 +78,24 @@ namespace eosiosystem {
          });
       }
 
+   }
+
+   void system_contract::regproducer( const name& producer, const eosio::public_key& producer_key, const std::string& url, uint16_t location ) {
+      require_auth( producer );
+      check( url.size() < 512, "url too long" );
+
+      register_producer( producer, convert_to_block_signing_authority( producer_key ), url, location );
+   }
+
+   void system_contract::regproducer2( const name& producer, const eosio::block_signing_authority& producer_authority, const std::string& url, uint16_t location ) {
+      require_auth( producer );
+      check( url.size() < 512, "url too long" );
+
+      std::visit( [&](auto&& auth ) {
+         check( auth.is_valid(), "invalid producer authority" );
+      }, producer_authority );
+
+      register_producer( producer, producer_authority, url, location );
    }
 
    void system_contract::unregprod( const name& producer ) {
@@ -89,41 +112,45 @@ namespace eosiosystem {
 
       auto idx = _producers.get_index<"prototalvote"_n>();
 
-      std::vector< std::pair<eosio::producer_key,uint16_t> > top_producers;
-      top_producers.reserve(max_block_producers);
+      using value_type = std::pair<eosio::producer_authority, uint16_t>;
+      std::vector< value_type > top_producers;
+      top_producers.reserve(21);
 
-      // TODO rewrite in algorithm terms
-      // TODO check if we can rely on producer_info::active()
-      for ( auto it = idx.cbegin(); it != idx.cend() && top_producers.size() < 21 && 0 < it->total_votes && it->active(); ++it ) {
-         top_producers.emplace_back( std::pair<eosio::producer_key,uint16_t>({{it->owner, it->producer_key}, it->location}) );
+      for( auto it = idx.cbegin(); it != idx.cend() && top_producers.size() < 21 && 0 < it->total_votes && it->active(); ++it ) {
+         top_producers.emplace_back(
+            eosio::producer_authority{
+               .producer_name = it->owner,
+               .authority     = it->producer_authority.has_value() ? *it->producer_authority
+                                                                   : convert_to_block_signing_authority( it->producer_key )
+            },
+            it->location
+         );
       }
 
-      if ( top_producers.size() == 0 || top_producers.size() < _gstate.last_producer_schedule_size ) {
+      if( top_producers.size() == 0 || top_producers.size() < _gstate.last_producer_schedule_size ) {
          return;
       }
 
-      /// sort by producer name
-      std::sort( top_producers.begin(), top_producers.end() );
+      std::sort( top_producers.begin(), top_producers.end(), []( const value_type& lhs, const value_type& rhs ) {
+         return lhs.first.producer_name < rhs.first.producer_name; // sort by producer name
+         // return lhs.second < rhs.second; // sort by location
+      } );
 
-      std::vector<eosio::producer_key> producers;
+      std::vector<eosio::producer_authority> producers;
 
       producers.reserve(top_producers.size());
-      for( const auto& item : top_producers )
-         producers.push_back(item.first);
+      for( auto& item : top_producers )
+         producers.push_back( std::move(item.first) );
 
       if( set_proposed_producers( producers ) >= 0 ) {
          _gstate.last_producer_schedule_size = static_cast<decltype(_gstate.last_producer_schedule_size)>( top_producers.size() );
       }
    }
 
-   double stake2vote( int64_t staked, time_point vote_mature_time ) {
-      check(vote_mature_time != time_point(), "vote should have mature time");
-
-      const auto useconds_to_mature = fmax((vote_mature_time - current_time_point()).count(), 0.0);
-      const auto rem_weight = 1.0 - useconds_to_mature / eosio::days( system_contract::vote_mature_period ).count();
+   double stake2vote( int64_t staked ) {
       /// TODO subtract 2080 brings the large numbers closer to this decade
-      double weight = int64_t((current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7)) / double(52);
-      return double(staked) * std::pow(2, weight) * rem_weight;
+      double weight = int64_t( (current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7) )  / double( 52 );
+      return double(staked) * std::pow( 2, weight );
    }
 
    double system_contract::update_total_votepay_share( const time_point& ct,
@@ -179,9 +206,6 @@ namespace eosiosystem {
 
    void system_contract::voteproducer( const name& voter_name, const name& proxy, const std::vector<name>& producers ) {
       require_auth( voter_name );
-
-      check( is_block_producer( voter_name ), "only block producers are allowed to vote" );
-      
       vote_stake_updater( voter_name );
       update_votes( voter_name, proxy, producers, true );
       auto rex_itr = _rexbalance.find( voter_name.value );
@@ -206,7 +230,6 @@ namespace eosiosystem {
       check( voter != _voters.end(), "user must stake before they can vote" ); /// staking creates voter object
       check( !proxy || !voter->is_proxy, "account registered as a proxy is not allowed to use a proxy" );
 
-
       /**
        * The first time someone votes we calculate and set last_vote_weight, since they cannot unstake until
        * after total_activated_stake hits threshold, we can use last_vote_weight to determine that this is
@@ -219,12 +242,12 @@ namespace eosiosystem {
          }
       }
 
-      auto new_vote_weight = stake2vote( voter->staked, voter->vote_mature_time );
+      auto new_vote_weight = stake2vote( voter->staked );
       if( voter->is_proxy ) {
          new_vote_weight += voter->proxied_vote_weight;
       }
 
-      std::map<name, pair<double, bool /*new*/> > producer_deltas;
+      std::map<name, std::pair<double, bool /*new*/> > producer_deltas;
       if ( voter->last_vote_weight > 0 ) {
          if( voter->proxy ) {
             auto old_proxy = _voters.find( voter->proxy.value );
@@ -337,7 +360,7 @@ namespace eosiosystem {
 
    void system_contract::propagate_weight_change( const voter_info& voter ) {
       check( !voter.proxy || !voter.is_proxy, "account registered as a proxy is not allowed to use a proxy" );
-      double new_weight = stake2vote( voter.staked, voter.vote_mature_time );
+      double new_weight = stake2vote( voter.staked );
       if ( voter.is_proxy ) {
          new_weight += voter.proxied_vote_weight;
       }
@@ -392,20 +415,6 @@ namespace eosiosystem {
             v.last_vote_weight = new_weight;
          }
       );
-   }
-
-   bool system_contract::does_satisfy_stake_requirement( const name& producer ) const {
-      const auto voter = _voters.find( producer.value );
-
-      if ( voter == _voters.end() ) {
-         return false;
-      }
-
-      return voter->staked >= producer_stake_threshold;
-   }
-
-   bool system_contract::is_block_producer( const name& producer ) const {
-      return _producers.find( producer.value ) != _producers.end();
    }
 
 } /// namespace eosiosystem

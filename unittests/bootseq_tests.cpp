@@ -198,7 +198,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
     try {
 
         // Create eosio.msig and eosio.token
-        create_accounts({N(eosio.msig), N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake), N(eosio.vpay), N(eosio.bpay), N(eosio.saving) });
+        create_accounts({N(eosio.msig), N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake), N(eosio.vpay), N(eosio.bpay), N(eosio.saving), N(eosio.rex) });
         // Set code for the following accounts:
         //  - eosio (code: eosio.bios) (already set by tester constructor)
         //  - eosio.msig (code: eosio.msig)
@@ -253,13 +253,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
            r = delegate_bandwidth(N(eosio.stake), a.aname, asset(net), asset(cpu));
            BOOST_REQUIRE( !r->except_ptr );
-        }
-
-
-        // register whales as producers
-        const auto whales_as_producers = { N(b1), N(whale4), N(whale3), N(whale2) };
-        for( const auto& producer : whales_as_producers ) {
-           register_producer(producer);
         }
 
         auto producer_candidates = {
@@ -337,13 +330,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         // Spend some time so the producer pay pool is filled by the inflation rate
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
-
-        BOOST_REQUIRE_THROW(torewards(N(b1), config::system_account_name, core_from_string("100.0000")), missing_auth_exception);
-        torewards(config::system_account_name, config::system_account_name, core_from_string("100.0000"));
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.saving)).get_amount(), 10'0000);
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.bpay)).get_amount(), 20'0000);
-        BOOST_REQUIRE_EQUAL(get_balance(N(eosio.vpay)).get_amount(), 70'0000);
-
         // Since the total activated stake is larger than 150,000,000, pool should be filled reward should be bigger than zero
         claim_rewards(N(proda));
         BOOST_TEST(get_balance(N(proda)).get_amount() > 0);

@@ -392,6 +392,7 @@ class Cluster(object):
         if 0 != subprocess.call(cmdArr):
             Utils.Print("ERROR: Launcher failed to launch. failed cmd: %s" % (s))
             return False
+        return
 
         startedNodes=totalNodes-unstartedNodes
         self.nodes=list(range(startedNodes)) # placeholder for cleanup purposes only

@@ -12,9 +12,9 @@ namespace eosio {
 }
 
 namespace eosio {
-   name get_sender() {
-      return name( internal_use_do_not_use::get_sender() );
-   }
+//   inline name get_sender() {
+//      return name( internal_use_do_not_use::get_sender() );
+//   }
 }
 
 class [[eosio::contract]] get_sender_test : public eosio::contract {
