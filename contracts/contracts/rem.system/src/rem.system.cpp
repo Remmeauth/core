@@ -412,7 +412,7 @@ namespace eosiosystem {
          return false;
       }
 
-      return (_voters->staked >= _gremstate.producer_stake_threshold) && vote_is_reasserted( _voters->last_reassertion_time );
+      return (vitr->staked >= _gremstate.producer_stake_threshold) && vote_is_reasserted( vitr->last_reassertion_time );
    }
 } /// rem.system
 

@@ -304,6 +304,8 @@ namespace eosiosystem {
       int64_t             staked = 0;
       int64_t             locked_stake = 0;
 
+      double by_stake() const { return staked; }
+
       /**
        *  Every time a vote is cast we must first "undo" the last vote weight, before casting the
        *  new vote weight.  Vote weight is calculated as:
@@ -370,8 +372,8 @@ namespace eosiosystem {
     * @details The voters table stores all the `voter_info`s instances, all voters information.
     */
    typedef eosio::multi_index< "voters"_n, voter_info,
-                               indexed_by<"voterstake"_n, BOOST_MULTI_INDEX_MEMBER(voter_info, int64_t, staked)
-                             >  voters_table;
+                               indexed_by<"bystake"_n, const_mem_fun<voter_info, double, &voter_info::by_stake> >
+                             > voters_table;
 
 
    /**
