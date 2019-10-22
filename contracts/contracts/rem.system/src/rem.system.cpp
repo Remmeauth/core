@@ -217,16 +217,11 @@ namespace eosiosystem {
 
    void system_contract::rmvproducer( const name& producer ) {
       require_auth( _self );
-      auto prod = _producers.find( producer.value );
-      check( prod != _producers.end(), "producer not found" );
-      if (prod->active()) {
-         user_resources_table totals_tbl( _self, producer.value );
-         const auto& tot = totals_tbl.get(producer.value, "producer must have resources");
-         _gstate.total_producer_stake -= tot.own_stake_amount;
-      }
+      auto prod = _producers.get( producer.value, "producer not found" );
+
       _producers.modify( prod, same_payer, [&](auto& p) {
             p.deactivate();
-         });
+      });
    }
 
    void system_contract::updtrevision( uint8_t revision ) {
@@ -409,6 +404,15 @@ namespace eosiosystem {
          
    bool system_contract::vote_is_reasserted( eosio::time_point last_reassertion_time ) const {
          return (current_time_point() - last_reassertion_time) < _gremstate.reassertion_period;
+   }
+
+   bool system_contract::is_guardian( const name& voter ) const {
+      auto vitr = _voters.find( voter.value );
+      if( vitr == _voters.end() ) {
+         return false;
+      }
+
+      return (_voters->staked >= _gremstate.producer_stake_threshold) && vote_is_reasserted( _voters->last_reassertion_time );
    }
 } /// rem.system
 

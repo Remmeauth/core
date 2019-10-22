@@ -110,6 +110,38 @@ namespace eosiosystem {
          }
       } // itr can be invalid, should go out of scope
 
+      // update total guardians stake
+      {
+         user_resources_table   totals_tbl( _self, receiver.value );
+         auto tot_itr = totals_tbl.find( receiver.value );
+
+         // User hasn't stake
+         if( tot_itr == totals_tbl.end() ) {
+            // User stake get over Guardian threshold then update `total_guardians_stake` with stake delta
+            if ( stake_delta.amount >= _gremstate.producer_stake_threshold ) {
+               _gstate.total_guardians_stake += stake_delta.amount;
+            }
+         }
+         // User has stake below Guardian threshold
+         else if ( tot_itr->own_stake_amount < _gremstate.producer_stake_threshold ) {
+            // User get over Guardian threshold then update `total_guardians_stake` with user's stake + stake delta
+            if ( tot_itr->own_stake_amount + stake_delta.amount >= _gremstate.producer_stake_threshold ) {
+               _gstate.total_guardians_stake += tot_itr->own_stake_amount + stake_delta.amount;
+            }
+         }
+         // User stake is over Guardian threshold
+         else if ( tot_itr->own_stake_amount >= _gremstate.producer_stake_threshold ) {
+            // User stake still over Guardian threshold then update `total_guardians_stake` with stake delta
+            if ( tot_itr->own_stake_amount + stake_delta.amount >= _gremstate.producer_stake_threshold ) {
+               _gstate.total_guardians_stake += stake_delta.amount;
+            }
+            // User stake dropped below Guardian threshold then remove his stake from `total_guardians_stake`
+            else {
+               _gstate.total_guardians_stake -= tot_itr->own_stake_amount;
+            }
+         }
+      }
+
       // update totals of "receiver"
       {
          user_resources_table   totals_tbl( _self, receiver.value );
@@ -138,11 +170,6 @@ namespace eosiosystem {
          check( 0 <= tot_itr->net_weight.amount, "insufficient staked total net bandwidth" );
          check( 0 <= tot_itr->cpu_weight.amount, "insufficient staked total cpu bandwidth" );
          check( _gstate.min_account_stake <= tot_itr->own_stake_amount + tot_itr->free_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
-
-         auto prod = _producers.find( receiver.value );
-         if (prod != _producers.end() && prod->active() && from == receiver) {
-            _gstate.total_producer_stake += stake_delta.amount;
-         }
 
          {
             bool ram_managed = false;

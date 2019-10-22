@@ -182,75 +182,56 @@ namespace eosiosystem {
    }
 
    using namespace eosio;
-   void system_contract::claimrewards( const name& owner ) {
-      require_auth( owner );
-
-      const auto& prod = _producers.get( owner.value );
-      check( prod.active(), "producer does not have an active key" );
-
-      check( _gstate.total_activated_stake >= min_activated_stake,
-                    "cannot claim rewards until the chain is activated (at least 15% of all tokens participate in voting)" );
+   void system_contract::claim_perstake( const name& voter )
+   {
+      check( is_guardian( voter ), "guardian status is not re-asserted" );
+      const auto& voter = _voters.get( voter.value );
 
       const auto ct = current_time_point();
-
-      check( ct - prod.last_claim_time > microseconds(useconds_per_day), "already claimed rewards within past day" );
-
-      const asset token_supply   = eosio::token::get_supply(token_account, core_symbol().code() );
-      const auto usecs_since_last_fill = (ct - _gstate.last_pervote_bucket_fill).count();
-
-      if( usecs_since_last_fill > 0 && _gstate.last_pervote_bucket_fill > time_point() ) {
-         auto new_tokens = static_cast<int64_t>( (_gstate4.continuous_rate * double(token_supply.amount) * double(usecs_since_last_fill)) / double(useconds_per_year) );
-
-         auto to_producers     = new_tokens / _gstate4.inflation_pay_factor;
-         auto to_savings       = new_tokens - to_producers;
-         auto to_per_block_pay = to_producers / _gstate4.votepay_factor;
-         auto to_per_vote_pay  = to_producers - to_per_block_pay;
-
-         if( new_tokens > 0 ) {
-            {
-               token::issue_action issue_act{ token_account, { {_self, active_permission} } };
-               issue_act.send( _self, asset(new_tokens, core_symbol()), "issue tokens for producer pay and savings" );
-            }
-            {
-               token::transfer_action transfer_act{ token_account, { {_self, active_permission} } };
-               if( to_savings > 0 ) {
-                  transfer_act.send( _self, saving_account, asset(to_savings, core_symbol()), "unallocated inflation" );
-               }
-               if( to_per_block_pay > 0 ) {
-                  transfer_act.send( _self, bpay_account, asset(to_per_block_pay, core_symbol()), "fund per-block bucket" );
-               }
-               if( to_per_vote_pay > 0 ) {
-                  transfer_act.send( _self, vpay_account, asset(to_per_vote_pay, core_symbol()), "fund per-vote bucket" );
-               }
-            }
-         }
-
-         _gstate.pervote_bucket          += to_per_vote_pay;
-         _gstate.perblock_bucket         += to_per_block_pay;
-         _gstate.last_pervote_bucket_fill = ct;
-      }
+      check( ct - voter.last_claim_time > microseconds(useconds_per_day), "already claimed rewards within past day" );
 
       if (_gstate.perstake_bucket > 1'0000) { //do not distribute small amounts
          int64_t total_producer_per_stake_pay = 0;
-         for (auto it = _producers.begin(); it != _producers.end(); it++) {
-            user_resources_table totals_tbl( _self, it->owner.value );
-            const auto& tot = totals_tbl.get(it->owner.value, "producer must have resources");
-            const auto producer_per_stake_pay = int64_t(
-               _gstate.perstake_bucket * (double(tot.own_stake_amount) / double(_gstate.total_producer_stake)));
-            _producers.modify(it, same_payer, [&](auto &p) {
+
+         auto sorted_voters = _voters.get_index<"voterstake"_n>();
+         for (auto it = sorted_voters.begin(); it != sorted_voters.end() && it->staked >= _gremstate.producer_stake_threshold; it++) {
+            const int64_t producer_per_stake_pay = _gstate.perstake_bucket * (double(it->staked) / double(_gstate.total_guardians_stake));
+            
+            _voters.modify(it, same_payer, [&](auto &p) {
                p.pending_perstake_reward += producer_per_stake_pay;
             });
+            
             total_producer_per_stake_pay += producer_per_stake_pay;
          }
+
          _gstate.perstake_bucket -= total_producer_per_stake_pay;
          check(_gstate.perstake_bucket >= 0, "perstake_bucket cannot be negative");
       }
-      const auto producer_per_stake_pay = prod.pending_perstake_reward;
+      const auto producer_per_stake_pay = voter.pending_perstake_reward;
+
+      _voters.modify( voter, same_payer, [&](auto& v) {
+         v.last_claim_time         = ct;
+         v.pending_perstake_reward = 0;
+      });
+
+      if ( producer_per_stake_pay > 0 ) {
+         token::transfer_action transfer_act{ token_account, { {spay_account, active_permission}, {owner, active_permission} } };
+         transfer_act.send( spay_account, owner, asset(producer_per_stake_pay, core_symbol()), "producer stake pay" );
+      }
+   }
+
+   void system_contract::claim_pervote( const name& prod )
+   {
+      const auto& prod = _producers.get( prod.value );
+      check( prod.active(), "producer does not have an active key" );
+
+      const auto ct = current_time_point();
+      check( ct - prod.last_claim_time > microseconds(useconds_per_day), "already claimed rewards within past day" );
 
       int64_t producer_per_vote_pay = prod.pending_pervote_reward;
       auto expected_produced_blocks = prod.expected_produced_blocks;
       if (std::find_if(std::begin(_gstate.last_schedule), std::end(_gstate.last_schedule),
-            [&owner](const auto& prod){ return prod.first.value == owner.value; }) != std::end(_gstate.last_schedule)) {
+            [&prod](const auto& prod){ return prod.first.value == prod.value; }) != std::end(_gstate.last_schedule)) {
          const auto full_rounds_passed = (_gstate.current_round_start_time.slot - prod.last_expected_produced_blocks_update.slot) / blocks_per_round;
          expected_produced_blocks += full_rounds_passed * producer_repetitions;
       }
@@ -267,14 +248,9 @@ namespace eosiosystem {
          p.last_expected_produced_blocks_update = _gstate.current_round_start_time;
          p.unpaid_blocks                        = 0;
          p.expected_produced_blocks             = 0;
-         p.pending_perstake_reward              = 0;
          p.pending_pervote_reward               = 0;
       });
 
-      if ( producer_per_stake_pay > 0 ) {
-         token::transfer_action transfer_act{ token_account, { {spay_account, active_permission}, {owner, active_permission} } };
-         transfer_act.send( spay_account, owner, asset(producer_per_stake_pay, core_symbol()), "producer stake pay" );
-      }
       if ( producer_per_vote_pay > 0 ) {
          token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission}, {owner, active_permission} } };
          transfer_act.send( vpay_account, owner, asset(producer_per_vote_pay, core_symbol()), "producer vote pay" );
@@ -282,6 +258,21 @@ namespace eosiosystem {
       if ( punishment > 0 ) {
          token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission} } };
          transfer_act.send( vpay_account, saving_account, asset(punishment, core_symbol()), "punishment transfer" );
+      }
+   }
+
+   void system_contract::claimrewards( const name& owner ) {
+      require_auth( owner );
+      check( _gstate.total_activated_stake >= min_activated_stake, "cannot claim rewards until the chain is activated (at least 15% of all tokens participate in voting)" );
+
+      auto voter = _voters.find( owner.value );
+      if( voter != _voters.end() ) {
+         claim_perstake( owner );
+      }
+
+      auto prod = _producers.find( owner.value );
+      if( prod != _producers.end() ) {
+         claim_pervote( owner );
       }
    }
 

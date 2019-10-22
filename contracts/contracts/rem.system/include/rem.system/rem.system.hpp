@@ -147,7 +147,7 @@ namespace eosiosystem {
       int64_t              pervote_bucket = 0;
       int64_t              perblock_bucket = 0;
       uint32_t             total_unpaid_blocks = 0; /// all blocks which have been produced but not paid
-      int64_t              total_producer_stake = 0;
+      int64_t              total_guardians_stake = 0;
       int64_t              total_activated_stake = 0;
       time_point           thresh_activated_stake_time;
       uint16_t             last_producer_schedule_size = 0;
@@ -159,7 +159,7 @@ namespace eosiosystem {
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (core_symbol)(max_ram_size)(min_account_stake)
                                 (total_ram_bytes_reserved)(total_ram_stake)(last_schedule)(last_schedule_version)
                                 (current_round_start_time) (last_producer_schedule_update)(last_pervote_bucket_fill)
-                                (perstake_bucket)(pervote_bucket)(perblock_bucket)(total_unpaid_blocks)(total_producer_stake)
+                                (perstake_bucket)(pervote_bucket)(perblock_bucket)(total_unpaid_blocks)(total_guardians_stake)
                                 (total_activated_stake)(thresh_activated_stake_time)(last_producer_schedule_size)
                                 (total_producer_vote_weight)(total_active_producer_vote_weight)(last_name_close) )
    };
@@ -258,7 +258,6 @@ namespace eosiosystem {
       uint32_t              unpaid_blocks = 0; //count blocks only from finished rounds
       uint32_t              expected_produced_blocks = 0;
       block_timestamp       last_expected_produced_blocks_update;
-      int64_t               pending_perstake_reward = 0;
       int64_t               pending_pervote_reward = 0;
       time_point            last_claim_time;
       uint16_t              location = 0;
@@ -270,8 +269,8 @@ namespace eosiosystem {
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( producer_info, (owner)(total_votes)(producer_key)(is_active)(url)
-                        (current_round_unpaid_blocks)(unpaid_blocks)(expected_produced_blocks)(last_expected_produced_blocks_update)
-                        (pending_perstake_reward)(pending_pervote_reward)(last_claim_time)(location) )
+                        (current_round_unpaid_blocks)(unpaid_blocks)(expected_produced_blocks)
+                        (last_expected_produced_blocks_update)(pending_pervote_reward)(last_claim_time)(location) )
    };
 
    /**
@@ -335,9 +334,14 @@ namespace eosiosystem {
       };
 
       time_point          last_reassertion_time;
+      int64_t             pending_perstake_reward = 0;
+      time_point          last_claim_time;
+
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(locked_stake)(last_vote_weight)(stake_lock_time)(last_undelegate_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)(last_reassertion_time) )
+      EOSLIB_SERIALIZE( voter_info, (owner)(proxy)(producers)(staked)(locked_stake)(last_vote_weight)
+                                    (stake_lock_time)(last_undelegate_time)(proxied_vote_weight)(is_proxy)(flags1)(reserved2)(reserved3)
+                                    (last_reassertion_time)(pending_perstake_reward)(last_claim_time) )
    };
 
    struct [[eosio::table, eosio::contract("rem.system")]] user_resources {
@@ -365,7 +369,9 @@ namespace eosiosystem {
     *
     * @details The voters table stores all the `voter_info`s instances, all voters information.
     */
-   typedef eosio::multi_index< "voters"_n, voter_info >  voters_table;
+   typedef eosio::multi_index< "voters"_n, voter_info,
+                               indexed_by<"voterstake"_n, BOOST_MULTI_INDEX_MEMBER(voter_info, int64_t, staked)
+                             >  voters_table;
 
 
    /**
@@ -1450,8 +1456,12 @@ namespace eosiosystem {
          int64_t share_pervote_reward_between_producers(int64_t amount);
          void update_pervote_shares();
 
+         void claim_perstake( const name& voter );
+         void claim_pervote( const name& prod );
+
          // Block producer should reassert its status (via voting) every reassertion_period days
          bool vote_is_reasserted( eosio::time_point last_reassertion_time ) const;
+         bool is_guardian( const name& voter ) const;
 
          //defined in rotation.cpp
          std::vector<eosio::producer_key> get_rotated_schedule();
