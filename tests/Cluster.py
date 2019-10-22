@@ -1030,11 +1030,8 @@ class Cluster(object):
 
         return biosNode
 
-    def publishContract(self, node, contract, account, old_version = False):
+    def publishContract(self, node, contract, account):
         contractDir = "contracts/contracts/%s" % (contract)
-        if old_version:
-            contractDir="unittests/contracts/old_versions/v1.6.0-rc3/%s" % (contract)
-
         wasmFile = "%s.wasm" % (contract)
         abiFile  = "%s.abi" % (contract)
 
@@ -1181,8 +1178,15 @@ class Cluster(object):
             return None
 
         contract = "eosio.bios"
-        old_version = not PFSetupPolicy.hasPreactivateFeature(pfSetupPolicy)
-        trans = self.publishContract(biosNode, contract, eosioAccount.name, old_version)
+        contractDir="contracts/contracts/%s" % (contract)
+        if PFSetupPolicy.hasPreactivateFeature(pfSetupPolicy):
+            contractDir="unittests/contracts/old_versions/v1.7.0-develop-preactivate_feature/%s" % (contract)
+        else:
+            contractDir="unittests/contracts/old_versions/v1.6.0-rc3/%s" % (contract)
+        wasmFile="%s.wasm" % (contract)
+        abiFile="%s.abi" % (contract)
+        Utils.Print("Publish %s contract" % (contract))
+        trans=biosNode.publishContract(eosioAccount.name, contractDir, wasmFile, abiFile, waitForTransBlock=True)
         if trans is None:
             Utils.Print("ERROR: Failed to publish contract %s." % (contract))
             return None
@@ -1232,6 +1236,9 @@ class Cluster(object):
             ),
             Account(
                 "eosio.stake",  eosioAccount.ownerPrivateKey, eosioAccount.ownerPublicKey, eosioAccount.activePrivateKey, eosioAccount.activePublicKey
+            ),
+            Account(
+                "eosio.rex",  eosioAccount.ownerPrivateKey, eosioAccount.ownerPublicKey, eosioAccount.activePrivateKey, eosioAccount.activePublicKey
             )
         ]
         trans = None
@@ -1260,13 +1267,14 @@ class Cluster(object):
             Utils.Print("ERROR: Failed to issue tokens")
             return None
 
-        contract = "eosio.system"
-        trans = self.publishContract(biosNode, contract, eosioAccount.name)
-        if trans is None:
-            Utils.Print("ERROR: Failed to publish contract %s." % (contract))
-            return None
+        if loadSystemContract:
+            contract = "eosio.system"
+            trans = self.publishContract(biosNode, contract, eosioAccount.name)
+            if trans is None:
+                Utils.Print("ERROR: Failed to publish contract %s." % (contract))
+                return None
 
-        Node.validateTransaction(trans)
+            Node.validateTransaction(trans)
 
         initialFunds="1000000.0000 {0}".format(CORE_SYMBOL)
         Utils.Print("Transfer initial fund %s to individual accounts." % (initialFunds))
