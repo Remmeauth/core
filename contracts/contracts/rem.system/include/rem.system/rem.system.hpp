@@ -131,6 +131,7 @@ namespace eosiosystem {
       uint64_t free_ram()const { return max_ram_size - total_ram_bytes_reserved; }
 
       symbol               core_symbol;
+      std::string          chain_id;
 
       uint64_t             max_ram_size = 64ll*1024 * 1024 * 1024;
       uint64_t             min_account_stake = 1000000; //minimum stake for new created account 100'0000 REM
@@ -156,7 +157,7 @@ namespace eosiosystem {
       block_timestamp      last_name_close;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (core_symbol)(max_ram_size)(min_account_stake)
+      EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (core_symbol)(chain_id)(max_ram_size)(min_account_stake)
                                 (total_ram_bytes_reserved)(total_ram_stake)(last_schedule)(last_schedule_version)
                                 (current_round_start_time) (last_producer_schedule_update)(last_pervote_bucket_fill)
                                 (perstake_bucket)(pervote_bucket)(perblock_bucket)(total_unpaid_blocks)(total_producer_stake)
@@ -608,7 +609,7 @@ namespace eosiosystem {
          static constexpr symbol rex_symbol = symbol(symbol_code("REX"), 4);
 
          static constexpr uint8_t max_block_producers      = 21;
-         
+
 
          /**
           * System contract constructor.
@@ -667,14 +668,14 @@ namespace eosiosystem {
           * Only succeeds when:
           * - version is 0 and
           * - symbol is found and
-          * - system token supply is greater than 0,
           * - and system contract wasn’t already been initialized.
           *
           * @param version - the version, has to be 0,
-          * @param core - the system symbol.
+          * @param core - the system symbol,
+          * @param chain_id - chain identifier.
           */
          [[eosio::action]]
-         void init( unsigned_int version, const symbol& core );
+         void init( unsigned_int version, const symbol& core, const std::string& chain_id );
 
 
          /**
@@ -1286,9 +1287,9 @@ namespace eosiosystem {
          /**
           * Set inflation action.
           *
-          * @details Change the annual inflation rate of the core token supply and specify how 
+          * @details Change the annual inflation rate of the core token supply and specify how
           *          the new issued tokens will be distributed based on the following structure.
-          * 
+          *
           *    +----+                          +----------------+
           *    +rate|               +--------->|per vote reward |
           *    +--+-+               |          +----------------+

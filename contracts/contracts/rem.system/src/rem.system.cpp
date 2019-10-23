@@ -393,20 +393,21 @@ namespace eosiosystem {
       }
    }
 
-   void system_contract::init( unsigned_int version, const symbol& core ) {
+   void system_contract::init( unsigned_int version, const symbol& core, const std::string& chain_id ) {
       require_auth( _self );
       check( version.value == 0, "unsupported version for init action" );
       check( _gstate.core_symbol == symbol(), "system contract has already been initialized" );
       _gstate.core_symbol = core;
+      _gstate.chain_id = chain_id;
 
       auto system_token_supply   = eosio::token::get_supply(token_account, core.code() );
       check( system_token_supply.symbol == core, "specified core symbol does not exist (precision mismatch)" );
-      check( system_token_supply.amount > 0, "system token supply must be greater than 0" );
+      // check( system_token_supply.amount > 0, "system token supply must be greater than 0" );
 
       token::open_action open_act{ token_account, { {_self, active_permission} } };
       open_act.send( rex_account, core, _self );
    }
-         
+
    bool system_contract::vote_is_reasserted( eosio::time_point last_reassertion_time ) const {
          return (current_time_point() - last_reassertion_time) < _gremstate.reassertion_period;
    }
