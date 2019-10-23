@@ -110,38 +110,6 @@ namespace eosiosystem {
          }
       } // itr can be invalid, should go out of scope
 
-      // update total guardians stake
-      {
-         user_resources_table   totals_tbl( _self, receiver.value );
-         auto tot_itr = totals_tbl.find( receiver.value );
-
-         // User hasn't stake
-         if( tot_itr == totals_tbl.end() ) {
-            // User stake get over Guardian threshold then update `total_guardians_stake` with stake delta
-            if ( stake_delta.amount >= _gremstate.producer_stake_threshold ) {
-               _gstate.total_guardians_stake += stake_delta.amount;
-            }
-         }
-         // User has stake below Guardian threshold
-         else if ( tot_itr->own_stake_amount < _gremstate.producer_stake_threshold ) {
-            // User get over Guardian threshold then update `total_guardians_stake` with user's stake + stake delta
-            if ( tot_itr->own_stake_amount + stake_delta.amount >= _gremstate.producer_stake_threshold ) {
-               _gstate.total_guardians_stake += tot_itr->own_stake_amount + stake_delta.amount;
-            }
-         }
-         // User stake is over Guardian threshold
-         else if ( tot_itr->own_stake_amount >= _gremstate.producer_stake_threshold ) {
-            // User stake still over Guardian threshold then update `total_guardians_stake` with stake delta
-            if ( tot_itr->own_stake_amount + stake_delta.amount >= _gremstate.producer_stake_threshold ) {
-               _gstate.total_guardians_stake += stake_delta.amount;
-            }
-            // User stake dropped below Guardian threshold then remove his stake from `total_guardians_stake`
-            else {
-               _gstate.total_guardians_stake -= tot_itr->own_stake_amount;
-            }
-         }
-      }
-
       // update totals of "receiver"
       {
          user_resources_table   totals_tbl( _self, receiver.value );
@@ -373,14 +341,12 @@ namespace eosiosystem {
 
 
    void system_contract::refundtostake( const name& owner ) {
-      print("refundtostake");
       require_auth( owner );
 
       refunds_table refunds_tbl( _self, owner.value );
       auto req = refunds_tbl.get( owner.value, "refund request not found" );
       check( req.request_time + seconds(refund_delay_sec) <= current_time_point(), "refund is not available yet" );
 
-      print( "refundtostake: ", req.resource_amount.to_string());
       changebw( owner, owner, req.resource_amount, false );
    }
 
