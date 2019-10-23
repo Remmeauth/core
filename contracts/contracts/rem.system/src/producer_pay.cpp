@@ -184,7 +184,7 @@ namespace eosiosystem {
    using namespace eosio;
    void system_contract::claim_perstake( const name& guardian )
    {
-      check( is_guardian( guardian ), "guardian status is not re-asserted" );
+      // check( is_guardian( guardian ), "guardian status is not re-asserted" );
       const auto& voter = _voters.get( guardian.value );
 
       const auto ct = current_time_point();
@@ -194,14 +194,15 @@ namespace eosiosystem {
          int64_t total_per_stake_pay = 0;
 
          auto sorted_voters = _voters.get_index<"bystake"_n>();
-         for (auto it = sorted_voters.begin(); it != sorted_voters.end() && it->staked >= _gremstate.producer_stake_threshold; it++) {
-            const int64_t per_stake_pay = _gstate.perstake_bucket * (double(it->staked) / double(_gstate.total_guardians_stake));
-            
-            _voters.modify(it, same_payer, [&](auto &p) {
-               p.pending_perstake_reward += per_stake_pay;
-            });
-            
-            total_per_stake_pay += per_stake_pay;
+         for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.producer_stake_threshold; it++) {
+               const int64_t per_stake_pay = _gstate.perstake_bucket * (double(it->staked) / double(_gstate.total_guardians_stake));
+               print( "voter: ", it->owner.to_string(), "; staked: ", it->staked, " total_ppay: ", per_stake_pay, "\n" );
+               
+               _voters.modify( *it, same_payer, [&](auto &v) {
+                  v.pending_perstake_reward += per_stake_pay;
+               });
+               
+               total_per_stake_pay += per_stake_pay;
          }
 
          _gstate.perstake_bucket -= total_per_stake_pay;
