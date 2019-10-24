@@ -15,9 +15,14 @@ if [ -z "$biosport" ]; then
     biosport=9776
 fi
 
+bioscontractname=$BIOS_CONTRACT_NAME
+if [ -z "$bioscontractname" ]; then
+    bioscontractname="rem.bios"
+fi
+
 bioscontractpath=$BIOS_CONTRACT_PATH
 if [ -z "$bioscontractpath" ]; then
-    bioscontractpath="contracts/contracts/rem.bios"
+    bioscontractpath="contracts/contracts/$bioscontractname"
 fi
 
 bioscurrencysymbol=$BIOS_CURRENCY_SYMBOL
@@ -93,7 +98,7 @@ wcmd create --to-console -n ignition
 ###INSERT prodkeys
 echo "Activated Features Check:" >> $logfile
 curl http://$bioshost:$biosport/v1/chain/get_activated_protocol_features >> $logfile
-ecmd set contract rem $bioscontractpath rem.bios.wasm rem.bios.abi
+ecmd set contract rem $bioscontractpath/$bioscontractname $bioscontractname.wasm $bioscontractname.abi
 
 # Preactivate all digests
 for digest in $FEATURE_DIGESTS;

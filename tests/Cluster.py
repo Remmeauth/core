@@ -948,13 +948,16 @@ class Cluster(object):
         assert PFSetupPolicy.isValid(pfSetupPolicy)
 
         cmd="bash bios_boot.sh"
-        if Utils.Debug: Utils.Print("cmd: %s" % (cmd))
+        if Utils.Debug:
+            Utils.Print("cmd: %s" % (cmd))
+        
         env = {
+            "BIOS_CONTRACT_NAME": "eosio.bios",
             "BIOS_CONTRACT_PATH": "unittests/contracts/old_versions/v1.6.0-rc3/eosio.bios",
             "FEATURE_DIGESTS": ""
         }
         if PFSetupPolicy.hasPreactivateFeature(pfSetupPolicy):
-            env["BIOS_CONTRACT_PATH"] = "unittests/contracts/old_versions/v1.7.0-develop-preactivate_feature/rem.bios"
+            env["BIOS_CONTRACT_PATH"] = "unittests/contracts/old_versions/v1.7.0-develop-preactivate_feature/"
 
         if pfSetupPolicy == PFSetupPolicy.FULL:
             allBuiltinProtocolFeatureDigests = biosNode.getAllBuiltinFeatureDigestsToPreactivate()
