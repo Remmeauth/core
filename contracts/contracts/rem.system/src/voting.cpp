@@ -33,7 +33,7 @@ namespace eosiosystem {
 
       user_resources_table totals_tbl( _self, producer.value );
       const auto& tot = totals_tbl.get(producer.value, "producer must have resources");
-      check( tot.own_stake_amount >= _gremstate.producer_stake_threshold, "user should stake at least "s + asset(_gremstate.producer_stake_threshold, core_symbol()).to_string() + " to become a producer"s );
+      check( tot.own_stake_amount >= _gremstate.guardian_stake_threshold, "user should stake at least "s + asset(_gremstate.guardian_stake_threshold, core_symbol()).to_string() + " to become a producer"s );
 
       auto prod = _producers.find( producer.value );
       const auto ct = current_time_point();

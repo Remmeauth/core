@@ -148,13 +148,9 @@ namespace eosiosystem {
       if ( prod != _producers.end() ) {
          _gstate.total_unpaid_blocks++;
 
-         const auto& voter = _voters.get( producer.value );
-         // TODO fix coupling in voter-producer entities
-         if ( vote_is_reasserted( voter.last_reassertion_time ) ) {
-            _producers.modify( prod, same_payer, [&](auto& p ) {
-                  p.current_round_unpaid_blocks++;
-            });
-         }
+         _producers.modify( prod, same_payer, [&](auto& p ) {
+               p.current_round_unpaid_blocks++;
+         });
       }
 
       /// only update block producers once every minute, block_timestamp is in half seconds
@@ -195,13 +191,13 @@ namespace eosiosystem {
 
          auto sorted_voters = _voters.get_index<"bystake"_n>();
          _gstate.total_guardians_stake = 0;
-         for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.producer_stake_threshold; it++) {
+         for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.guardian_stake_threshold; it++) {
             if ( vote_is_reasserted( it->last_reassertion_time ) ) {
                _gstate.total_guardians_stake += it->staked;
             }
          }
 
-         for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.producer_stake_threshold; it++) {
+         for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.guardian_stake_threshold; it++) {
             if ( vote_is_reasserted( it->last_reassertion_time ) ) {
                const int64_t per_stake_pay = _gstate.perstake_bucket * (double(it->staked) / double(_gstate.total_guardians_stake));
                
@@ -236,39 +232,6 @@ namespace eosiosystem {
 
       const auto ct = current_time_point();
       check( ct - prod.last_claim_time > microseconds(useconds_per_day), "already claimed rewards within past day" );
-
-      const auto usecs_since_last_fill = (ct - _gstate.last_pervote_bucket_fill).count();
-
-      if( usecs_since_last_fill > 0 && _gstate.last_pervote_bucket_fill > time_point() ) {
-         const asset token_supply   = eosio::token::get_supply(token_account, core_symbol().code() );
-         auto new_tokens = static_cast<int64_t>( (_gstate4.continuous_rate * double(token_supply.amount) * double(usecs_since_last_fill)) / double(useconds_per_year) );
-         auto to_producers     = new_tokens / _gstate4.inflation_pay_factor;
-         auto to_savings       = new_tokens - to_producers;
-         auto to_per_block_pay = to_producers / _gstate4.votepay_factor;
-         auto to_per_vote_pay  = to_producers - to_per_block_pay;
-         if( new_tokens > 0 ) {
-            {
-               token::issue_action issue_act{ token_account, { {_self, active_permission} } };
-               issue_act.send( _self, asset(new_tokens, core_symbol()), "issue tokens for producer pay and savings" );
-            }
-            {
-               token::transfer_action transfer_act{ token_account, { {_self, active_permission} } };
-               if( to_savings > 0 ) {
-                  transfer_act.send( _self, saving_account, asset(to_savings, core_symbol()), "unallocated inflation" );
-               }
-               if( to_per_block_pay > 0 ) {
-                  transfer_act.send( _self, bpay_account, asset(to_per_block_pay, core_symbol()), "fund per-block bucket" );
-               }
-               if( to_per_vote_pay > 0 ) {
-                  transfer_act.send( _self, vpay_account, asset(to_per_vote_pay, core_symbol()), "fund per-vote bucket" );
-               }
-            }
-         }
-
-         _gstate.pervote_bucket          += to_per_vote_pay;
-         _gstate.perblock_bucket         += to_per_block_pay;
-         _gstate.last_pervote_bucket_fill = ct;
-      }
 
       int64_t producer_per_vote_pay = prod.pending_pervote_reward;
       auto expected_produced_blocks = prod.expected_produced_blocks;

@@ -214,7 +214,7 @@ namespace eosiosystem {
       name gifter_attr_issuer   = name{"rem.attr"};
       name gifter_attr_name     = name{"accgifter"};
 
-      int64_t producer_stake_threshold = 250'000'0000LL;
+      int64_t guardian_stake_threshold = 250'000'0000LL;
 
       microseconds stake_lock_period   = eosio::days(180);
       microseconds stake_unlock_period = eosio::days(180);
@@ -223,7 +223,7 @@ namespace eosiosystem {
 
       EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)
                                                 (gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name)
-                                                (producer_stake_threshold)(stake_lock_period)(stake_unlock_period)
+                                                (guardian_stake_threshold)(stake_lock_period)(stake_unlock_period)
                                                 (reassertion_period) )
    };
 
@@ -1461,9 +1461,9 @@ namespace eosiosystem {
          void claim_perstake( const name& voter );
          void claim_pervote( const name& prod );
 
-         // Block producer should reassert its status (via voting) every reassertion_period days
+         // defined in rem.system.cpp
+         // to keep Guardian status, account should reassert its vote every eosio_global_rem_state::reassertion_period
          bool vote_is_reasserted( eosio::time_point last_reassertion_time ) const;
-         bool is_guardian( const name& voter ) const;
 
          //defined in rotation.cpp
          std::vector<eosio::producer_key> get_rotated_schedule();

@@ -80,7 +80,7 @@ namespace eosiosystem {
          .gifter_attr_issuer   = name{"rem.attr"},
          .gifter_attr_name     = name{"accgifter"},
 
-         .producer_stake_threshold = 250'000'0000LL,
+         .guardian_stake_threshold = 250'000'0000LL,
 
          .stake_lock_period = eosio::days(180),
          .stake_unlock_period = eosio::days(180),
@@ -404,15 +404,6 @@ namespace eosiosystem {
          
    bool system_contract::vote_is_reasserted( eosio::time_point last_reassertion_time ) const {
          return (current_time_point() - last_reassertion_time) < _gremstate.reassertion_period;
-   }
-
-   bool system_contract::is_guardian( const name& voter ) const {
-      auto vitr = _voters.find( voter.value );
-      if( vitr == _voters.end() ) {
-         return false;
-      }
-
-      return (vitr->staked >= _gremstate.producer_stake_threshold) && vote_is_reasserted( vitr->last_reassertion_time );
    }
 } /// rem.system
 
