@@ -50,6 +50,34 @@ namespace eosiosystem {
          });
    }
 
+   int64_t system_contract::share_perstake_reward_between_guardians(int64_t amount)
+   {
+      using namespace eosio;
+      int64_t total_reward_distributed = 0;
+      
+      const auto sorted_voters = _voters.get_index<"bystake"_n>();
+      _gstate.total_guardians_stake = 0;
+      for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.guardian_stake_threshold; it++) {
+         if ( vote_is_reasserted( it->last_reassertion_time ) ) {
+            _gstate.total_guardians_stake += it->staked;
+         }
+      }
+
+      for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.guardian_stake_threshold; it++) {
+         if ( vote_is_reasserted( it->last_reassertion_time ) ) {
+            const int64_t pending_perstake_reward = amount * ( double(it->staked) / double(_gstate.total_guardians_stake) );
+            
+            _voters.modify( *it, same_payer, [&](auto &v) {
+               v.pending_perstake_reward += pending_perstake_reward;
+            });
+            
+            total_reward_distributed += pending_perstake_reward;
+         }
+      }
+      
+      check(total_reward_distributed <= amount, "distributed reward above the given amount");
+      return total_reward_distributed;
+   }
 
    void system_contract::onblock( ignore<block_header> ) {
       using namespace eosio;
@@ -186,43 +214,18 @@ namespace eosiosystem {
       const auto ct = current_time_point();
       check( ct - voter.last_claim_time > microseconds(useconds_per_day), "already claimed rewards within past day" );
 
-      if (_gstate.perstake_bucket > 1'0000) { //do not distribute small amounts
-         int64_t total_per_stake_pay = 0;
-
-         auto sorted_voters = _voters.get_index<"bystake"_n>();
-         _gstate.total_guardians_stake = 0;
-         for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.guardian_stake_threshold; it++) {
-            if ( vote_is_reasserted( it->last_reassertion_time ) ) {
-               _gstate.total_guardians_stake += it->staked;
-            }
-         }
-
-         for (auto it = sorted_voters.rbegin(); it != sorted_voters.rend() && it->staked >= _gremstate.guardian_stake_threshold; it++) {
-            if ( vote_is_reasserted( it->last_reassertion_time ) ) {
-               const int64_t per_stake_pay = _gstate.perstake_bucket * (double(it->staked) / double(_gstate.total_guardians_stake));
-               
-               _voters.modify( *it, same_payer, [&](auto &v) {
-                  v.pending_perstake_reward += per_stake_pay;
-               });
-               
-               total_per_stake_pay += per_stake_pay;
-            }
-         }
-
-         _gstate.perstake_bucket -= total_per_stake_pay;
-         check(_gstate.perstake_bucket >= 0, "perstake_bucket cannot be negative");
+      _gstate.perstake_bucket -= voter.pending_perstake_reward;
+      
+      if ( voter.pending_perstake_reward > 0 ) {
+         token::transfer_action transfer_act{ token_account, { {spay_account, active_permission}, {guardian, active_permission} } };
+         transfer_act.send( spay_account, guardian, asset(voter.pending_perstake_reward, core_symbol()), "guardian stake pay" );
       }
-      const auto per_stake_pay = voter.pending_perstake_reward;
 
       _voters.modify( voter, same_payer, [&](auto& v) {
          v.last_claim_time         = ct;
          v.pending_perstake_reward = 0;
       }); 
 
-      if ( per_stake_pay > 0 ) {
-         token::transfer_action transfer_act{ token_account, { {spay_account, active_permission}, {guardian, active_permission} } };
-         transfer_act.send( spay_account, guardian, asset(per_stake_pay, core_symbol()), "producer stake pay" );
-      }
    }
 
    void system_contract::claim_pervote( const name& producer )
@@ -287,8 +290,8 @@ namespace eosiosystem {
       check( amount.symbol == core_symbol(), "invalid symbol" );
       check( amount.amount > 0, "amount must be positive" );
 
-      const auto to_per_stake_pay = amount.amount * _gremstate.per_stake_share;
-      const auto to_per_vote_pay  = share_pervote_reward_between_producers(amount.amount * _gremstate.per_vote_share);
+      const auto to_per_stake_pay = share_perstake_reward_between_guardians( amount.amount * _gremstate.per_stake_share );
+      const auto to_per_vote_pay  = share_pervote_reward_between_producers( amount.amount * _gremstate.per_vote_share );
       const auto to_rem           = amount.amount - (to_per_stake_pay + to_per_vote_pay);
       if( amount.amount > 0 ) {
         token::transfer_action transfer_act{ token_account, { {payer, active_permission} } };

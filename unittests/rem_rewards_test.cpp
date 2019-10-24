@@ -305,7 +305,7 @@ BOOST_FIXTURE_TEST_CASE( perstake_rewards_test, rewards_tester ) {
         }
         
         // vote for prods to activate 15% of stake
-        const auto whales = std::vector< name >{ N(b1), N(whale1), N(whale2), N(whale2) };
+        const auto whales = std::vector< name >{ N(b1), N(whale1), N(whale2) };
         for( const auto& whale : whales ) {
             votepro( whale, producers );
         }
@@ -321,24 +321,17 @@ BOOST_FIXTURE_TEST_CASE( perstake_rewards_test, rewards_tester ) {
             BOOST_TEST_REQUIRE(active_schedule.producers.at(2).producer_name == "prodc");
         }
 
-        torewards( config::system_account_name, config::system_account_name, asset{ 100'0000 } );
-        // 100'000 * 0.6 perstake share
-        BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 60'0000 );
-        // 100'000 * 0.3 percote share
-        BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 29'9997 );
-
         {
-            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 1 ) );
-            claim_rewards( N(proda) );
+            torewards( config::system_account_name, config::system_account_name, asset{ 100'0000 } );
+            // 100'000 * 0.6 perstake share
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 59'9998 );
+            // 100'000 * 0.3 percote share
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 29'9997 );
 
-            // b1 + whale1-whale3 + proda-prodc = 171'499'999'4000 delegated stake
+            // b1 + whale1-whale2 + proda-prodc = 171'499'999'4000 delegated stake
             // prodd-produ - didn't voted so they don't counts as Guardians
             // runnerup1-3 have less then 250'000'0000 so their stakes do not update `total_guardians_stake`
             BOOST_TEST_REQUIRE( get_global_state()["total_guardians_stake"].as_int64() == 171'499'999'4000 );
-
-
-            BOOST_TEST_REQUIRE( get_producer_info( N(proda) )["pending_pervote_reward"].as_int64() == 0 );
-            BOOST_TEST_REQUIRE( get_voter_info( N(proda) )["pending_perstake_reward"].as_int64() == 0 );
 
             // b1 staked: 99'999'999'9000; total_staked: 171'499'999'4000; share ~0.583 * 60'0000
             BOOST_TEST_REQUIRE( get_voter_info( N(b1) )["pending_perstake_reward"].as_int64() == 34'9854 );
@@ -347,44 +340,73 @@ BOOST_FIXTURE_TEST_CASE( perstake_rewards_test, rewards_tester ) {
             BOOST_TEST_REQUIRE( get_producer_info( N(prodb) )["pending_pervote_reward"].as_int64() == 9'9999 );
             BOOST_TEST_REQUIRE( get_producer_info( N(prodb) )["pending_pervote_reward"].as_int64() == get_producer_info( N(prodc) )["pending_pervote_reward"].as_int64() );
 
-            // each of b1, whale1-whale3, proda-prodc has stakes more then 250'000'0000 and voted so all of them participate in perstake rewards
+            // each of b1, whale1-whale2, proda-prodc has stakes more then 250'000'0000 and voted so all of them participate in perstake rewards
             // prodb staked: 499'999'9000; total_staked: 171'499'999'4000; share ~0.002 * 60'0000 and should be thesame as prodc
             BOOST_TEST_REQUIRE( get_voter_info( N(prodb) )["pending_perstake_reward"].as_int64() == 1749 );
             BOOST_TEST_REQUIRE( get_voter_info( N(prodb) )["pending_perstake_reward"].as_int64() == get_voter_info( N(prodc) )["pending_perstake_reward"].as_int64() );
-
-            // 2 - remainder of rounding
-            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 2 );
         }
 
-        // after 7 days all Guardians loose their status if vote is not re-asserted
         {
-            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 7 ) );
-            torewards( config::system_account_name, config::system_account_name, asset{ 100'0000 } );
-
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 1 ) );
             claim_rewards( N(proda) );
-            BOOST_TEST_REQUIRE( get_global_state()["total_guardians_stake"].as_int64() == 0 );
-            
-            BOOST_TEST_REQUIRE( get_voter_info( N(prodb) )["pending_perstake_reward"].as_int64() == 1749 );
 
-            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 60'0002 );
-        }
+            BOOST_TEST_REQUIRE( get_producer_info( N(proda) )["pending_pervote_reward"].as_int64() == 0 );
+            BOOST_TEST_REQUIRE( get_voter_info( N(proda) )["pending_perstake_reward"].as_int64() == 0 );
 
-        // after prodc re-asserted vote he is the only one challenger on `perstake_bucket`
-        {
-            votepro( N(prodc), { N(prodc) } );
-            claim_rewards( N(prodb) );
-            BOOST_TEST_REQUIRE( get_voter_info( N(prodb) )["pending_perstake_reward"].as_int64() == 0 );
-
-            // 60'0002 + 1749
-            BOOST_TEST_REQUIRE( get_voter_info( N(prodc) )["pending_perstake_reward"].as_int64() == 60'1751 );
-
-            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 0 );
+            // 59'9998 - 1749
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 59'8249 );
         }
 
         // b1 can claim his pending_perstake_reward even after loosing Guardian status
         {
             claim_rewards( N(b1) );
             BOOST_TEST_REQUIRE( get_voter_info( N(b1) )["pending_perstake_reward"].as_int64() == 0 );
+
+            claim_rewards( N(prodb) );
+            BOOST_TEST_REQUIRE( get_voter_info( N(prodb) )["pending_perstake_reward"].as_int64() == 0 );
+
+            // 59'8249 - 34'9854 - 1749
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 24'6646 );
+        }
+
+        // after 7 days all Guardians loose their status if vote is not re-asserted
+        // so all perstake rewards goes to Remme Savings
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 7 ) );
+            torewards( config::system_account_name, config::system_account_name, asset{ 100'0000 } );
+
+            BOOST_TEST_REQUIRE( get_global_state()["total_guardians_stake"].as_int64() == 0 );
+            
+            BOOST_TEST_REQUIRE( get_voter_info( N(prodc) )["pending_perstake_reward"].as_int64() == 1749 );
+
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 24'6646 );
+        }
+
+        // after prodc re-asserted vote he is the only one challenger on `perstake_bucket`
+        {
+            votepro( N(prodc), { N(prodc) } );
+            BOOST_TEST_REQUIRE( get_voter_info( N(prodc) )["pending_perstake_reward"].as_int64() == 1749 );
+
+            torewards( config::system_account_name, config::system_account_name, asset{ 100'0000 } );
+            // 24'6646 + 60'0000
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 84'6646 );
+
+            BOOST_TEST_REQUIRE( get_voter_info( N(prodc) )["pending_perstake_reward"].as_int64() == 60'1749 );
+        }
+
+        // after everyone claimed their rewards perstake_bucket should be 0
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 1 ) );
+
+            const auto claimers = std::vector< name >{ N(b1), N(whale1), N(whale2), N(proda), N(prodb), N(prodc) };
+            for( const auto& claimer : claimers ) {
+                claim_rewards( claimer );
+            }
+        
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 0 );
+            for( const auto& claimer : claimers ) {
+                BOOST_TEST_REQUIRE( get_voter_info( claimer )["pending_perstake_reward"].as_int64() == 0 );
+            }
         }
     } FC_LOG_AND_RETHROW()
 }

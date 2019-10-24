@@ -1458,6 +1458,8 @@ namespace eosiosystem {
          int64_t share_pervote_reward_between_producers(int64_t amount);
          void update_pervote_shares();
 
+         int64_t share_perstake_reward_between_guardians(int64_t amount);
+
          void claim_perstake( const name& voter );
          void claim_pervote( const name& prod );
 
