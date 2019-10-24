@@ -81,6 +81,8 @@ namespace eosiosystem {
          .gifter_attr_name     = name{"accgifter"},
 
          .producer_stake_threshold = 250'000'0000LL,
+         .producer_max_inactivity_time = eosio::minutes(30),
+         .producer_inactivity_punishment_period = eosio::days(30),
 
          .stake_lock_period = eosio::days(180),
          .stake_unlock_period = eosio::days(180),
@@ -114,6 +116,21 @@ namespace eosiosystem {
       _gremstate.per_stake_share = stake_share;
       _gremstate.per_vote_share = vote_share;
    }
+
+   void system_contract::setinacttime( uint64_t period_in_minutes ) {
+      require_auth(_self);
+
+      check(period_in_minutes != 0, "block producer maximum inactivity time cannot be zero");
+      _gremstate.producer_max_inactivity_time = eosio::days(period_in_minutes);
+   }
+
+   void system_contract::setpnshperiod( uint64_t period_in_days ) {
+      require_auth(_self);
+
+      check(period_in_days != 0, "punishment period cannot be zero");
+      _gremstate.producer_inactivity_punishment_period = eosio::days(period_in_days);
+   }
+
 
    void system_contract::setlockperiod( uint64_t period_in_days ) {
       require_auth(_self);
@@ -406,7 +423,7 @@ namespace eosiosystem {
       token::open_action open_act{ token_account, { {_self, active_permission} } };
       open_act.send( rex_account, core, _self );
    }
-         
+
    bool system_contract::vote_is_reasserted( eosio::time_point last_reassertion_time ) const {
          return (current_time_point() - last_reassertion_time) < _gremstate.reassertion_period;
    }

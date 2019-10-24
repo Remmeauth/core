@@ -83,6 +83,7 @@ namespace eosiosystem {
             _producers.modify(prod, same_payer, [&](auto& p) {
                p.unpaid_blocks += p.current_round_unpaid_blocks;
                p.current_round_unpaid_blocks = 0;
+               p.last_block_time = timestamp;
             });
          }
       }

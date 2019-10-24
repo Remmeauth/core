@@ -215,6 +215,8 @@ namespace eosiosystem {
       name gifter_attr_name     = name{"accgifter"};
 
       int64_t producer_stake_threshold = 250'000'0000LL;
+      microseconds producer_max_inactivity_time = eosio::minutes(30);
+      microseconds producer_inactivity_punishment_period = eosio::days(30);
 
       microseconds stake_lock_period   = eosio::days(180);
       microseconds stake_unlock_period = eosio::days(180);
@@ -223,7 +225,7 @@ namespace eosiosystem {
 
       EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)
                                                 (gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name)
-                                                (producer_stake_threshold)(stake_lock_period)(stake_unlock_period)
+                                                (producer_stake_threshold)(producer_max_inactivity_time)(producer_inactivity_punishment_period)(stake_lock_period)(stake_unlock_period)
                                                 (reassertion_period) )
    };
 
@@ -261,6 +263,7 @@ namespace eosiosystem {
       int64_t               pending_perstake_reward = 0;
       int64_t               pending_pervote_reward = 0;
       time_point            last_claim_time;
+      time_point            last_block_time;
       uint16_t              location = 0;
 
       uint64_t primary_key()const { return owner.value;                             }
@@ -271,7 +274,7 @@ namespace eosiosystem {
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( producer_info, (owner)(total_votes)(producer_key)(is_active)(url)
                         (current_round_unpaid_blocks)(unpaid_blocks)(expected_produced_blocks)(last_expected_produced_blocks_update)
-                        (pending_perstake_reward)(pending_pervote_reward)(last_claim_time)(location) )
+                        (pending_perstake_reward)(pending_pervote_reward)(last_claim_time)(last_block_time)(location) )
    };
 
    /**
@@ -608,7 +611,7 @@ namespace eosiosystem {
          static constexpr symbol rex_symbol = symbol(symbol_code("REX"), 4);
 
          static constexpr uint8_t max_block_producers      = 21;
-         
+
 
          /**
           * System contract constructor.
@@ -640,6 +643,12 @@ namespace eosiosystem {
 
        [[eosio::action]]
        void setlockperiod( uint64_t period_in_days);
+
+       [[eosio::action]]
+       void setinacttime( uint64_t period_in_minutes );
+
+       [[eosio::action]]
+       void setpnshperiod( uint64_t period_in_days );
 
        [[eosio::action]]
        void setunloperiod( uint64_t period_in_days);
@@ -1286,9 +1295,9 @@ namespace eosiosystem {
          /**
           * Set inflation action.
           *
-          * @details Change the annual inflation rate of the core token supply and specify how 
+          * @details Change the annual inflation rate of the core token supply and specify how
           *          the new issued tokens will be distributed based on the following structure.
-          * 
+          *
           *    +----+                          +----------------+
           *    +rate|               +--------->|per vote reward |
           *    +--+-+               |          +----------------+
@@ -1378,6 +1387,9 @@ namespace eosiosystem {
          using setrwrdratio_action = eosio::action_wrapper<"setrwrdratio"_n, &system_contract::setrwrdratio>;
          using setlockperiod_action = eosio::action_wrapper<"setlockperiod"_n, &system_contract::setlockperiod>;
          using setunloperiod_action = eosio::action_wrapper<"setunloperiod"_n, &system_contract::setunloperiod>;
+
+         using setinacttime_action = eosio::action_wrapper<"setinacttime"_n, &system_contract::setinacttime>;
+         using setpnshperiod_action = eosio::action_wrapper<"setpnshperiod"_n, &system_contract::setpnshperiod>;
 
          using setgiftcontra_action = eosio::action_wrapper<"setgiftcontra"_n, &system_contract::setgiftcontra>;
          using setgiftiss_action    = eosio::action_wrapper<"setgiftiss"_n,    &system_contract::setgiftiss>;
