@@ -335,22 +335,3 @@ namespace eosiosystem {
          return (current_time_point() - last_reassertion_time) < _gremstate.reassertion_period;
    }
 } /// rem.system
-
-
-EOSIO_DISPATCH( eosiosystem::system_contract,
-     // native.hpp (newaccount definition is actually in rem.system.cpp)
-     (newaccount)(updateauth)(deleteauth)(linkauth)(unlinkauth)(canceldelay)(onerror)(setabi)
-     // rem.system.cpp
-     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setrwrdratio)
-     (setlockperiod)(setunloperiod)(setgiftcontra)(setgiftiss)(setgiftattr)
-     (activate)(rmvproducer)(updtrevision)(bidname)(bidrefund)(setinflation)
-     // rex.cpp
-     (deposit)(withdraw)(buyrex)(unstaketorex)(sellrex)(cnclrexorder)(rentcpu)(rentnet)(fundcpuloan)(fundnetloan)
-     (defcpuloan)(defnetloan)(updaterex)(consolidate)(mvtosavings)(mvfrsavings)(setrex)(rexexec)(closerex)
-     // delegate_bandwidth.cpp
-     (delegatebw)(undelegatebw)(refund)(refundtostake)
-     // voting.cpp
-     (regproducer)(unregprod)(voteproducer)(regproxy)
-     // producer_pay.cpp
-     (onblock)(claimrewards)(torewards)
-)

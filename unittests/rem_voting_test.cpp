@@ -253,7 +253,9 @@ public:
 
 voting_tester::voting_tester() {
    // Create rem.msig and rem.token
-   create_accounts({N(rem.msig), N(rem.token), N(rem.ram), N(rem.ramfee), N(rem.stake), N(rem.bpay), N(rem.spay), N(rem.vpay), N(rem.saving) });
+   create_accounts({N(rem.msig), N(rem.token), N(rem.rex), N(rem.ram),
+                    N(rem.ramfee), N(rem.stake), N(rem.bpay),
+                    N(rem.spay), N(rem.vpay), N(rem.saving)});
 
    // Set code for the following accounts:
    //  - rem (code: rem.bios) (already set by tester constructor)

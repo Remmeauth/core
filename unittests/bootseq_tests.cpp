@@ -269,9 +269,11 @@ BOOST_AUTO_TEST_SUITE(bootseq_tests)
 
 BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
     try {
-
         // Create rem.msig and rem.token
-        create_accounts({N(rem.msig), N(rem.token), N(rem.ram), N(rem.ramfee), N(rem.stake), N(rem.vpay), N(rem.spay), N(rem.saving), N(rem.rex) });
+        create_accounts({N(rem.msig), N(rem.token), N(rem.rex), N(rem.ram),
+                         N(rem.ramfee), N(rem.stake), N(rem.bpay),
+                         N(rem.spay), N(rem.vpay), N(rem.saving)});
+
         // Set code for the following accounts:
         //  - rem (code: rem.bios) (already set by tester constructor)
         //  - rem.msig (code: rem.msig)
@@ -560,7 +562,9 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 BOOST_FIXTURE_TEST_CASE( stake_lock_test, bootseq_tester ) {
     try{
         // Create rem.msig and rem.token
-        create_accounts({N(rem.msig), N(rem.token), N(rem.ram), N(rem.ramfee), N(rem.stake), N(rem.vpay), N(rem.bpay), N(rem.saving) });
+        create_accounts({N(rem.msig), N(rem.token), N(rem.rex), N(rem.ram),
+                         N(rem.ramfee), N(rem.stake), N(rem.bpay),
+                         N(rem.spay), N(rem.vpay), N(rem.saving)});
 
         set_code_abi(N(rem.msig),
                      contracts::rem_msig_wasm(),
