@@ -260,7 +260,7 @@ BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -279,7 +279,7 @@ BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -296,7 +296,7 @@ BOOST_FIXTURE_TEST_CASE( no_rotation_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -353,7 +353,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::end( producer_candidates ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -375,7 +375,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -395,7 +395,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -415,7 +415,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -435,7 +435,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -455,7 +455,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -475,7 +475,7 @@ BOOST_FIXTURE_TEST_CASE( rotation_with_stable_top25, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -515,7 +515,7 @@ BOOST_FIXTURE_TEST_CASE( top_25_reordered_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::begin( producer_candidates ) + 21,
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -546,7 +546,7 @@ BOOST_FIXTURE_TEST_CASE( top_25_reordered_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -570,7 +570,7 @@ BOOST_FIXTURE_TEST_CASE( top_25_reordered_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -604,7 +604,7 @@ BOOST_FIXTURE_TEST_CASE( top_25_reordered_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -643,7 +643,7 @@ BOOST_FIXTURE_TEST_CASE( new_top_21_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( producer_candidates ), std::begin( producer_candidates ) + 21,
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -677,7 +677,7 @@ BOOST_FIXTURE_TEST_CASE( new_top_21_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
@@ -705,7 +705,7 @@ BOOST_FIXTURE_TEST_CASE( new_top_21_test, rotation_tester ) {
             BOOST_REQUIRE( 
                 std::equal( std::begin( rota ), std::end( rota ),
                             std::begin( active_schedule.producers ), std::end( active_schedule.producers ),
-                            []( const account_name& rhs, const producer_key& lhs ) {
+                            []( const account_name& rhs, const producer_authority& lhs ) {
                                 return rhs == lhs.producer_name;
                             }
                 )
