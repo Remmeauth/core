@@ -1,7 +1,7 @@
 #include <cmath>
 
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/datastream.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/datastream.hpp>
 
 #include "test_api.hpp"
 
@@ -14,7 +14,7 @@ struct testtype {
         T v2;
         ds.seekp(0);
         ds >> v2;
-        eosio_assert ( v == v2, errmsg );   
+        check( v == v2, errmsg );
     }
 };
 
@@ -27,7 +27,7 @@ struct testtype<double> {
       double v2;
       ds.seekp(0);
       ds >> v2;
-      eosio_assert( std::abs(v - v2) < 1e-20, errmsg );
+      check( std::abs(v - v2) < 1e-20, errmsg );
    }
 };
 
@@ -40,7 +40,7 @@ struct testtype<float> {
       float v2;
       ds.seekp(0);
       ds >> v2;
-      eosio_assert( std::abs(v - v2) < float(1e-10), errmsg );
+      check( std::abs(v - v2) < float(1e-10), errmsg );
    }
 };
 

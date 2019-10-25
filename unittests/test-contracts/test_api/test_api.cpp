@@ -1,5 +1,5 @@
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/transaction.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/transaction.hpp>
 
 #include "test_api.hpp"
 
@@ -39,7 +39,7 @@ extern "C" {
 
       if ( action != WASM_TEST_ACTION("test_transaction", "stateful_api") &&
            action != WASM_TEST_ACTION("test_transaction", "context_free_api") )
-         require_auth(code);
+         require_auth(name(code));
 
       //test_types
       WASM_TEST_HANDLER( test_types, types_size     );
@@ -79,12 +79,12 @@ extern "C" {
       WASM_TEST_HANDLER( test_print, test_prints_l   );
       WASM_TEST_HANDLER( test_print, test_printi     );
       WASM_TEST_HANDLER( test_print, test_printui    );
-      WASM_TEST_HANDLER( test_print, test_printi128  );
-      WASM_TEST_HANDLER( test_print, test_printui128 );
+//      WASM_TEST_HANDLER( test_print, test_printi128  );
+//      WASM_TEST_HANDLER( test_print, test_printui128 );
       WASM_TEST_HANDLER( test_print, test_printn     );
       WASM_TEST_HANDLER( test_print, test_printsf    );
       WASM_TEST_HANDLER( test_print, test_printdf    );
-      WASM_TEST_HANDLER( test_print, test_printqf    );
+//      WASM_TEST_HANDLER( test_print, test_printqf    );
 
       //test crypto
       WASM_TEST_HANDLER( test_crypto, test_recover_key              );
@@ -160,7 +160,7 @@ extern "C" {
       WASM_TEST_HANDLER_EX( test_permission, test_account_creation_time );
 
       //unhandled test call
-      eosio_assert( false, "Unknown Test" );
+      check( false, "Unknown Test" );
 
    }
 }

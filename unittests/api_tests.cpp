@@ -1876,33 +1876,33 @@ BOOST_FIXTURE_TEST_CASE(print_tests, TESTER) { try {
    BOOST_CHECK_EQUAL( tx5_act_cnsl.substr(89, 13), "aaaaaaaaaaaaj" );
    BOOST_CHECK_EQUAL( tx5_act_cnsl.substr(102,13), "zzzzzzzzzzzzj" );
 
-   // test printi128
-   auto tx6_trace = CALL_TEST_FUNCTION( *this, "test_print", "test_printi128", {} );
-   auto tx6_act_cnsl = tx6_trace->action_traces.front().console;
-   size_t start = 0;
-   size_t end = tx6_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), U128Str(1) );
-   start = end + 1; end = tx6_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), U128Str(0) );
-   start = end + 1; end = tx6_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), "-" + U128Str(static_cast<unsigned __int128>(std::numeric_limits<__int128>::lowest())) );
-   start = end + 1; end = tx6_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), "-" + U128Str(87654323456) );
-
-   // test printui128
-   auto tx7_trace = CALL_TEST_FUNCTION( *this, "test_print", "test_printui128", {} );
-   auto tx7_act_cnsl = tx7_trace->action_traces.front().console;
-   start = 0; end = tx7_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx7_act_cnsl.substr(start, end-start), U128Str(std::numeric_limits<unsigned __int128>::max()) );
-   start = end + 1; end = tx7_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx7_act_cnsl.substr(start, end-start), U128Str(0) );
-   start = end + 1; end = tx7_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx7_act_cnsl.substr(start, end-start), U128Str(87654323456) );
+//   // test printi128
+//   auto tx6_trace = CALL_TEST_FUNCTION( *this, "test_print", "test_printi128", {} );
+//   auto tx6_act_cnsl = tx6_trace->action_traces.front().console;
+//   size_t start = 0;
+//   size_t end = tx6_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), U128Str(1) );
+//   start = end + 1; end = tx6_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), U128Str(0) );
+//   start = end + 1; end = tx6_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), "-" + U128Str(static_cast<unsigned __int128>(std::numeric_limits<__int128>::lowest())) );
+//   start = end + 1; end = tx6_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx6_act_cnsl.substr(start, end-start), "-" + U128Str(87654323456) );
+//
+//   // test printui128
+//   auto tx7_trace = CALL_TEST_FUNCTION( *this, "test_print", "test_printui128", {} );
+//   auto tx7_act_cnsl = tx7_trace->action_traces.front().console;
+//   start = 0; end = tx7_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx7_act_cnsl.substr(start, end-start), U128Str(std::numeric_limits<unsigned __int128>::max()) );
+//   start = end + 1; end = tx7_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx7_act_cnsl.substr(start, end-start), U128Str(0) );
+//   start = end + 1; end = tx7_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx7_act_cnsl.substr(start, end-start), U128Str(87654323456) );
 
    // test printsf
    auto tx8_trace = CALL_TEST_FUNCTION( *this, "test_print", "test_printsf", {} );
    auto tx8_act_cnsl = tx8_trace->action_traces.front().console;
-   start = 0; end = tx8_act_cnsl.find('\n', start);
+   size_t start = 0; size_t end = tx8_act_cnsl.find('\n', start);
    BOOST_CHECK_EQUAL( tx8_act_cnsl.substr(start, end-start), "5.000000e-01" );
    start = end + 1; end = tx8_act_cnsl.find('\n', start);
    BOOST_CHECK_EQUAL( tx8_act_cnsl.substr(start, end-start), "-3.750000e+00" );
@@ -1919,24 +1919,24 @@ BOOST_FIXTURE_TEST_CASE(print_tests, TESTER) { try {
    start = end + 1; end = tx9_act_cnsl.find('\n', start);
    BOOST_CHECK_EQUAL( tx9_act_cnsl.substr(start, end-start), "6.666666666666666e-07" );
 
-   // test printqf
-#ifdef __x86_64__
-   std::string expect1 = "5.000000000000000000e-01";
-   std::string expect2 = "-3.750000000000000000e+00";
-   std::string expect3 = "6.666666666666666667e-07";
-#else
-   std::string expect1 = "5.000000000000000e-01";
-   std::string expect2 = "-3.750000000000000e+00";
-   std::string expect3 = "6.666666666666667e-07";
-#endif
-   auto tx10_trace = CALL_TEST_FUNCTION( *this, "test_print", "test_printqf", {} );
-   auto tx10_act_cnsl = tx10_trace->action_traces.front().console;
-   start = 0; end = tx10_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx10_act_cnsl.substr(start, end-start), expect1 );
-   start = end + 1; end = tx10_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx10_act_cnsl.substr(start, end-start), expect2 );
-   start = end + 1; end = tx10_act_cnsl.find('\n', start);
-   BOOST_CHECK_EQUAL( tx10_act_cnsl.substr(start, end-start), expect3 );
+//   // test printqf
+//#ifdef __x86_64__
+//   std::string expect1 = "5.000000000000000000e-01";
+//   std::string expect2 = "-3.750000000000000000e+00";
+//   std::string expect3 = "6.666666666666666667e-07";
+//#else
+//   std::string expect1 = "5.000000000000000e-01";
+//   std::string expect2 = "-3.750000000000000e+00";
+//   std::string expect3 = "6.666666666666667e-07";
+//#endif
+//   auto tx10_trace = CALL_TEST_FUNCTION( *this, "test_print", "test_printqf", {} );
+//   auto tx10_act_cnsl = tx10_trace->action_traces.front().console;
+//   start = 0; end = tx10_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx10_act_cnsl.substr(start, end-start), expect1 );
+//   start = end + 1; end = tx10_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx10_act_cnsl.substr(start, end-start), expect2 );
+//   start = end + 1; end = tx10_act_cnsl.find('\n', start);
+//   BOOST_CHECK_EQUAL( tx10_act_cnsl.substr(start, end-start), expect3 );
 
    BOOST_REQUIRE_EQUAL( validate(), true );
 } FC_LOG_AND_RETHROW() }
