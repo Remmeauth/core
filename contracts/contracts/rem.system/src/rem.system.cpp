@@ -131,7 +131,6 @@ namespace eosiosystem {
       _gremstate.producer_inactivity_punishment_period = eosio::days(period_in_days);
    }
 
-
    void system_contract::setlockperiod( uint64_t period_in_days ) {
       require_auth(_self);
 
@@ -245,6 +244,21 @@ namespace eosiosystem {
             p.deactivate();
          });
    }
+
+  void system_contract::punishprod( const name& producer ) {
+      auto prod = _producers.find( producer.value );
+      check( prod != _producers.end(), "producer not found" );
+
+      const auto ct = current_time_point();
+      check( ct - _gremstate.producer_max_inactivity_time > prod->punished_until, "producer is already punished" );
+      check( ct - prod->last_block_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
+
+      _producers.modify( prod, same_payer, [&](auto& p) {
+            p.punished_until = ct + _gremstate.producer_inactivity_punishment_period;
+         });
+
+      rmvproducer(producer);
+  }
 
    void system_contract::updtrevision( uint8_t revision ) {
       require_auth( _self );
@@ -434,7 +448,7 @@ EOSIO_DISPATCH( eosiosystem::system_contract,
      // native.hpp (newaccount definition is actually in rem.system.cpp)
      (newaccount)(updateauth)(deleteauth)(linkauth)(unlinkauth)(canceldelay)(onerror)(setabi)
      // rem.system.cpp
-     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setrwrdratio)
+     (init)(setram)(setminstake)(setramrate)(setparams)(setpriv)(setalimits)(setrwrdratio)(setinacttime)(setpnshperiod)(punishprod)
      (setlockperiod)(setunloperiod)(setgiftcontra)(setgiftiss)(setgiftattr)
      (activate)(rmvproducer)(updtrevision)(bidname)(bidrefund)(setinflation)
      // rex.cpp

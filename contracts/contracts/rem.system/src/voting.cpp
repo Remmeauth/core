@@ -70,6 +70,8 @@ namespace eosiosystem {
             info.url             = url;
             info.location        = location;
             info.last_claim_time = ct;
+            info.last_block_time = ct;
+            info.punished_until  = time_point(seconds(0));
             info.last_expected_produced_blocks_update = ct;
          });
          _producers2.emplace( producer, [&]( producer_info2& info ){
@@ -120,7 +122,7 @@ namespace eosiosystem {
 
       const auto vote_weight = double(staked) * eos_weight * rem_weight;
       check( vote_weight >= 0.0, "vote weight cannot be negative" );
-      
+
       return vote_weight;
    }
 

@@ -264,6 +264,7 @@ namespace eosiosystem {
       int64_t               pending_pervote_reward = 0;
       time_point            last_claim_time;
       time_point            last_block_time;
+      time_point            punished_until;
       uint16_t              location = 0;
 
       uint64_t primary_key()const { return owner.value;                             }
@@ -274,7 +275,7 @@ namespace eosiosystem {
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( producer_info, (owner)(total_votes)(producer_key)(is_active)(url)
                         (current_round_unpaid_blocks)(unpaid_blocks)(expected_produced_blocks)(last_expected_produced_blocks_update)
-                        (pending_perstake_reward)(pending_pervote_reward)(last_claim_time)(last_block_time)(location) )
+                        (pending_perstake_reward)(pending_pervote_reward)(last_claim_time)(last_block_time)(punished_until)(location) )
    };
 
    /**
@@ -649,6 +650,9 @@ namespace eosiosystem {
 
        [[eosio::action]]
        void setpnshperiod( uint64_t period_in_days );
+
+       [[eosio::action]]
+       void punishprod( const name& producer );
 
        [[eosio::action]]
        void setunloperiod( uint64_t period_in_days);
