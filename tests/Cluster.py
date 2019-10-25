@@ -1182,12 +1182,15 @@ class Cluster(object):
 
         contract = "rem.bios"
         contractDir="contracts/contracts/%s" % (contract)
+        biosFilename = 'rem.bios'
         if PFSetupPolicy.hasPreactivateFeature(pfSetupPolicy):
-            contractDir="unittests/contracts/old_versions/v1.7.0-develop-preactivate_feature/%s" % (contract)
+            biosFilename = 'eosio.bios'
+            contractDir="unittests/contracts/old_versions/v1.7.0-develop-preactivate_feature/%s" % (biosFilename)
         else:
-            contractDir="unittests/contracts/old_versions/v1.6.0-rc3/%s" % (contract)
-        wasmFile="%s.wasm" % (contract)
-        abiFile="%s.abi" % (contract)
+            biosFilename = 'eosio.bios'
+            contractDir="unittests/contracts/old_versions/v1.6.0-rc3/%s" % (biosFilename)
+        wasmFile="%s.wasm" % (biosFilename)
+        abiFile="%s.abi" % (biosFilename)
         Utils.Print("Publish %s contract" % (contract))
         trans=biosNode.publishContract(eosioAccount.name, contractDir, wasmFile, abiFile, waitForTransBlock=True)
         if trans is None:
