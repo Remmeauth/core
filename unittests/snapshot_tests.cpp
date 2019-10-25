@@ -167,7 +167,7 @@ struct buffered_snapshot_suite {
    }
 };
 
-BOOST_AUTO_TEST_SUITE(snapshot_tests)
+BOOST_AUTO_TEST_SUITE(snapshot_tests, *boost::unit_test::disabled())
 
 using snapshot_suites = boost::mpl::list<variant_snapshot_suite, buffered_snapshot_suite>;
 
