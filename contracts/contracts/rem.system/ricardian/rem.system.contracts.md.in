@@ -701,3 +701,72 @@ icon: @ICON_BASE_URL@/@REX_ICON_URI@
 ---
 
 Withdraws {{amount}} from {{owner}}’s REX fund and transfer them to {{owner}}’s liquid balance.
+
+<h1 class="contract">setrwrdratio</h1>
+
+---
+spec_version: "1.0.0"
+title: Set Reward Ratio
+summary: 'Set reward ratio between Block producers and Guardians'
+icon: @ICON_BASE_URL@/@ADMIN_ICON_URI@
+---
+
+Updates distribution of rewards between Block producers and Guardians.
+
+<h1 class="contract">setlockperiod</h1>
+
+---
+spec_version: "1.0.0"
+title: Set Stake Lock Period
+summary: 'Set period during which staked tokens are locked'
+icon: @ICON_BASE_URL@/@ADMIN_ICON_URI@
+---
+
+Updates the duration {{period_in_days}} given in days during which staked tokens are locked.
+
+
+<h1 class="contract">setunloperiod</h1>
+
+---
+spec_version: "1.0.0"
+title: Set Stake Unlock Period
+summary: 'Set period during which previously locked tokens will be unlocked'
+icon: @ICON_BASE_URL@/@ADMIN_ICON_URI@
+---
+
+Updates the duration {{period_in_days}} given in days during which locked tokens will be unlocked.
+
+
+<h1 class="contract">setgiftcontra</h1>
+
+---
+spec_version: "1.0.0"
+title: Set Contract Name That Owns Gifter Attribute
+summary: 'Set contract name at which gifter attribute is issued'
+icon: @ICON_BASE_URL@/@ADMIN_ICON_URI@
+---
+
+Updates gifter attribute contract name to {{value}}.
+
+
+<h1 class="contract">setgiftiss</h1>
+
+---
+spec_version: "1.0.0"
+title: Set Issuer Name That Issued Gifter Attribute
+summary: 'Set issuer name that issued gifter attribute'
+icon: @ICON_BASE_URL@/@ADMIN_ICON_URI@
+---
+
+Updates gifter attribute issuer name to {{value}}.
+
+<h1 class="contract">setgiftattr</h1>
+
+---
+spec_version: "1.0.0"
+title: Set Gifter Attribute Name
+summary: 'Set gifter attribute name'
+icon: @ICON_BASE_URL@/@ADMIN_ICON_URI@
+---
+
+Updates gifter attribute name to {{value}}.

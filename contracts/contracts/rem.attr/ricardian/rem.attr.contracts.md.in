@@ -1,0 +1,56 @@
+<h1 class="contract">create</h1>
+
+---
+spec_version: "1.0.0"
+title: Create Attribute
+summary: 'Creates attribute with the given name, type and scope'
+icon: @ICON_BASE_URL@/@ACCOUNT_ICON_URI@
+---
+
+Creates attribute {{attribute_name}} of {{type}} and access scope {{ptype}}.
+
+<h1 class="contract">invalidate</h1>
+
+---
+spec_version: "1.0.0"
+title: Invalidate Attribute
+summary: 'Invalidates attribute making it inaccessible'
+icon: @ICON_BASE_URL@/@ACCOUNT_ICON_URI@
+---
+
+Invalidates attribute {{attribute_name}} disallowing setting it and making ready to be removed. 
+
+
+<h1 class="contract">remove</h1>
+
+---
+spec_version: "1.0.0"
+title: Remove Attribute
+summary: 'Removes attribute'
+icon: @ICON_BASE_URL@/@ACCOUNT_ICON_URI@
+---
+
+Removes previously invalidated attribute {{attribute_name}}. 
+
+
+<h1 class="contract">setattr</h1>
+
+---
+spec_version: "1.0.0"
+title: Set Attribute
+summary: 'Set attribute to the {{receiver}}'
+icon: @ICON_BASE_URL@/@ACCOUNT_ICON_URI@
+---
+
+Issue attribute {{attribute_name}} by {{issuer}} to {{receiver}} with the given value {{value}}
+
+<h1 class="contract">unsetattr</h1>
+
+---
+spec_version: "1.0.0"
+title: Reset Attribute
+summary: 'Reset attribute to the {{receiver}}'
+icon: @ICON_BASE_URL@/@ACCOUNT_ICON_URI@
+---
+
+Reset attribute {{attribute_name}} issued by {{issuer}} to {{receiver}}.
