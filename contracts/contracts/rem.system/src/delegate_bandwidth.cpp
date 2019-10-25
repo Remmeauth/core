@@ -25,7 +25,7 @@ namespace eosiosystem {
    using eosio::seconds;
    using eosio::time_point_sec;
    using eosio::token;
-   
+
    using std::map;
    using std::pair;
    using namespace std::string_literals;
@@ -121,11 +121,6 @@ namespace eosiosystem {
          check( 0 <= tot_itr->net_weight.amount, "insufficient staked total net bandwidth" );
          check( 0 <= tot_itr->cpu_weight.amount, "insufficient staked total cpu bandwidth" );
          check( _gstate.min_account_stake <= tot_itr->own_stake_amount + tot_itr->free_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
-
-         auto prod = _producers.find( receiver.value );
-         if (prod != _producers.end() && prod->active() && from == receiver) {
-            _gstate.total_producer_stake += stake_delta.amount;
-         }
 
          {
             bool ram_managed = false;
@@ -328,14 +323,12 @@ namespace eosiosystem {
 
 
    void system_contract::refundtostake( const name& owner ) {
-      eosio::print("refundtostake");
       require_auth( owner );
 
       refunds_table refunds_tbl( get_self(), owner.value );
       auto req = refunds_tbl.get( owner.value, "refund request not found" );
       check( req.request_time + seconds(refund_delay_sec) <= current_time_point(), "refund is not available yet" );
 
-      eosio::print( "refundtostake: ", req.resource_amount.to_string());
       changebw( owner, owner, req.resource_amount, false );
    }
 

@@ -33,7 +33,7 @@ namespace eosiosystem {
    void system_contract::register_producer( const name& producer, const eosio::block_signing_authority& producer_authority, const std::string& url, uint16_t location ) {
       user_resources_table totals_tbl( _self, producer.value );
       const auto& tot = totals_tbl.get(producer.value, "producer must have resources");
-      check( tot.own_stake_amount >= _gremstate.producer_stake_threshold, "user should stake at least "s + asset(_gremstate.producer_stake_threshold, core_symbol()).to_string() + " to become a producer"s );
+      check( tot.own_stake_amount >= _gremstate.guardian_stake_threshold, "user should stake at least "s + asset(_gremstate.guardian_stake_threshold, core_symbol()).to_string() + " to become a producer"s );
 
       auto prod = _producers.find( producer.value );
       const auto ct = current_time_point();
@@ -47,10 +47,6 @@ namespace eosiosystem {
       }, producer_authority );
 
       if ( prod != _producers.end() ) {
-         if (!prod->active()) {
-            _gstate.total_producer_stake += tot.own_stake_amount;
-         }
-
          _producers.modify( prod, producer, [&]( producer_info& info ){
             info.producer_key = producer_key;
             info.is_active    = true;
@@ -86,7 +82,6 @@ namespace eosiosystem {
             info.owner                     = producer;
             info.last_votepay_share_update = ct;
          });
-         _gstate.total_producer_stake += tot.own_stake_amount;
       }
    }
 
@@ -113,12 +108,6 @@ namespace eosiosystem {
       require_auth( producer );
 
       const auto& prod = _producers.get( producer.value, "producer not found" );
-      if (prod.active()) {
-         user_resources_table totals_tbl( _self, producer.value );
-         const auto& tot = totals_tbl.get(producer.value, "producer must have resources");
-         _gstate.total_producer_stake -= tot.own_stake_amount;
-      }
-
       _producers.modify( prod, same_payer, [&]( producer_info& info ){
          info.deactivate();
       });
