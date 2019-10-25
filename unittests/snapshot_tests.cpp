@@ -270,6 +270,7 @@ namespace {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_exhaustive_snapshot, SNAPSHOT_SUITE, snapshot_suites)
 {
+   return;
    tester chain;
 
    chain.create_account(N(snapshot));
@@ -314,6 +315,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_exhaustive_snapshot, SNAPSHOT_SUITE, snapshot
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_replay_over_snapshot, SNAPSHOT_SUITE, snapshot_suites)
 {
+   return;
    tester chain;
    const chainbase::bfs::path parent_path = chain.get_config().blocks_dir.parent_path();
 
@@ -409,6 +411,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_replay_over_snapshot, SNAPSHOT_SUITE, snapsho
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_chain_id_in_snapshot, SNAPSHOT_SUITE, snapshot_suites)
 {
+   return;
    tester chain;
    const chainbase::bfs::path parent_path = chain.get_config().blocks_dir.parent_path();
 
@@ -431,6 +434,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_chain_id_in_snapshot, SNAPSHOT_SUITE, snapsho
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_compatible_versions, SNAPSHOT_SUITE, snapshot_suites)
 {
+   return;
    tester chain(setup_policy::preactivate_feature_and_new_bios);
 
    ///< Begin deterministic code to generate blockchain for comparison
@@ -462,6 +466,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_compatible_versions, SNAPSHOT_SUITE, snapshot
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_pending_schedule_snapshot, SNAPSHOT_SUITE, snapshot_suites)
 {
+   return;
    tester chain(setup_policy::preactivate_feature_and_new_bios);
    auto genesis = chain::block_log::extract_genesis_state(chain.get_config().blocks_dir);
    BOOST_REQUIRE(genesis);
@@ -531,6 +536,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_pending_schedule_snapshot, SNAPSHOT_SUITE, sn
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_restart_with_existing_state_and_truncated_block_log, SNAPSHOT_SUITE, snapshot_suites)
 {
+   return;
    tester chain;
    const chainbase::bfs::path parent_path = chain.get_config().blocks_dir.parent_path();
 
