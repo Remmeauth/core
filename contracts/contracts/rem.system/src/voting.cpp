@@ -43,6 +43,8 @@ namespace eosiosystem {
             _gstate.total_producer_stake += tot.own_stake_amount;
          }
 
+         check( ct > prod->punished_until, "can not register producer during punishment period" );
+
          _producers.modify( prod, producer, [&]( producer_info& info ){
             info.producer_key = producer_key;
             info.is_active    = true;

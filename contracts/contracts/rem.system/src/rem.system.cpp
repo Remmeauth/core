@@ -250,7 +250,8 @@ namespace eosiosystem {
       check( prod != _producers.end(), "producer not found" );
 
       const auto ct = current_time_point();
-      check( ct - _gremstate.producer_max_inactivity_time > prod->punished_until, "producer is already punished" );
+      check( prod->active(), "can only punish top25 active producers" );
+      check( ct - _gremstate.producer_max_inactivity_time > prod->punished_until, "punishment period is not over yet" );
       check( ct - prod->last_block_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
 
       _producers.modify( prod, same_payer, [&](auto& p) {
