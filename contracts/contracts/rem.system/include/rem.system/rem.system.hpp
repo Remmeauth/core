@@ -276,6 +276,7 @@ namespace eosiosystem {
       uint32_t              expected_produced_blocks = 0;
       block_timestamp       last_expected_produced_blocks_update;
       int64_t               pending_pervote_reward = 0;
+      time_point            last_produced_time;
       time_point            last_claim_time;
       uint16_t              location = 0;
       eosio::binary_extension<eosio::block_signing_authority>  producer_authority;
@@ -288,7 +289,8 @@ namespace eosiosystem {
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( producer_info, (owner)(total_votes)(producer_key)(is_active)(url)
                         (current_round_unpaid_blocks)(unpaid_blocks)(expected_produced_blocks)
-                        (last_expected_produced_blocks_update)(pending_pervote_reward)(last_claim_time)(location)(producer_authority) )
+                        (last_expected_produced_blocks_update)(pending_pervote_reward)
+                        (last_produced_time)(last_claim_time)(location)(producer_authority) )
    };
 
    /**
