@@ -57,7 +57,10 @@ std::vector<eosio::producer_authority> system_contract::get_rotated_schedule() {
    // and schedule top21 to be rotate in next schedules
    if ( inTop21 == std::end(_gstate.last_schedule) && inTop25 == std::end(_grotation.standby_rotation) ) {
       _grotation.last_rotation_time = eosio::current_time_point();
-      _grotation.standby_rotation.push_back( to_out ); 
+      _grotation.standby_rotation.push_back( to_out );
+
+      update_standby();
+      update_pervote_shares();
 
       return top21_prods;
    }
@@ -115,6 +118,9 @@ std::vector<eosio::producer_authority> system_contract::get_rotated_schedule() {
       std::rotate( std::begin(rotation), std::begin(rotation) + 1, std::end(rotation) );
       _grotation.last_rotation_time = ct;
       _grotation.standby_rotation   = rotation;
+
+      update_standby();
+      update_pervote_shares();
    }
 
    return top21_prods;
