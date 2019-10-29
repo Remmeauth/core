@@ -473,10 +473,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         BOOST_REQUIRE(vpay_balance <= 4000'0000 + 3000);
         BOOST_REQUIRE_EQUAL(saving_balance + spay_balance + vpay_balance, 20001'0000);
 
-        for (auto prod: active_schedule.producers) {
-           BOOST_TEST(get_pending_pervote_reward(prod.producer_name) > 0);
-        }
-
         // make changes to top 21 producer list
         votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
                            N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
