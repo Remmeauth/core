@@ -258,6 +258,10 @@ public:
         for (auto& elem: arr) {
            total += elem["second"].as_double();
         }
+        arr = state["standby"].get_array();
+        for (auto& elem: arr) {
+           total += elem["second"].as_double();
+        }
         return total;
     }
 
