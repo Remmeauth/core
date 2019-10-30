@@ -1,0 +1,10 @@
+<h1 class="contract">validateaddr</h1>
+
+        ---
+        spec_version: "0.2.0"
+        title: Validate Blockchain Address
+        summary: 'Validate blockchain address'
+        icon: @ICON_BASE_URL@/@UTILS_ICON_URI@
+        ---
+
+        if {{chain_id}} not supported by the {{$action.account}} that will be raised an error.

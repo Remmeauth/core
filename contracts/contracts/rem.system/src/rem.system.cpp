@@ -71,6 +71,8 @@ namespace eosiosystem {
          .gifter_attr_name     = name{"accgifter"},
 
          .guardian_stake_threshold = 250'000'0000LL,
+         .producer_max_inactivity_time = eosio::minutes(30),
+         .producer_inactivity_punishment_period = eosio::days(30),
 
          .stake_lock_period = eosio::days(180),
          .stake_unlock_period = eosio::days(180),

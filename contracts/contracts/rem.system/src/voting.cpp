@@ -75,6 +75,9 @@ namespace eosiosystem {
             info.url             = url;
             info.location        = location;
             info.last_claim_time = ct;
+            info.last_block_time = time_point(eosio::seconds(0));
+            info.top21_chosen_time = time_point(eosio::seconds(0));
+            info.punished_until  = time_point(eosio::seconds(0));
             info.last_expected_produced_blocks_update = ct;
             info.producer_authority.emplace( producer_authority );
          });

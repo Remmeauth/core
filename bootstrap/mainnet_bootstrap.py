@@ -2,6 +2,8 @@ import json
 import subprocess
 from time import sleep
 
+import requests
+
 system_accounts = [
     'rem.bpay',
     'rem.msig',
@@ -40,10 +42,26 @@ remcli = f'remcli --url http://127.0.0.1:{remnode_port} --wallet-url http://127.
 public_key = 'EOS8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr'
 
 contracts_dir = '../build/contracts/contracts'
+eosio_contracts_dir = '../unittests/contracts/old_versions/v1.7.0-develop-preactivate_feature'
 max_rem_supply = 1_000_000_000_0000
 max_auth_token_supply = 1_000_000_000_000_0000
 rem_symbol = 'REM'
 auth_symbol = 'AUTH'
+
+producer_reward_per_swap = 10_0000  # torewards 10.0000 REM per swap
+min_swap_out_amount = 100_0000
+
+swap_chains = [
+    # (chain_id, input, output)
+    ('ethropsten', '1', '1')
+]
+
+
+def get_chain_id():
+    url = f'http://127.0.0.1:{remnode_port}/v1/chain/get_info'
+    headers = {'accept': 'application/json'}
+    response = requests.request("POST", url, headers=headers)
+    return response.json()['chain_id']
 
 
 def run(args):
@@ -125,6 +143,22 @@ def install_system_contracts():
     run(remcli + 'set contract rem.attr ' + contracts_dir + '/rem.attr/')
 
 
+def bootstrap_system_contracts():
+    run(remcli + 'push action rem.oracle addpair \'["rem.usd"]\' -p rem.oracle -p rem')
+    run(remcli + 'push action rem.oracle addpair \'["rem.btc"]\' -p rem.oracle -p rem')
+    run(remcli + 'push action rem.oracle addpair \'["rem.eth"]\' -p rem.oracle -p rem')
+
+    run(remcli + f'push action rem.swap setswapfee \'["{producer_reward_per_swap}"]\' \
+    -p rem.swap -p rem')
+    run(remcli + f'push action rem.swap setminswpout \'["{min_swap_out_amount}"]\' \
+    -p rem.swap -p rem')
+    run(remcli + f'push action rem.swap setchainid \'["{get_chain_id()}"]\' \
+    -p rem.swap -p rem')
+    for chain_id, input, output, in swap_chains:
+        run(remcli + f'push action rem.swap addchain \'["{chain_id}", "{input}", "{output}"]\' \
+        -p rem.swap -p rem')
+
+
 def create_rem_token():
     run(remcli + 'push action rem.token create \'["rem.swap", "%s"]\' -p rem.token' % intToRemCurrency(max_rem_supply))
     run(remcli + 'push action rem.token issue \'["rem.swap", "%s", "memo"]\' -p rem.swap' % intToRemCurrency(1))
@@ -136,7 +170,11 @@ def create_auth_token():
 
 
 def set_system_contract():
-    run(remcli + 'set contract rem ' + contracts_dir + '/rem.bios/ -p rem')
+    run(remcli + 'set contract rem ' + eosio_contracts_dir + '/eosio.bios/ -p rem')
+    run(
+        remcli + 'push action rem activate \'["299dcb6af692324b899b39f16d5a530a33062804e41f09dc97e9f156b4476707"]\' -p rem')
+    run(
+        remcli + 'push action rem activate \'["4fca8bd82bbd181e714e283f83e1b45d95ca5af40fb89ad3977b653c448f78c2"]\' -p rem')
     run(
         remcli + 'push action rem activate \'["f0af56d2c5a48d60a4a5b5c903edfb7db3a736a94ed589d0b797df33ff9d3e1d"]\' -p rem')
     run(
@@ -157,7 +195,7 @@ def set_system_contract():
         remcli + 'push action rem activate \'["1a99a59d87e06e09ec5b028a9cbb7749b4a5ad8819004365d02dc4379a8b7241"]\' -p rem')
     run(
         remcli + 'push action rem activate \'["4e7bf348da00a945489b2a681749eb56f5de00b900014e137ddae39f48f69d67"]\' -p rem')
-
+    run(remcli + 'set contract rem ' + contracts_dir + '/rem.bios/ -p rem')
     retry(remcli + 'set contract rem ' + contracts_dir + '/rem.system/')
     sleep(1)
     run(remcli + 'push action rem init' + jsonArg(['0', '4,' + rem_symbol]) + '-p rem@active')
@@ -175,3 +213,4 @@ if __name__ == '__main__':
     create_rem_token()
     create_auth_token()
     set_system_contract()
+    bootstrap_system_contracts()

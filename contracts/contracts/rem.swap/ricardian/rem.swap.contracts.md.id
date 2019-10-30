@@ -1,0 +1,88 @@
+<h1 class="contract">init</h1>
+
+---
+spec_version: "0.2.0"
+title: Initialize Token Swap
+summary: 'Initialized token swap'
+icon: @ICON_BASE_URL@/@SWAP_ICON_URI@
+---
+
+The {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data on the sender’s network according to contract.
+
+The swap sender will be allowed to finish token swap after obtaining approvals of the majority of producers of an active unit.
+
+The swap sender will be allowed to cancel token swap after an expiration period (1 week) and already obtained approvals of the majority of producers of an active unit.
+
+The swap sender agrees if the swap is not completed within 180 days, his tokens will be lost.
+
+RAM will deducted from {{rampayer}’s resources to create the necessary records.
+
+<h1 class="contract">finish</h1>
+
+---
+spec_version: "0.2.0"
+title: Finish Token Swap
+summary: 'Finish already initialized token swap and transfer already issued tokens from rem.swap to {{receiver}}'
+icon: @ICON_BASE_URL@/@SWAP_ICON_URI@
+---
+
+The {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data in table and already approved by the majority of producers of an active unit.
+
+The {{receiver}} as token swap initiator between sender network and Remchaim agrees to finish token swap and transfer already issued tokens considering producers reward to the {{receiver}}.
+
+Current producers reward for swap specified by a majority of producers of an active unit.
+
+RAM will deducted from {{rampayer}}’s resources to create the necessary records.
+
+<h1 class="contract">finishnewacc</h1>
+
+---
+spec_version: "0.2.0"
+title: Finish token swap
+summary: 'Finish already initialized token swap, create a new account with name {{receiver}} and transfer already issued tokens from rem.swap to {{receiver}}'
+icon: @ICON_BASE_URL@/@SWAP_ICON_URI@
+---
+
+The {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data in table and already approved by the majority of producers of an active unit.
+
+The {{receiver}} as token swap initiator between sender network and Remchaim agrees to finish token swap, create new account with name {{receiver}} and transfer already issued tokens considering producers reward to the {{receiver}}.
+
+The current producers reward for swap specified by a majority of producers of an active unit.
+
+RAM will deducted from {{rampayer}}’s resources to create the necessary records.
+
+<h1 class="contract">cancel</h1>
+
+---
+spec_version: "0.2.0"
+title: Cancel Token Swap
+summary: 'Cancel already initialized token swap'
+icon: @ICON_BASE_URL@/@SWAP_ICON_URI@
+---
+
+The {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data in table and already approved by the majority of producers of an active unit.
+
+The sender as token swap initiator between sender network and Remchaim agrees to return tokens to the network {{return_chain_id}} with address {{return_address}} considering producers reward.
+
+The swap sender agrees if the swap is not canceled after expiration period within 173 days, his tokens will be lost.
+
+The sender as token swap initiator agrees that anybody can to canceled swap after expiration period and return tokens to the network {{return_chain_id}} with address {{return_address}}.
+
+RAM will deducted from {{rampayer}}’s resources to create the necessary records.
+
+<h1 class="contract">transfer</h1>
+
+---
+spec_version: "0.2.0"
+title: Initialize token swap from Remchain
+summary: 'Initialize token swap from Remchain to the sender network'
+icon: @ICON_BASE_URL@/@SWAP_ICON_URI@
+---
+
+{{from}} agrees to send {{quantity}} to {{to}} with the aim of initialize token swap to indicated in {{memo}} network.
+
+{{from}} agrees that tokens will be sent to the network and address already indicated in the memo with considering the swap-bot fee.
+
+The current swap-bot fee specified by rem.utils contract.
+
+RAM will deducted from {{from}}’s resources to create the necessary records.

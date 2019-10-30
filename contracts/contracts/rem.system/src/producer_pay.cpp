@@ -22,7 +22,7 @@ namespace eosiosystem {
          const auto reward = int64_t(amount * p.second);
          total_reward_distributed += reward;
          const auto& prod = _producers.get(p.first.value);
-         if (ct - prod.last_produced_time <= rewards_without_producing) {
+         if (ct - prod.last_block_time <= rewards_without_producing) {
             _producers.modify(prod, eosio::same_payer, [&](auto &p) {
                p.pending_pervote_reward += reward;
             });
@@ -32,7 +32,7 @@ namespace eosiosystem {
          const auto reward = int64_t(amount * p.second);
          total_reward_distributed += reward;
          const auto& prod = _producers.get(p.first.value);
-         if (ct - prod.last_produced_time <= rewards_without_producing) {
+         if (ct - prod.last_block_time <= rewards_without_producing) {
             _producers.modify(prod, eosio::same_payer, [&](auto &p) {
                p.pending_pervote_reward += reward;
             });
@@ -217,7 +217,7 @@ namespace eosiosystem {
          if ( vote_is_reasserted( voter.last_reassertion_time ) ) {
             _producers.modify( prod, same_payer, [&](auto& p ) {
                   p.current_round_unpaid_blocks++;
-                  p.last_produced_time = timestamp;
+                  p.last_block_time = timestamp;
             });
          }
       }

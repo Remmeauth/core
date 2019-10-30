@@ -232,6 +232,8 @@ namespace eosiosystem {
       name gifter_attr_name     = name{"accgifter"};
 
       int64_t guardian_stake_threshold = 250'000'0000LL;
+      microseconds producer_max_inactivity_time = eosio::minutes(30);
+      microseconds producer_inactivity_punishment_period = eosio::days(30);
 
       microseconds stake_lock_period   = eosio::days(180);
       microseconds stake_unlock_period = eosio::days(180);
@@ -240,8 +242,8 @@ namespace eosiosystem {
 
       EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)
                                                 (gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name)
-                                                (guardian_stake_threshold)(stake_lock_period)(stake_unlock_period)
-                                                (reassertion_period) )
+                                                (guardian_stake_threshold)(producer_max_inactivity_time)(producer_inactivity_punishment_period)
+                                                (stake_lock_period)(stake_unlock_period)(reassertion_period) )
    };
 
    /**
@@ -276,8 +278,10 @@ namespace eosiosystem {
       uint32_t              expected_produced_blocks = 0;
       block_timestamp       last_expected_produced_blocks_update;
       int64_t               pending_pervote_reward = 0;
-      time_point            last_produced_time;
       time_point            last_claim_time;
+      time_point            last_block_time;
+      time_point            top21_chosen_time;
+      time_point            punished_until;
       uint16_t              location = 0;
       eosio::binary_extension<eosio::block_signing_authority>  producer_authority;
 
@@ -289,8 +293,8 @@ namespace eosiosystem {
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( producer_info, (owner)(total_votes)(producer_key)(is_active)(url)
                         (current_round_unpaid_blocks)(unpaid_blocks)(expected_produced_blocks)
-                        (last_expected_produced_blocks_update)(pending_pervote_reward)
-                        (last_produced_time)(last_claim_time)(location)(producer_authority) )
+                        (last_expected_produced_blocks_update)(pending_pervote_reward)(last_claim_time)(last_block_time)(top21_chosen_time)
+                        (punished_until)(location)(producer_authority) )
    };
 
    /**
@@ -657,7 +661,7 @@ namespace eosiosystem {
          static constexpr symbol rex_symbol = symbol(symbol_code("REX"), 4);
 
          static constexpr uint8_t max_block_producers      = 21;
-         
+
 
          /**
           * System contract constructor.
