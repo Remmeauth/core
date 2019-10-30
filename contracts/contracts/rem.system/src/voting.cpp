@@ -31,10 +31,6 @@ namespace eosiosystem {
    }
 
    void system_contract::register_producer( const name& producer, const eosio::block_signing_authority& producer_authority, const std::string& url, uint16_t location ) {
-      user_resources_table totals_tbl( _self, producer.value );
-      const auto& tot = totals_tbl.get(producer.value, "producer must have resources");
-      check( tot.own_stake_amount >= _gremstate.guardian_stake_threshold, "user should stake at least "s + asset(_gremstate.guardian_stake_threshold, core_symbol()).to_string() + " to become a producer"s );
-
       auto prod = _producers.find( producer.value );
       const auto ct = current_time_point();
 
