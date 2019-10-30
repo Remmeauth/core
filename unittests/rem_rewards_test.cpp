@@ -60,9 +60,9 @@ std::vector<rem_genesis_account> rem_test_genesis( {
   {N(prods),         500'000'0000ll},
   {N(prodt),         500'000'0000ll},
   {N(produ),         500'000'0000ll},
-  {N(runnerup1),     200'000'0000ll},
-  {N(runnerup2),     150'000'0000ll},
-  {N(runnerup3),     100'000'0000ll},
+  {N(runnerup1),     280'000'0000ll},
+  {N(runnerup2),     270'000'0000ll},
+  {N(runnerup3),     260'000'0000ll},
 });
 
 class rewards_tester : public TESTER {
@@ -408,6 +408,200 @@ BOOST_FIXTURE_TEST_CASE( perstake_rewards_test, rewards_tester ) {
                 BOOST_TEST_REQUIRE( get_voter_info( claimer )["pending_perstake_reward"].as_int64() == 0 );
             }
         }
+    } FC_LOG_AND_RETHROW()
+}
+
+BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
+    try {
+        const auto producers = std::vector< name >{
+            N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+            N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)
+        };
+        for( const auto& producer : producers ) {
+            register_producer(producer);
+            votepro( producer, {producer} );
+        }
+        const auto standby = std::vector< name >{ N(runnerup1), N(runnerup2), N(runnerup3) };
+        for( const auto& producer : standby ) {
+            register_producer(producer);
+            votepro( producer, {producer} );
+        }
+        produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 1 ) );
+
+        // vote for prods to activate 15% of stake
+        const auto whales = std::vector< name >{ N(b1), N(whale1), N(whale2) };
+        for( const auto& whale : whales ) {
+            votepro( whale, producers );
+        }
+        votepro( N(whale3), standby );
+
+        // wait until schedule is accepted so torewards could split amount between producers
+        produce_blocks(30);
+        {
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_TEST_REQUIRE(active_schedule.producers.size() == 21u);
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(0).producer_name == name{"proda"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(1).producer_name == name{"prodb"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(2).producer_name == name{"prodc"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(3).producer_name == name{"prodd"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(4).producer_name == name{"prode"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(5).producer_name == name{"prodf"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(6).producer_name == name{"prodg"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(7).producer_name == name{"prodh"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(8).producer_name == name{"prodi"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(9).producer_name == name{"prodj"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(10).producer_name == name{"prodk"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(11).producer_name == name{"prodl"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(12).producer_name == name{"prodm"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(13).producer_name == name{"prodn"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(14).producer_name == name{"prodo"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(15).producer_name == name{"prodp"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(16).producer_name == name{"prodq"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(17).producer_name == name{"prodr"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(18).producer_name == name{"prods"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(19).producer_name == name{"prodt"} );
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(20).producer_name == name{"produ"} );
+        }
+
+        { //check that only producers that started producing will receive pervote rewards
+            torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
+            // 10'0000 * 0.6 perstake share
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 );
+            // 10'0000 * 0.3 pervote share
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 );
+
+            for (const auto& prod: producers) {
+                //producers who have already produced at least one block will get pervote reward
+                if (get_producer_info( prod )["current_round_unpaid_blocks"].as_uint64() == 0) {
+                    BOOST_REQUIRE(get_producer_info( prod )["pending_pervote_reward"].as_uint64() == 0);
+                }
+                else {
+                    // proda-produ have the same total_votes and standby list hasn`t been created yet
+                    // so their pervote shares are equal ~0.04762 * 2'9988
+                    BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() == 1428 );
+                }
+            }
+            for (const auto& prod: standby) {
+                BOOST_REQUIRE(get_producer_info( prod )["pending_pervote_reward"].as_uint64() == 0);
+            }
+        }
+
+        { //check that only standbys that started producing will receive pervote rewards
+            //wait until the first standby is rotated into active schedule
+            const auto ct = control->head_block_time();
+            while (control->head_block_time() < ct + fc::hours( 4 )) {
+                produce_block(fc::milliseconds(config::producer_repetitions * config::block_interval_ms));
+            }
+            while (get_producer_info( N(runnerup1) )["current_round_unpaid_blocks"].as_uint64() == 0) {
+                produce_block();
+            }
+            BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"runnerup1"} );
+            torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
+            // ~ 2 * 10'0000 * 0.6 perstake share
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 * 2 );
+            // ~ 2 * 10'0000 * 0.3 pervote share
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2'9982 );
+
+            for (const auto& prod: producers) {
+                BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
+            }
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup1) )["pending_pervote_reward"].as_int64() > 0 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup2) )["pending_pervote_reward"].as_int64() == 0 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup3) )["pending_pervote_reward"].as_int64() == 0 );
+        }
+
+        { //check that only standbys that started producing will receive pervote rewards
+            //wait until the second standby is rotated into active schedule
+            const auto ct = control->head_block_time();
+            while (control->head_block_time() < ct + fc::hours( 4 )) {
+                produce_block(fc::milliseconds(config::producer_repetitions * config::block_interval_ms));
+            }
+            while (get_producer_info( N(runnerup2) )["current_round_unpaid_blocks"].as_uint64() == 0) {
+                produce_block();
+            }
+            BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"runnerup2"} );
+            torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
+            // ~ 3 * 10'0000 * 0.6 perstake share
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 * 3 );
+            // ~ 3 * 10'0000 * 0.3 pervote share
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2 * 2'9982 );
+
+            for (const auto& prod: producers) {
+                BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
+            }
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup1) )["pending_pervote_reward"].as_int64() > 0 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup2) )["pending_pervote_reward"].as_int64() > 0 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup3) )["pending_pervote_reward"].as_int64() == 0 );
+        }
+
+        { //check that only standbys that started producing will receive pervote rewards
+            //wait until the second standby is rotated into active schedule
+            const auto ct = control->head_block_time();
+            while (control->head_block_time() < ct + fc::hours( 4 )) {
+                produce_block(fc::milliseconds(config::producer_repetitions * config::block_interval_ms));
+            }
+            while (get_producer_info( N(runnerup3) )["current_round_unpaid_blocks"].as_uint64() == 0) {
+                produce_block();
+            }
+            BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"runnerup3"} );
+            torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
+            // ~ 4 * 10'0000 * 0.6 perstake share
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 * 4 );
+            // ~ 4 * 10'0000 * 0.3 pervote share
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 3 * 2'9982 );
+
+            for (const auto& prod: producers) {
+                BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
+            }
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup1) )["pending_pervote_reward"].as_int64() > 0 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup2) )["pending_pervote_reward"].as_int64() > 0 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup3) )["pending_pervote_reward"].as_int64() > 0 );
+        }
+
+        { // make runnerup1 skip his next rotation
+            while (control->head_block_state()->active_schedule.producers.at(20).producer_name != name{"produ"}) {
+                produce_block(fc::milliseconds(config::producer_repetitions * config::block_interval_ms));
+            }
+            BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"produ"} );
+
+            while (control->head_block_state()->active_schedule.producers.at(20).producer_name != name{"runnerup1"}) {
+                produce_block(fc::milliseconds(config::producer_repetitions * config::block_interval_ms));
+            }
+            BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"runnerup1"} );
+
+            //skip runnerup1 blocks
+            while (control->head_block_state()->active_schedule.producers.at(20).producer_name != name{"runnerup2"}) {
+                // continue producing blocks so schedule is eventually changed
+                while (get_producer_info( N(prodt) )["current_round_unpaid_blocks"].as_uint64() == 0) {
+                    produce_block(fc::milliseconds(config::producer_repetitions * config::block_interval_ms));
+                }
+                // but skip blocks by runnerup1
+                produce_block(fc::milliseconds(2 * config::producer_repetitions * config::block_interval_ms));
+            }
+        }
+
+        {
+            for (const auto& prod: standby) {
+                claim_rewards( prod );
+                BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() == 0 );
+                BOOST_TEST_REQUIRE( get_voter_info( prod )["pending_perstake_reward"].as_int64() == 0 );
+            }
+        }
+
+        {
+            const auto active_schedule = control->head_block_state()->active_schedule;
+            BOOST_TEST_REQUIRE(active_schedule.producers.at(20).producer_name == name{"runnerup2"} );
+            const auto ct = control->head_block_time();
+            while (control->head_block_time() < ct + fc::hours( 5 )) {
+                produce_block(fc::milliseconds(config::producer_repetitions * config::block_interval_ms));
+            }
+            torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup1) )["pending_pervote_reward"].as_int64() == 0 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup2) )["pending_pervote_reward"].as_int64() == 166 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup3) )["pending_pervote_reward"].as_int64() == 166 );
+        }
+
     } FC_LOG_AND_RETHROW()
 }
 
