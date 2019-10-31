@@ -202,9 +202,8 @@ namespace {
 
    auto real_vote_weight( double last_vote_weight, const int64_t weeks_to_mature ) {
       const auto eos_weight = std::pow( 2, int64_t((fc::time_point::now().sec_since_epoch() - (config::block_timestamp_epoch / 1000)) / fc::days(7).to_seconds()) / double(52) );
-      const auto rem_weight = 1.0 - weeks_to_mature / 25.0;
       
-      return last_vote_weight / eos_weight / rem_weight;
+      return last_vote_weight / eos_weight;
    }
 
 } // namespace anonymous
@@ -1298,7 +1297,7 @@ struct list_producers_subcommand {
             weight = 1;
          printf("%-13s %-57s %-59s %s\n", "Producer", "Producer key", "Url", "Scaled votes");
          for ( auto& row : result.rows )
-            printf("%-13.13s %-57.57s %-59.59s %1.4f\n",
+            printf("%-13.13s %-57.57s %-59.59s %1.8f\n",
                    row["owner"].as_string().c_str(),
                    row["producer_key"].as_string().c_str(),
                    row["url"].as_string().c_str(),
@@ -1332,8 +1331,13 @@ struct list_voters_subcommand {
             return;
          }
 
-         printf("%-13s %-21.21s %-21.21s %-19s %-18s %s\n", "Voter", "Last vote weight", "Adjusted vote weight", "Guardian status", "Vote power maturity", "Staked");
+         printf("%-13s %-27.21s %-27.21s %-19s %-16s %s\n", "Voter", "Last vote weight", "Adjusted vote weight", "Guardian status", "Vote power maturity", "Staked");
          for ( auto& row : result.rows ) {
+            // some system accounts don't have `last_reassertion_time`
+            if ( row.get_object().find("last_reassertion_time") == row.get_object().end() ) {
+               continue;
+            }
+            
             const auto last_reassertion_time = fc::time_point_sec::from_iso_string( row["last_reassertion_time"].as_string() );
             const auto staked = row["staked"].as_int64();
 
@@ -1342,7 +1346,7 @@ struct list_voters_subcommand {
             const auto real_votes = real_vote_weight( row["last_vote_weight"].as_double(), weeks_to_mature );
 
             printf(
-               "%-13s %-21.8f %-21.8f %-19s %15li/25 %li\n",
+               "%-13s %-27.6f %-27.6f %-19s %15li/25 %li\n",
                row["owner"].as_string().c_str(),
                row["last_vote_weight"].as_double(),
                real_votes,
