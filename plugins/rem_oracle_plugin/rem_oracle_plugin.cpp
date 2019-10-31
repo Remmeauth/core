@@ -42,9 +42,9 @@ namespace eosio {
 
 class rem_oracle_plugin_impl {
    public:
-     fc::crypto::private_key    _oracle_signing_key;
-     name                       _oracle_signing_account;
-     std::string                _oracle_signing_permission;
+     std::vector<fc::crypto::private_key>    _oracle_signing_key;
+     std::vector<name>                       _oracle_signing_account;
+     std::vector<std::string>                _oracle_signing_permission;
 
      std::string _cryptocompare_apikey;
 
@@ -152,40 +152,42 @@ class rem_oracle_plugin_impl {
      }
 
      void push_set_price_transaction(const std::map<name, double>& pairs_data) {
-         std::vector<signed_transaction> trxs;
-         trxs.reserve(2);
+         for(size_t i = 0; i < this->_oracle_signing_key.size(); i++) {
+           std::vector<signed_transaction> trxs;
+           trxs.reserve(2);
 
-         controller& cc = app().get_plugin<chain_plugin>().chain();
-         auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
+           controller& cc = app().get_plugin<chain_plugin>().chain();
+           auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
 
-         signed_transaction trx;
-         trx.actions.emplace_back(vector<chain::permission_level>{{this->_oracle_signing_account,name(this->_oracle_signing_permission)}},
-           setprice{this->_oracle_signing_account,
-             pairs_data});
+           signed_transaction trx;
+           trx.actions.emplace_back(vector<chain::permission_level>{{this->_oracle_signing_account[i],name(this->_oracle_signing_permission[i])}},
+             setprice{this->_oracle_signing_account[i],
+               pairs_data});
 
-         trx.expiration = cc.head_block_time() + fc::seconds(30);
-         trx.set_reference_block(cc.head_block_id());
-         trx.max_net_usage_words = 5000;
-         trx.sign(this->_oracle_signing_key, chainid);
-         trxs.emplace_back(std::move(trx));
-         try {
-            auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-            app().post(priority::low, [trxs_copy]() {
-              for (size_t i = 0; i < trxs_copy->size(); ++i) {
-                  app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                  [](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
-                    if (result.contains<fc::exception_ptr>()) {
-                       elog("Failed to push set price transaction: ${res}", ( "res", result.get<fc::exception_ptr>()->to_string() ));
-                    } else {
-                       if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
-                           auto trx_id = result.get<transaction_trace_ptr>()->id;
-                           ilog("Pushed set price transaction: ${id}", ( "id", trx_id ));
-                       }
-                    }
-                 });
-              }
-            });
-         } FC_LOG_AND_DROP()
+           trx.expiration = cc.head_block_time() + fc::seconds(30);
+           trx.set_reference_block(cc.head_block_id());
+           trx.max_net_usage_words = 5000;
+           trx.sign(this->_oracle_signing_key[i], chainid);
+           trxs.emplace_back(std::move(trx));
+           try {
+              auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
+              app().post(priority::low, [trxs_copy]() {
+                for (size_t i = 0; i < trxs_copy->size(); ++i) {
+                    app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
+                    [](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                      if (result.contains<fc::exception_ptr>()) {
+                         elog("Failed to push set price transaction: ${res}", ( "res", result.get<fc::exception_ptr>()->to_string() ));
+                      } else {
+                         if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
+                             auto trx_id = result.get<transaction_trace_ptr>()->id;
+                             ilog("Pushed set price transaction: ${id}", ( "id", trx_id ));
+                         }
+                      }
+                   });
+                }
+              });
+           } FC_LOG_AND_DROP()
+         }
      }
 
 };
@@ -197,9 +199,9 @@ void rem_oracle_plugin::set_program_options(options_description&, options_descri
   cfg.add_options()
         ("cryptocompare-apikey", bpo::value<std::string>()->default_value(std::string("0")),  // doesn't accept empty strings
          "cryptocompare api key for reading REM token price")
-        ("oracle-authority", bpo::value<std::string>(),
+        ("oracle-authority", bpo::value<std::vector<std::string>>(),
          "Account name and permission to authorize set rem token price actions. For example blockproducer1@active")
-        ("oracle-signing-key", bpo::value<std::string>(),
+        ("oracle-signing-key", bpo::value<std::vector<std::string>>(),
          "A private key to sign set price actions")
 
         ("update_price_period", bpo::value<uint32_t>()->default_value(update_price_period), "")
@@ -208,19 +210,20 @@ void rem_oracle_plugin::set_program_options(options_description&, options_descri
 
 void rem_oracle_plugin::plugin_initialize(const variables_map& options) {
   try {
-    std::string oracle_auth = options.at( "oracle-authority" ).as<std::string>();
+    std::vector<std::string> oracle_auth = options.at( "oracle-authority" ).as<std::vector<std::string>>();
+    std::vector<std::string> oracle_signing_key = options.at( "oracle-signing-key" ).as<std::vector<std::string>>();
+    for(size_t i = 0; i < oracle_auth.size(); i++) {
+      auto space_pos = oracle_auth[i].find('@');
+      EOS_ASSERT( (space_pos != std::string::npos), chain::plugin_config_exception,
+                  "invalid authority" );
+      std::string permission = oracle_auth[i].substr( space_pos + 1 );
+      std::string account = oracle_auth[i].substr( 0, space_pos );
 
-    auto space_pos = oracle_auth.find('@');
-    EOS_ASSERT( (space_pos != std::string::npos), chain::plugin_config_exception,
-                "invalid authority" );
-
-    std::string permission = oracle_auth.substr( space_pos + 1 );
-    std::string account = oracle_auth.substr( 0, space_pos );
-    struct name oracle_signing_account(account);
-
-    my->_oracle_signing_key = fc::crypto::private_key(options.at( "oracle-signing-key" ).as<std::string>());
-    my->_oracle_signing_account = oracle_signing_account;
-    my->_oracle_signing_permission = permission;
+      struct name oracle_signing_account(account);
+      my->_oracle_signing_account.push_back(oracle_signing_account);
+      my->_oracle_signing_permission.push_back(permission);
+      my->_oracle_signing_key.push_back(fc::crypto::private_key( oracle_signing_key[std::min(i, oracle_signing_key.size()-1)] ));
+    }
 
     std::string cryptocompare_apikey = options.at( "cryptocompare-apikey" ).as<std::string>();
     my->_cryptocompare_apikey = cryptocompare_apikey;
