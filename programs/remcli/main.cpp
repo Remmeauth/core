@@ -1346,7 +1346,7 @@ struct list_voters_subcommand {
             const auto real_votes = real_vote_weight( row["last_vote_weight"].as_double(), weeks_to_mature );
 
             printf(
-               "%-13s %-27.6f %-27.6f %-19s %15li/25 %li\n",
+               "%-13s %-27.6f %-27.6f %-19s %16li/25 %li\n",
                row["owner"].as_string().c_str(),
                row["last_vote_weight"].as_double(),
                real_votes,
