@@ -322,21 +322,6 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
         const auto producer_runnerups = {
                 N(runnerup1), N(runnerup2), N(runnerup3)
         };
-        for( const auto& producer : producer_runnerups ) {
-           BOOST_REQUIRE_EXCEPTION(
-                 register_producer(producer),
-                 eosio_assert_message_exception,
-                 fc_exception_message_starts_with("assertion failure with message: user should stake at least " + core_from_string("250000.0000").to_string() + " to become a producer"));
-        }
-
-        // Re-stake for runnerups
-        for( const auto& producer : producer_runnerups ) {
-           const auto stake = 200'000'0000ll;
-
-           const auto r = delegate_bandwidth(N(rem.stake), producer, asset(stake));
-           BOOST_REQUIRE( !r->except_ptr );
-        }
-
         // Now runnerups have enough stake to become producers
         for( const auto& producer : producer_runnerups ) {
            register_producer(producer);
