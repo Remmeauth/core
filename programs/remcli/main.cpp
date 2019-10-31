@@ -1871,10 +1871,12 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
       if ( res.voter_info.is_object() ) {
          auto& obj = res.voter_info.get_object();
          string proxy = obj["proxy"].as_string();
+         bool voted = false;
          if ( proxy.empty() ) {
             auto& prods = obj["producers"].get_array();
+            voted = !prods.empty();
             std::cout << "producers:";
-            if ( !prods.empty() ) {
+            if ( voted ) {
                for ( size_t i = 0; i < prods.size(); ++i ) {
                   if ( i%3 == 0 ) {
                      std::cout << std::endl << indent;
@@ -1891,12 +1893,14 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
 
             const auto stake_lock_time = fc::time_point_sec::from_iso_string( obj["stake_lock_time"].as_string() );
             const auto weeks_to_mature = weeks_since_lock_time( stake_lock_time );
+            const auto last_vote_weight = obj["last_vote_weight"].as_double();
 
             std::cout << std::endl << "Staking info:" << std::endl
-                      << indent << "Guardian status: " << std::right << std::setw(24) << (is_guardian( staked, last_reassertion_time ) ? "yes" : "no") << std::endl
-                      << indent << "Stake locked until: " << std::right << std::setw(21) << string(stake_lock_time) << std::endl
-                      << indent << "Vote power maturity: " << std::setw(17) << std::right << weeks_to_mature << "/25" << std::endl
-                      << indent << "Current vote power: " << std::right << std::setw(21) << std::fixed << setprecision(3) << (weeks_to_mature / 25.0) << std::endl;
+                      << indent << "Guardian status: "      << std::right << std::setw(38) << (is_guardian( staked, last_reassertion_time ) ? "yes" : "no") << std::endl
+                      << indent << "Stake locked until: "   << std::right << std::setw(35) << string(stake_lock_time) << std::endl
+                      << indent << "Vote power maturity: "  << std::right << std::setw(31) << weeks_to_mature << "/25" << std::endl
+                      << indent << "Last vote weight: "     << std::right << std::setw(37) << std::fixed << setprecision(8) << last_vote_weight << std::endl
+                      << indent << "Adjusted vote weight: " << std::right << std::setw(33) << std::fixed << setprecision(8) << real_vote_weight( last_vote_weight ) << std::endl;
          } else {
             std::cout << "proxy:" << indent << proxy << std::endl;
          }
@@ -1906,6 +1910,7 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
       std::cout << fc::json::to_pretty_string(json) << std::endl;
    }
 }
+
 
 CLI::callback_t header_opt_callback = [](CLI::results_t res) {
    vector<string>::iterator itr;
