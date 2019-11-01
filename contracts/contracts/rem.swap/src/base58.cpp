@@ -8,7 +8,7 @@ namespace eosio {
 
    bool map_initialized = false;
    std::array<int8_t, 256> base58_map{{0}};
-   auto get_base58_map() {
+   static inline auto get_base58_map() {
       if(!map_initialized) {
          for (unsigned i = 0; i < base58_map.size(); ++i)
             base58_map[i] = -1;
@@ -20,7 +20,7 @@ namespace eosio {
    }
 
    template <size_t size>
-   std::array<uint8_t, size> base58_to_binary(std::string_view s) {
+      static inline std::array<uint8_t, size> base58_to_binary(std::string_view s) {
       std::array<uint8_t, size> result{{0}};
       for (auto& src_digit : s) {
          int carry = get_base58_map()[src_digit];
@@ -38,7 +38,7 @@ namespace eosio {
       return result;
    }
 
-   eosio::public_key string_to_public_key(std::string_view s) {
+   static inline eosio::public_key string_to_public_key(std::string_view s) {
       eosio::public_key key;
       bool is_k1_type = s.size() >= 3 && ( s.substr(0, 3) == "EOS" || s.substr(0, 3) == "REM");
       bool is_r1_type = s.size() >= 7 && s.substr(0, 7) == "PUB_R1_";
@@ -49,6 +49,13 @@ namespace eosio {
 
       memcpy(std::get_if<0>(&key)->data(), whole.data(), std::get_if<0>(&key)->size());
       return key;
+   }
+
+   static inline string join( vector<string>&& vec, string delim = "*" ) {
+      return std::accumulate(std::next(vec.begin()), vec.end(), vec[0],
+                             [&delim](string& a, string& b) {
+                                return a + delim + b;
+      });
    }
 
 } // namespace eosio

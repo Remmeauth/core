@@ -45,31 +45,12 @@ namespace eosio {
          (total_producer_vote_weight)(total_active_producer_vote_weight)(last_name_close) )
    };
 
-   // TODO: delete this when rem.utils will be merge and rem.utils.hpp include
-   struct [[eosio::table]] swap_fee {
-     name  chain;
-     asset fee;
-
-     uint64_t primary_key()const { return chain.value; }
-
-     // explicit serialization macro is not necessary, used here only to improve compilation time
-     EOSLIB_SERIALIZE( swap_fee, (chain)(fee))
-   };
-
-   typedef multi_index< "swapfee"_n, swap_fee> swap_fee_index;
    typedef eosio::singleton< "global"_n, eosio_global_state >   global_state_singleton;
 
    asset swap::get_min_account_stake() {
       global_state_singleton global( system_account, system_account.value );
       auto _gstate = global.get();
       return { static_cast<int64_t>( _gstate.min_account_stake ), system_contract::get_core_symbol() };
-   }
-
-   asset swap::get_swapbot_fee(const name &chain_id) const {
-      swap_fee_index swap_fee("rem.utils"_n, "rem.utils"_n.value);
-      auto fee_itr = swap_fee.find(chain_id.value);
-      check(fee_itr != swap_fee.end(), "chain not supported");
-      return fee_itr->fee;
    }
 
    bool swap::is_block_producer( const name& user ) const {
@@ -96,10 +77,4 @@ namespace eosio {
       check(pubkey_pre == "EOS" || pubkey_pre == "REM", "invalid type of public key");
    }
 
-   string swap::join( vector<string>&& vec, string delim ) const {
-      return std::accumulate(std::next(vec.begin()), vec.end(), vec[0],
-                             [&delim](string& a, string& b) {
-                                return a + delim + b;
-      });
-   }
-}
+} // namespace eosio

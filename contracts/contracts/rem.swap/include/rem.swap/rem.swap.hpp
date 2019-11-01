@@ -192,8 +192,8 @@ namespace eosio {
 
       static constexpr name system_account = "rem"_n;
 
-      const time_point swap_lifetime = time_point(seconds(15552000)); // 180 days
-      const time_point swap_active_lifetime = time_point(seconds(604800)); // 7 days
+      const time_point swap_lifetime = time_point(days(180)); // 180 days
+      const time_point swap_active_lifetime = time_point(days(7)); // 7 days
 
       struct [[eosio::table]] swap_data {
          uint64_t          key;
@@ -259,7 +259,6 @@ namespace eosio {
       bool is_block_producer(const name &user) const;
       bool is_swap_confirmed(const vector <name> &provided_approvals) const;
       static asset get_min_account_stake();
-      asset get_swapbot_fee(const name &chain_id) const;
 
       checksum256 get_swap_id(const string &txid, const string &swap_pubkey_str, const asset &quantity,
                               const string &return_address, const string &return_chain_id,
@@ -285,7 +284,6 @@ namespace eosio {
       void validate_pubkey(const signature &sign, const checksum256 &digest, const string &swap_pubkey_str) const;
       void cleanup_swaps();
 
-      string join(vector <string> &&vec, string delim = string("*")) const;
       void check_pubkey_prefix(const string &pubkey_str) const;
    };
    /** @}*/ // end of @defgroup remswap rem.swap
