@@ -12,6 +12,11 @@ target_include_directories(rem.auth
 
 target_include_directories(rem.auth
         PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../rem.swap/src)
+
+target_include_directories(rem.auth
+        PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set_target_properties(rem.auth
