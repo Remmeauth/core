@@ -291,7 +291,7 @@ function ensure-llvm() {
     elif [[ $NAME == "Amazon Linux" ]]; then
         execute unlink $LLVM_ROOT || true
     elif [[ $NAME == "CentOS Linux" ]]; then
-        execute ln -snf /opt/rh/llvm-toolset-7.0/root $LLVM_ROOT
+        execute ln -snf /opt/rh/llvm-toolset-7.0/root/usr $LLVM_ROOT
     fi
 }
 

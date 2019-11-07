@@ -39,7 +39,11 @@ export BOOST_LINK_LOCATION=${OPT_DIR}/boost
 # LLVM
 export LLVM_VERSION=release_80
 export LLVM_ROOT=${OPT_DIR}/llvm
-export LLVM_DIR=${LLVM_ROOT}/lib/cmake/llvm
+if [ -d ${LLVM_ROOT}/lib/cmake/llvm ];then
+  export LLVM_DIR=${LLVM_ROOT}/lib/cmake/llvm
+else
+  export LLVM_DIR=${LLVM_ROOT}/lib64/cmake/llvm
+fi
 
 # DOXYGEN
 export DOXYGEN_VERSION=1_8_14
