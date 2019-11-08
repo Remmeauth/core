@@ -43,6 +43,7 @@ namespace eosiosystem {
       }, producer_authority );
 
       if ( prod != _producers.end() ) {
+         check( ct > prod->punished_until, "can not register producer during punishment period" );
          _producers.modify( prod, producer, [&]( producer_info& info ){
             info.producer_key = producer_key;
             info.is_active    = true;

@@ -182,6 +182,30 @@ namespace eosiosystem {
          _gstate.current_round_start_time = timestamp;
          _gstate.last_schedule_version = schedule_version;
          std::vector<name> active_producers = eosio::get_active_producers();
+
+         for (size_t producer_index = 0; producer_index < _gstate.last_schedule.size(); producer_index++) {
+            const auto producer_name = _gstate.last_schedule[producer_index].first;
+            const auto& prod = _producers.get(producer_name.value);
+            if( std::find(active_producers.begin(), active_producers.end(), producer_name) == active_producers.end() ) {
+              _producers.modify(prod, same_payer, [&](auto& p) {
+                 p.top21_chosen_time = time_point(eosio::seconds(0));
+              });
+            }
+         }
+
+         for (size_t i = 0; i < active_producers.size(); i++) {
+            const auto& prod_name = active_producers[i];
+            const auto& prod = _producers.get(prod_name.value);
+            auto res = std::find_if(_gstate.last_schedule.begin(),
+                                    _gstate.last_schedule.end(),
+                                    [&prod_name](const std::pair<eosio::name, double>& element){ return element.first == prod_name;});
+            if( res == _gstate.last_schedule.end() ) {
+              _producers.modify(prod, same_payer, [&](auto& p) {
+                 p.top21_chosen_time = current_time_point();
+              });
+            }
+         }
+
          if (active_producers.size() != _gstate.last_schedule.size()) {
             _gstate.last_schedule.resize(active_producers.size());
          }

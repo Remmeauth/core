@@ -697,6 +697,15 @@ namespace eosiosystem {
        [[eosio::action]]
        void setunloperiod( uint64_t period_in_days);
 
+       [[eosio::action]]
+       void setinacttime( uint64_t period_in_minutes );
+
+       [[eosio::action]]
+       void setpnshperiod( uint64_t period_in_days );
+
+       [[eosio::action]]
+       void punishprod( const name& producer );
+
 
         // Actions:
         /**
