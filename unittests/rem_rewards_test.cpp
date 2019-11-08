@@ -369,10 +369,10 @@ BOOST_FIXTURE_TEST_CASE( perstake_rewards_test, rewards_tester ) {
             BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 24'6646 );
         }
 
-        // after 7 days all Guardians loose their status if vote is not re-asserted
+        // after 30 days all Guardians loose their status if vote is not re-asserted
         // so all perstake rewards goes to Remme Savings
         {
-            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 7 ) );
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 30 ) );
             torewards( config::system_account_name, config::system_account_name, asset{ 100'0000 } );
 
             BOOST_TEST_REQUIRE( get_global_state()["total_guardians_stake"].as_int64() == 0 );

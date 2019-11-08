@@ -444,10 +444,9 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_reassertion_test, voting_tester ) {
       BOOST_TEST(active_schedule.producers.at(20).producer_name == name("produ"));
 
       // Skip 180 Days so vote gain 100% power
-      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(180 * 24 * 3600));
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days(180));
 
       votepro( N(proda), {N(proda)} );
-      produce_blocks_for_n_rounds(2);
       claim_rewards(N(proda));
 
       // Day 0
@@ -459,36 +458,36 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_reassertion_test, voting_tester ) {
 
       // Day 3
       {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(3 * 24 * 3600)); // +3 days
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days(3)); // +3 days
          const auto prod = get_producer_info( name("proda") );
          BOOST_TEST( 0 <= prod["unpaid_blocks"].as_int64() );
       }
 
-      // Day 7
-      // Vote was not re-asserted for 7 days so we will not get paid anymore
+      // Day 30
+      // Vote was not re-asserted for 30 days so we will not get paid anymore
       {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(4 * 24 * 3600)); // +4 days
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days(27)); // +27 days
          const auto prod = get_producer_info( name("proda") );
          BOOST_TEST( 0 <= prod["unpaid_blocks"].as_int64() );
 
          claim_rewards(N(proda));
       }
 
-      // Day 10
+      // Day 31
       // We claimed rewards and vote was not re-asserted, so unpaid_blocks == 0
       {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(3 * 24 * 3600)); // +3 days
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days(1)); // +1 days
          const auto prod = get_producer_info( name("proda") );
          BOOST_TEST( 0 == prod["unpaid_blocks"].as_int64() );
       }
 
-      // Day 11
+      // Day 32
       // Vote is re-asserted so we should have unpaid blocks again
       {
          votepro( N(proda), {N(proda)} );
          produce_blocks_for_n_rounds(2);
 
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(1 * 24 * 3600)); // +1 days
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days(1)); // +1 days
          const auto prod = get_producer_info( name("proda") );
          BOOST_TEST( 0 <= prod["unpaid_blocks"].as_int64() );
       }
