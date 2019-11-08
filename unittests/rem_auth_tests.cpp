@@ -146,7 +146,7 @@ public:
    auto revokeacc(const name &account, const crypto::public_key &key, const vector<permission_level>& auths) {
       auto r = base_tester::push_action(N(rem.auth), N(revokeacc), auths, mvo()
          ("account",  account)
-         ("pub_key_str", key )
+         ("revoke_pub_key_str", key )
       );
       produce_block();
       return r;
@@ -156,7 +156,7 @@ public:
                   const crypto::signature &signed_by_key, const vector<permission_level>& auths) {
       auto r = base_tester::push_action(N(rem.auth), N(revokeapp), auths, mvo()
          ("account",  account)
-         ("revocation_pub_key_str", revoke_key )
+         ("revoke_pub_key_str", revoke_key )
          ("pub_key_str", key )
          ("signed_by_pub_key", signed_by_key )
       );
@@ -213,7 +213,7 @@ public:
    };
 
    variant get_authkeys_tbl( const name& account ) {
-      return get_singtable(N(rem.auth), account, N(authkeys), "authkeys");
+      return get_singtable(N(rem.auth), N(rem.auth), N(authkeys), "authkeys");
    }
 
    variant get_singtable(const name& contract, const name& scope, const name &table, const string &type) {
@@ -260,22 +260,10 @@ public:
       return data.empty() ? fc::variant() : abi_ser_token.binary_to_variant( "currency_stats", data, abi_serializer_max_time );
    }
 
-   auto get_storage_fee(const double &amount_keys) {
+   auto get_auth_purchase_fee(const asset &quantity_auth) {
       auto rem_price_data = get_remprice_tbl(N(rem.usd));
-      double amount = amount_keys * 10000 / rem_price_data["price"].as_double();
-      return asset{ static_cast<int64_t>(amount), symbol(CORE_SYMBOL) };
-   }
-
-   auto get_storage_fee1() {
-      double key_store_price = 1;
-      uint32_t amount_purchased_auth = 0;
-      auto rem_price_data = get_remprice_tbl(N(rem.usd));
-      double auth_rem_price = key_store_price / rem_price_data["price"].as_double();
-      variant auth_supply = get_stats(AUTH_SYMBOL);
-      asset auth_contract_balance = get_balance(N(rem.auth));
-
-//      return auth_contract_balance / ( + amount_purchased_auth);
-      return asset::from_string(auth_supply["supply"].as_string()).get_amount();
+      int64_t auth_purchase_fee = 1 / rem_price_data["price"].as_double();
+      return asset{ quantity_auth.get_amount() * auth_purchase_fee, symbol(CORE_SYMBOL) };
    }
 
    void set_code_abi(const account_name& account, const vector<uint8_t>& wasm, const char* abi, const private_key_type* signer = nullptr) {
@@ -480,7 +468,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_test, rem_auth_tester ) {
       auto auth_stats = get_stats(AUTH_SYMBOL);
       auto data = get_authkeys_tbl(account);
 
-      asset storage_fee = get_storage_fee(1);
+      asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -549,7 +537,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_test, rem_auth_
 
       // account balance after addkeyacc should be a account_balance_before - 1 AUTH (to current market price)
       auto payer_balance_after = get_balance(payer);
-      asset storage_fee = get_storage_fee(1);
+      asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
       auto auth_stats = get_stats(AUTH_SYMBOL);
       auto data = get_authkeys_tbl(account);
 
@@ -619,7 +607,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
       auto account_balance_after = get_balance(account);
       auto auth_stats_after = get_stats(AUTH_SYMBOL);
       auto account_auth_balance_before = get_balance_auth(account);
-      asset storage_fee = get_storage_fee(1);
+      asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
 
       addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
 
@@ -701,7 +689,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_with_another_payer_test, rem_auth
       auto payer_balance_after = get_balance(payer);
       auto auth_stats_after = get_stats(AUTH_SYMBOL);
       auto payer_balance_auth = get_balance_auth(account);
-      asset storage_fee = get_storage_fee(1);
+      asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
 
       addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
 
@@ -787,7 +775,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_test, rem_auth_tester ) {
       // account balance after addkeyapp should be a account_balance_before -  10.0000 tokens (torewards action)
       auto account_balance_after = get_balance(account);
       auto auth_stats = get_stats(AUTH_SYMBOL);
-      asset storage_fee = get_storage_fee(1);
+      asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
       auto data = get_authkeys_tbl(account);
 
       auto ct = control->head_block_time();
@@ -879,7 +867,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_with_another_payer_test, rem_auth_
       // account balance after addkeyacc should be a account_balance_before - 1 AUTH (to current market price)
       auto payer_balance_after = get_balance(payer);
       auto auth_stats = get_stats(AUTH_SYMBOL);
-      asset storage_fee = get_storage_fee(1);
+      asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
 
       auto data = get_authkeys_tbl(account);
 
@@ -968,7 +956,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_test, rem_auth_tester ) {
       auto account_balance_after = get_balance(account);
       auto auth_stats_after = get_stats(AUTH_SYMBOL);
       auto account_auth_balance_before = get_balance_auth(account);
-      asset storage_fee = get_storage_fee(2);
+      asset storage_fee = get_auth_purchase_fee(asset{20'000, AUTH_SYMBOL});
 
       addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str,
                 { permission_level{account, config::active_name} });
@@ -1069,7 +1057,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_with_another_payer_test, rem_auth
       auto payer_balance_after = get_balance(payer);
       auto auth_stats_after = get_stats(AUTH_SYMBOL);
       auto payer_auth_balance_before = get_balance_auth(payer);
-      asset storage_fee = get_storage_fee(2);
+      asset storage_fee = get_auth_purchase_fee(asset{20'000, AUTH_SYMBOL});
 
       addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str,
                 { permission_level{account, config::active_name}, permission_level{N(prodb), config::active_name} });
@@ -1466,7 +1454,7 @@ BOOST_FIXTURE_TEST_CASE( buyauth_tests, rem_auth_tester ) {
 
       auto account_auth_balance = get_balance_auth(account);
       auto account_balance_after = get_balance(account);
-      auto storage_fee = get_storage_fee(1.2345);
+      auto storage_fee = get_auth_purchase_fee(asset{12'345, AUTH_SYMBOL});
 
       BOOST_REQUIRE_EQUAL(account_auth_balance, auth_from_string("1.2345"));
       BOOST_REQUIRE_EQUAL(account_balance_before - storage_fee, account_balance_after);

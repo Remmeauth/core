@@ -29,7 +29,9 @@ namespace eosio {
     */
    class [[eosio::contract("rem.auth")]] auth : public contract {
    public:
-      using contract::contract;
+
+      auth(name receiver, name code,  datastream<const char*> ds):contract(receiver, code, ds),
+      authkeys_tbl(get_self(), get_self().value){};
 
       /**
        * Add new authentication key action.
@@ -50,7 +52,7 @@ namespace eosio {
       /**
        * Add new authentication key action.
        *
-       * @details Add new authentication key by using correspond to account authentication key.
+       * @details Add new authentication key by using correspond to the account authentication key.
        *
        * @param account - the owner account to execute the addkeyacc action for,
        * @param new_pub_key_str - the public key that will be added,
@@ -75,7 +77,7 @@ namespace eosio {
        * @param pub_key_str - the public key to be revoked on the corresponding account.
        */
       [[eosio::action]]
-      void revokeacc(const name &account, const string &pub_key_str);
+      void revokeacc(const name &account, const string &revoke_pub_key_str);
 
       /**
        * Revoke active authentication key action.
@@ -88,13 +90,13 @@ namespace eosio {
        * @param signed_by_pub_key - the signature that was signed by pub_key_str.
        */
       [[eosio::action]]
-      void revokeapp(const name &account, const string &revocation_pub_key_str,
+      void revokeapp(const name &account, const string &revoke_pub_key_str,
                      const string &pub_key_str, const signature &signed_by_pub_key);
 
       /**
        * Buy AUTH credits action.
        *
-       * @details buy AUTH credit at a current REM-USD price in rem.orace.
+       * @details buy AUTH credit at a current REM-USD price in rem.orace contract action.
        *
        * @param account - the account to transfer from,
        * @param quantity - the quantity of AUTH credits to be purchased,
@@ -129,10 +131,10 @@ namespace eosio {
    private:
       static constexpr symbol auth_symbol{"AUTH", 4};
       static constexpr name system_account = "rem"_n;
-      static constexpr name oracle_contract = "rem.oracle"_n;
+      static constexpr name oracle_account = "rem.oracle"_n;
 
-      const asset key_store_price{10000, auth_symbol};
-      const time_point key_lifetime = time_point(seconds(31104000)); // 360 days
+      const asset key_storage_fee{1'0000, auth_symbol};
+      const time_point key_lifetime = time_point(days(360));
 
       struct [[eosio::table]] authkeys {
          uint64_t          key;
@@ -143,10 +145,11 @@ namespace eosio {
          block_timestamp   not_valid_after;
          uint32_t          revoked_at;
 
-         uint64_t primary_key() const { return key; }
-         uint64_t by_not_valid_before() const { return not_valid_before.to_time_point().elapsed.count(); }
-         uint64_t by_not_valid_after() const { return not_valid_after.to_time_point().elapsed.count(); }
-         uint64_t by_revoked() const { return revoked_at; }
+         uint64_t primary_key()const         { return key;         }
+         uint64_t by_name()const             { return owner.value; }
+         uint64_t by_not_valid_before()const { return not_valid_before.to_time_point().elapsed.count(); }
+         uint64_t by_not_valid_after()const  { return not_valid_after.to_time_point().elapsed.count(); }
+         uint64_t by_revoked()const          { return revoked_at;  }
 
          EOSLIB_SERIALIZE( authkeys, (key)(owner)(public_key)(extra_public_key)(not_valid_before)(not_valid_after)(revoked_at))
       };
@@ -170,32 +173,30 @@ namespace eosio {
       };
 
       typedef multi_index<"accounts"_n, account> accounts;
-      typedef multi_index< "remprice"_n, remprice> remprice_inx;
+      typedef multi_index< "remprice"_n, remprice> remprice_idx;
       typedef multi_index<"authkeys"_n, authkeys,
+            indexed_by<"byname"_n, const_mem_fun < authkeys, uint64_t, &authkeys::by_name>>,
             indexed_by<"bynotvalbfr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_before>>,
             indexed_by<"bynotvalaftr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_after>>,
             indexed_by<"byrevoked"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_revoked>>
             > authkeys_idx;
 
+      authkeys_idx authkeys_tbl;
+
       void sub_storage_fee(const name &account, const asset &price_limit);
 
-      void issue_tokens(const asset &quantity);
-      void retire_tokens(const asset &quantity);
       void transfer_tokens(const name &from, const name &to, const asset &quantity, const string &memo);
       void to_rewards(const name& payer, const asset &quantity);
 
-      auto get_authkey_it(const authkeys_idx &authkeys_tbl, const name &account, const public_key &key);
-      asset get_balance( const name& token_contract_account, const name& owner, const symbol& sym );
-      asset get_authrem_price(const asset &quantity);
+      auto get_authkey_it(const name &account, const public_key &key);
+      asset get_balance(const name& token_contract_account, const name& owner, const symbol& sym);
+      asset get_auth_purchase_fee(const asset &quantity_auth);
       double get_market_price(const name &pair) const;
 
       void require_app_auth(const name &account, const public_key &key);
       bool assert_recover_key(const checksum256 &digest, const signature &sign, const public_key &key);
 
       string join(vector <string> &&vec, string delim = string("*"));
-      checksum256 sha256(const string &str) {
-         return eosio::sha256(str.c_str(), str.size());
-      }
    };
    /** @}*/ // end of @defgroup eosioauth rem.auth
 } /// namespace eosio
