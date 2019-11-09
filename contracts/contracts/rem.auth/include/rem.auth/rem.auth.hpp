@@ -33,6 +33,8 @@ namespace eosio {
       auth(name receiver, name code,  datastream<const char*> ds):contract(receiver, code, ds),
       authkeys_tbl(get_self(), get_self().value){};
 
+      static bool has_attribute( const name& attr_contract_account, const name& issuer, const name& receiver, const name& attribute_name );
+
       /**
        * Add new authentication key action.
        *
@@ -122,12 +124,38 @@ namespace eosio {
       void transfer(const name &from, const name &to, const asset &quantity,
                     const string &pub_key_str, const signature &signed_by_pub_key);
 
+      // rem.attr
+      [[eosio::action]]
+      void confirm( const name& owner, const name& issuer, const name& attribute_name );
+
+      [[eosio::action]]
+      void create( const name& attribute_name, int32_t type, int32_t ptype );
+
+      [[eosio::action]]
+      void invalidate( const name& attribute_name );
+
+      [[eosio::action]]
+      void remove( const name& attribute_name );
+
+      [[eosio::action]]
+      void setattr( const name& issuer, const name& receiver, const name& attribute_name, const std::vector<char>& value );
+
+      [[eosio::action]]
+      void unsetattr( const name& issuer, const name& receiver, const name& attribute_name );
+
       using addkeyacc_action = action_wrapper<"addkeyacc"_n, &auth::addkeyacc>;
       using addkeyapp_action = action_wrapper<"addkeyapp"_n, &auth::addkeyapp>;
       using revokeacc_action = action_wrapper<"revokeacc"_n, &auth::revokeacc>;
       using revokeapp_action = action_wrapper<"revokeapp"_n, &auth::revokeapp>;
-      using buyauth_action = action_wrapper<"buyauth"_n, &auth::buyauth>;
-      using transfer_action = action_wrapper<"transfer"_n, &auth::transfer>;
+      using buyauth_action = action_wrapper<"buyauth"_n,     &auth::buyauth>;
+      using transfer_action = action_wrapper<"transfer"_n,   &auth::transfer>;
+      // rem.attr
+      using confirm_action    = eosio::action_wrapper<"confirm"_n,    &auth::confirm>;
+      using create_action     = eosio::action_wrapper<"create"_n,     &auth::create>;
+      using invalidate_action = eosio::action_wrapper<"invalidate"_n, &auth::invalidate>;
+      using remove_action     = eosio::action_wrapper<"remove"_n,     &auth::remove>;
+      using setattr_action    = eosio::action_wrapper<"setattr"_n,    &auth::setattr>;
+      using unsetattr_action  = eosio::action_wrapper<"unsetattr"_n,  &auth::unsetattr>;
    private:
       static constexpr symbol auth_symbol{"AUTH", 4};
       static constexpr name system_account = "rem"_n;
@@ -135,6 +163,9 @@ namespace eosio {
 
       const asset key_storage_fee{1'0000, auth_symbol};
       const time_point key_lifetime = time_point(days(360));
+
+      enum class data_type : int32_t { Boolean = 0, Int, LargeInt, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, MaxVal };
+      enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
 
       struct [[eosio::table]] authkeys {
          uint64_t          key;
@@ -172,6 +203,45 @@ namespace eosio {
          EOSLIB_SERIALIZE( remprice, (pair)(price)(price_points)(last_update))
       };
 
+      struct [[eosio::table]] attribute_info {
+         name    attribute_name;
+         int32_t type;
+         int32_t ptype;
+         bool valid = true;
+
+         uint64_t next_id = 0;
+
+         uint64_t primary_key() const { return attribute_name.value; }
+         bool is_valid() const { return valid; }
+      };
+      typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
+
+
+      struct attribute_t {
+         std::vector<char>  data;
+         std::vector<char>  pending;
+      };
+
+      struct [[eosio::table]] attribute_data {
+         uint64_t     id;
+         name         receiver;
+         name         issuer;
+         attribute_t  attribute;
+
+         uint64_t primary_key() const { return id; }
+         uint64_t by_receiver() const { return receiver.value; }
+         uint64_t by_issuer()   const { return issuer.value; }
+         uint128_t by_receiver_issuer() const { return combine_receiver_issuer(receiver, issuer); }
+
+         static uint128_t combine_receiver_issuer(name receiver, name issuer)
+         {
+            uint128_t result = receiver.value;
+            result <<= 64;
+            result |= issuer.value;
+            return result;
+         }
+      };
+
       typedef multi_index<"accounts"_n, account> accounts;
       typedef multi_index< "remprice"_n, remprice> remprice_idx;
       typedef multi_index<"authkeys"_n, authkeys,
@@ -180,6 +250,9 @@ namespace eosio {
             indexed_by<"bynotvalaftr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_after>>,
             indexed_by<"byrevoked"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_revoked>>
             > authkeys_idx;
+      typedef eosio::multi_index< "attributes"_n, attribute_data,
+            indexed_by<"reciss"_n, const_mem_fun<attribute_data, uint128_t, &attribute_data::by_receiver_issuer>>
+           > attributes_table;
 
       authkeys_idx authkeys_tbl;
 
@@ -197,6 +270,24 @@ namespace eosio {
       bool assert_recover_key(const checksum256 &digest, const signature &sign, const public_key &key);
 
       string join(vector <string> &&vec, string delim = string("*"));
+
+      void check_permission(const name& issuer, const name& receiver, int32_t ptype) const;
+      bool need_confirm(int32_t ptype) const;
    };
    /** @}*/ // end of @defgroup eosioauth rem.auth
+   bool auth::has_attribute( const name& attr_contract_account, const name& issuer, const name& receiver, const name& attribute_name )
+   {
+      attribute_info_table attributes_info{ attr_contract_account, attr_contract_account.value };
+      const auto it = attributes_info.find( attribute_name.value );
+
+      if ( it == attributes_info.end() ) {
+         return false;
+      }
+
+      attributes_table attributes( attr_contract_account, attribute_name.value );
+      auto idx = attributes.get_index<"reciss"_n>();
+      const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(receiver, issuer) );
+
+      return attr_it != idx.end();
+   }
 } /// namespace eosio
