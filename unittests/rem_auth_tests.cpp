@@ -174,6 +174,12 @@ public:
       return r;
    }
 
+   auto cleanupkeys(const vector<permission_level>& auths) {
+      auto r = base_tester::push_action(N(rem.auth), N(cleanupkeys), auths, mvo());
+      produce_block();
+      return r;
+   }
+
    auto setprice(const name& producer, std::map<name, double> &pairs_data) {
       auto r = base_tester::push_action(N(rem.oracle), N(setprice), producer, mvo()
          ("producer",  name(producer))
@@ -212,8 +218,13 @@ public:
       produce_blocks();
    };
 
-   variant get_authkeys_tbl( const name& account ) {
+   variant get_authkeys_tbl() {
       return get_singtable(N(rem.auth), N(rem.auth), N(authkeys), "authkeys");
+   }
+
+   variant get_authkeys_tbl( const name& account ) {
+      vector<char> data = get_row_by_account( N(rem.auth), N(rem.auth), N(authkeys), account );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "authkeys", data, abi_serializer_max_time );
    }
 
    variant get_singtable(const name& contract, const name& scope, const name &table, const string &type) {
@@ -466,7 +477,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_test, rem_auth_tester ) {
       auto account_balance_after = get_balance(account);
       auto rem_price_data = get_remprice_tbl(N(rem.usd));
       auto auth_stats = get_stats(AUTH_SYMBOL);
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
 
@@ -539,7 +550,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_test, rem_auth_
       auto payer_balance_after = get_balance(payer);
       asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
       auto auth_stats = get_stats(AUTH_SYMBOL);
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -616,7 +627,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
       auto auth_supply_before = asset::from_string(auth_stats_before["supply"].as_string());
       auto auth_supply_after = asset::from_string(auth_stats_after["supply"].as_string());
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -696,7 +707,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_with_another_payer_test, rem_auth
       auto auth_supply_before = asset::from_string(auth_stats_before["supply"].as_string());
       auto auth_supply_after = asset::from_string(auth_stats_after["supply"].as_string());
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -776,7 +787,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_test, rem_auth_tester ) {
       auto account_balance_after = get_balance(account);
       auto auth_stats = get_stats(AUTH_SYMBOL);
       asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -869,7 +880,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_with_another_payer_test, rem_auth_
       auto auth_stats = get_stats(AUTH_SYMBOL);
       asset storage_fee = get_auth_purchase_fee(asset{10'000, AUTH_SYMBOL});
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -967,7 +978,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_test, rem_auth_tester ) {
       auto auth_supply_before = asset::from_string(auth_stats_before["supply"].as_string());
       auto auth_supply_after = asset::from_string(auth_stats_after["supply"].as_string());
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -1068,7 +1079,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_with_another_payer_test, rem_auth
       auto auth_supply_before = asset::from_string(auth_stats_before["supply"].as_string());
       auto auth_supply_after = asset::from_string(auth_stats_after["supply"].as_string());
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
@@ -1220,7 +1231,7 @@ BOOST_FIXTURE_TEST_CASE( revokedacc_test, rem_auth_tester ) {
       revokeacc(account, key_pub, { permission_level{account, config::active_name} });
       uint32_t revoked_at = control->head_block_time().sec_since_epoch();
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
       BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
@@ -1279,7 +1290,7 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_test, rem_auth_tester ) {
       revokeapp(account, revoke_key_pub, revoke_key_pub, signed_by_revkey, auths_level);
       uint32_t revoked_at = control->head_block_time().sec_since_epoch();
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
       BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(revoke_key_pub));
@@ -1356,7 +1367,7 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_and_sign_by_another_key_test, rem_auth_teste
       revokeapp(account, revoke_key_pub, key_pub, signed_by_revkey, auths_level);
       uint32_t revoked_at = control->head_block_time().sec_since_epoch();
 
-      auto data = get_authkeys_tbl(account);
+      auto data = get_authkeys_tbl();
 
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
       BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(revoke_key_pub));
@@ -1471,6 +1482,46 @@ BOOST_FIXTURE_TEST_CASE( buyauth_tests, rem_auth_tester ) {
       BOOST_REQUIRE_THROW(buyauth(account, auth_from_string("1.2345"), 1, { permission_level{N(proda), config::active_name} }), missing_auth_exception);
       // overdrawn balance
       BOOST_REQUIRE_THROW(buyauth(account, auth_from_string("100000.23450"), 1, auths_level), eosio_assert_message_exception);
+   } FC_LOG_AND_RETHROW()
+}
+
+BOOST_FIXTURE_TEST_CASE( keys_cleanup_tests, rem_auth_tester ) {
+   try {
+      name account = N(proda);
+      vector<permission_level> auths_level = { permission_level{account, config::active_name} };
+      // set account permission rem@code to the rem.auth (allow to execute the action on behalf of the account to rem.auth)
+      updateauth(account, N(rem.auth));
+      crypto::private_key key_priv = crypto::private_key::generate();
+      crypto::public_key key_pub   = key_priv.get_public_key();
+      const auto price_limit       = core_from_string("500.0000");
+      string extra_pub_key         = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIZDXel8Nh0xnGOo39XE3Jqdi6iQpxRs\n"
+                                     "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
+      string payer_str;
+
+      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      auto signed_by_key = key_priv.sign(digest);
+
+      // tokens to pay for torewards action
+      transfer(config::system_account_name, account, core_from_string("10000.0000"), "initial transfer");
+
+      for (size_t i = 0; i < 10; ++i) {
+         addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
+      }
+
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days(360+181)); // key_lifetime + expiration_time
+      cleanupkeys(auths_level);
+
+      auto data = get_authkeys_tbl();
+
+      BOOST_REQUIRE_EQUAL(data.is_null(), true);
+
+      addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days(360+181)); // key_lifetime + expiration_time
+      addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
+
+      cleanupkeys(auths_level);
+      data = get_authkeys_tbl();
+      BOOST_REQUIRE_EQUAL(data["key"].as_int64(), 1);
    } FC_LOG_AND_RETHROW()
 }
 

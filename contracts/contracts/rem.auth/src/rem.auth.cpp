@@ -8,6 +8,8 @@
 
 #include <base58.cpp>
 
+#include "rem_attr.cpp"
+
 namespace eosio {
    using eosiosystem::system_contract;
 
@@ -34,6 +36,7 @@ namespace eosio {
       });
 
       sub_storage_fee(payer, price_limit);
+      cleanupkeys();
    }
 
    void auth::addkeyapp(const name &account, const string &new_pub_key_str, const signature &signed_by_new_pub_key,
@@ -65,6 +68,7 @@ namespace eosio {
       });
 
       sub_storage_fee(payer, price_limit);
+      cleanupkeys();
    }
 
    auto auth::get_authkey_it(const name &account, const public_key &key)
@@ -157,138 +161,20 @@ namespace eosio {
       transfer_tokens(get_self(), account, quantity, "buying an AUTH credits");
    }
 
-   void auth::confirm( const name& owner, const name& issuer, const name& attribute_name )
-   {
-      require_auth(owner);
+   void auth::cleanupkeys() {
+      const uint8_t max_clear_depth = 10;
+      size_t i = 0;
+      for (auto _table_itr = authkeys_tbl.begin(); _table_itr != authkeys_tbl.end();) {
+         time_point not_valid_after = _table_itr->not_valid_after.to_time_point();
+         bool not_expired = time_point_sec(current_time_point()) <= not_valid_after + expiration_time;
 
-      attributes_table attributes( _self, attribute_name.value );
-      auto idx = attributes.get_index<"reciss"_n>();
-      const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(owner, issuer) );
-      check( attr_it != idx.end() && !attr_it->attribute.pending.empty(), "nothing to confirm" );
-      idx.modify( attr_it, same_payer, [&]( auto& attr ) {
-         attr.attribute.data.swap(attr.attribute.pending);
-         attr.attribute.pending.clear();
-      });
-   }
-
-   void auth::create( const name& attribute_name, int32_t type, int32_t ptype )
-   {
-      require_auth( _self );
-      check( type >= 0 && type < static_cast<int32_t>( data_type::MaxVal ), "attribute type is out of range" );
-      check( ptype >= 0 && ptype < static_cast<int32_t>( privacy_type::MaxVal ), "attribute privacy type is out of range" );
-
-      attribute_info_table attributes_info( _self, _self.value );
-      check( attributes_info.find( attribute_name.value ) == attributes_info.end(), "attribute with this name already exists" );
-
-      attributes_info.emplace( _self, [&]( auto& attr ) {
-         attr.attribute_name = attribute_name;
-         attr.type           = type;
-         attr.ptype          = ptype;
-      });
-   }
-
-   void auth::invalidate( const name& attribute_name )
-   {
-      require_auth( _self );
-
-      attribute_info_table attributes_info( _self, _self.value );
-      const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-
-      attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
-         a.valid = false;
-      });
-   }
-
-   void auth::remove( const name& attribute_name )
-   {
-      require_auth( _self );
-
-      attribute_info_table attributes_info( _self, _self.value );
-      const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-      check( !attrinfo.is_valid(), "call invalidate first" );
-
-      attributes_table attributes( _self, attribute_name.value );
-      check( attributes.begin() == attributes.end(), "unable to delete" );
-      attributes_info.erase(attrinfo);
-   }
-
-   void auth::setattr( const name& issuer, const name& receiver, const name& attribute_name, const std::vector<char>& value )
-   {
-      require_auth( issuer );
-      require_recipient( receiver );
-      check( !value.empty(), "value is empty" );
-
-      attribute_info_table attributes_info( _self, _self.value );
-      const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-      check(attrinfo.next_id < std::numeric_limits<uint64_t>::max(), "attribute storage is full");
-      check( attrinfo.is_valid(), "this attribute is beeing deleted" );
-      check_permission(issuer, receiver, attrinfo.ptype);
-
-      const auto id = attrinfo.next_id;
-
-      attributes_table attributes( _self, attribute_name.value );
-      auto idx = attributes.get_index<"reciss"_n>();
-      const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(receiver, issuer) );
-      if ( attr_it == idx.end() ) {
-         attributes.emplace( issuer, [&]( auto& attr ) {
-            attr.id = id;
-            attr.issuer = issuer;
-            attr.receiver = receiver;
-            if (need_confirm(attrinfo.ptype)) {
-               attr.attribute.pending = value;
-            }
-            else {
-               attr.attribute.data = value;
-            }
-         });
-         attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
-            a.next_id += 1;
-         });
-      } else {
-         idx.modify( attr_it, issuer, [&]( auto& attr ) {
-            attr.issuer = issuer;
-            attr.receiver = receiver;
-            if (need_confirm(attrinfo.ptype)) {
-               attr.attribute.pending = value;
-            }
-            else {
-               attr.attribute.data = value;
-            }
-         });
-      }
-   }
-
-   void auth::unsetattr( const name& issuer, const name& receiver, const name& attribute_name )
-   {
-      attribute_info_table attributes_info( _self, _self.value );
-      const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
-
-      if (attrinfo.is_valid()) { // when attribute became invalid anyone can unset
-         if (need_confirm(attrinfo.ptype)) {
-            check(has_auth(issuer) || has_auth(receiver), "missing required authority");
+         if (not_expired || i >= max_clear_depth) {
+            break;
          } else {
-            require_auth(issuer);
+            _table_itr = authkeys_tbl.erase(_table_itr);
+            ++i;
          }
       }
-      require_recipient( receiver );
-
-      attributes_table attributes( _self, attribute_name.value );
-      auto idx = attributes.get_index<"reciss"_n>();
-      const auto attr_it = idx.require_find( attribute_data::combine_receiver_issuer(receiver, issuer), "attribute hasn`t been set for account" );
-      const auto erased_id = attr_it->id;
-      idx.erase(attr_it);
-      if (erased_id != attrinfo.next_id - 1) {
-         const auto& attr_to_move = attributes.get(attrinfo.next_id - 1);
-         auto moved_attr = attr_to_move;
-         moved_attr.id = erased_id;
-         attributes.erase(attr_to_move); //erase before emplace to avoid error when ram payer has no free RAM
-         attributes.emplace( attr_to_move.issuer, [&]( auto& attr ) {
-            attr = moved_attr;
-         });
-      }
-      attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
-         a.next_id -= 1;
-      });
    }
 
    void auth::sub_storage_fee(const name &account, const asset &price_limit)
@@ -336,23 +222,6 @@ namespace eosio {
       check(it != authkeys_idx.end(), "account has no active app keys");
    }
 
-   void auth::check_permission(const name& issuer, const name& receiver, int32_t ptype) const
-   {
-      if (static_cast<privacy_type>(ptype) == privacy_type::SelfAssigned) {
-         check(issuer == receiver, "this attribute can only be self-assigned");
-      }
-      else if (static_cast<privacy_type>(ptype) == privacy_type::PrivatePointer ||
-         static_cast<privacy_type>(ptype) == privacy_type::PrivateConfirmedPointer) {
-         check(issuer == _self, "only contract owner can assign this attribute");
-      }
-   }
-
-   bool auth::need_confirm(int32_t ptype) const
-   {
-      return static_cast<privacy_type>(ptype) == privacy_type::PublicConfirmedPointer ||
-         static_cast<privacy_type>(ptype) == privacy_type::PrivateConfirmedPointer;
-   }
-
    asset auth::get_balance(const name& token_contract_account, const name& owner, const symbol& sym)
    {
       accounts accountstable(token_contract_account, owner.value);
@@ -396,5 +265,6 @@ namespace eosio {
    }
 } /// namespace eosio
 
-EOSIO_DISPATCH( eosio::auth, (addkeyacc)(addkeyapp)(revokeacc)(revokeapp)(buyauth)(transfer)
-                             (confirm)(create)(invalidate)(remove)(setattr)(unsetattr)      )
+EOSIO_DISPATCH( eosio::auth, (addkeyacc)(addkeyapp)(revokeacc)(revokeapp)(buyauth)(transfer)(cleanupkeys)
+                             // define in rem_attr.cpp
+                             (confirm)(create)(invalidate)(remove)(setattr)(unsetattr)                   )

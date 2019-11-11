@@ -124,7 +124,14 @@ namespace eosio {
       void transfer(const name &from, const name &to, const asset &quantity,
                     const string &pub_key_str, const signature &signed_by_pub_key);
 
-      // rem.attr
+      /**
+       * Cleanup authkeys table action.
+       *
+       * @details Delete expired keys (keys for which not_valid_after plus expiration_time has passed).
+       */
+      [[eosio::action]]
+      void cleanupkeys();
+
       [[eosio::action]]
       void confirm( const name& owner, const name& issuer, const name& attribute_name );
 
@@ -149,7 +156,7 @@ namespace eosio {
       using revokeapp_action = action_wrapper<"revokeapp"_n, &auth::revokeapp>;
       using buyauth_action = action_wrapper<"buyauth"_n,     &auth::buyauth>;
       using transfer_action = action_wrapper<"transfer"_n,   &auth::transfer>;
-      // rem.attr
+
       using confirm_action    = eosio::action_wrapper<"confirm"_n,    &auth::confirm>;
       using create_action     = eosio::action_wrapper<"create"_n,     &auth::create>;
       using invalidate_action = eosio::action_wrapper<"invalidate"_n, &auth::invalidate>;
@@ -163,6 +170,7 @@ namespace eosio {
 
       const asset key_storage_fee{1'0000, auth_symbol};
       const time_point key_lifetime = time_point(days(360));
+      const time_point expiration_time = time_point(days(180)); // the time that should be passed after not_valid_after to delete key
 
       enum class data_type : int32_t { Boolean = 0, Int, LargeInt, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, MaxVal };
       enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
@@ -215,7 +223,6 @@ namespace eosio {
          bool is_valid() const { return valid; }
       };
       typedef eosio::multi_index< "attrinfo"_n, attribute_info > attribute_info_table;
-
 
       struct attribute_t {
          std::vector<char>  data;
@@ -270,6 +277,7 @@ namespace eosio {
       bool assert_recover_key(const checksum256 &digest, const signature &sign, const public_key &key);
 
       string join(vector <string> &&vec, string delim = string("*"));
+      void cleanup_keys();
 
       void check_permission(const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;
