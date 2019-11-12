@@ -49,41 +49,46 @@ class rem_oracle_plugin_impl {
      std::string _cryptocompare_apikey;
 
      void start_monitor() {
+       ilog("price monitor started");
        while(true) {
          try {
-           ilog("price monitor started");
-           std::map<std::string, double> coingecko_prices;
-           std::map<std::string, double> cryptocompare_prices;
-           std::map<name, double> average_prices;
-           std::string currencies[] = {"USD", "BTC", "ETH"};
+           uint32_t current_time_secs = fc::time_point::now().sec_since_epoch();
+           uint32_t current_minutes = (current_time_secs / 60) % 60;
 
-           for(size_t i = 0; i < 3; i++) {
-             coingecko_prices[ currencies[i] ] = get_coingecko_rem_price(coingecko_host, coingecko_endpoint, (currencies[i] == "USD" ? "USDT" : currencies[i].c_str()) );
-             ilog("avg ${c} coingecko: ${p}", ("c", currencies[i])("p", coingecko_prices[ currencies[i] ]));
+           if(current_minutes >= setprice_minutes_from && current_minutes < setprice_minutes_to) {
+             std::map<std::string, double> coingecko_prices;
+             std::map<std::string, double> cryptocompare_prices;
+             std::map<name, double> average_prices;
+             std::string currencies[] = {"USD", "BTC", "ETH"};
 
-             cryptocompare_prices[ currencies[i] ] = 0;
+             for(size_t i = 0; i < 3; i++) {
+               coingecko_prices[ currencies[i] ] = get_coingecko_rem_price(coingecko_host, coingecko_endpoint, (currencies[i] == "USD" ? "USDT" : currencies[i].c_str()) );
+               ilog("avg ${c} coingecko: ${p}", ("c", currencies[i])("p", coingecko_prices[ currencies[i] ]));
 
-             if(_cryptocompare_apikey != "0") {
-               cryptocompare_prices[ currencies[i] ] = get_cryptocompare_rem_price(cryptocompare_host,
-                                                                       (string(cryptocompare_endpoint)+string(cryptocompare_params)+_cryptocompare_apikey).c_str(),
-                                                                        currencies[i].c_str());
-               ilog("avg ${c} cryptocompare: ${p}", ("c", currencies[i])("p", cryptocompare_prices[ currencies[i] ]));
-             } else {
-                wlog("cryptocompare-apikey is not set");
+               cryptocompare_prices[ currencies[i] ] = 0;
+
+               if(_cryptocompare_apikey != "0") {
+                 cryptocompare_prices[ currencies[i] ] = get_cryptocompare_rem_price(cryptocompare_host,
+                                                                         (string(cryptocompare_endpoint)+string(cryptocompare_params)+_cryptocompare_apikey).c_str(),
+                                                                          currencies[i].c_str());
+                 ilog("avg ${c} cryptocompare: ${p}", ("c", currencies[i])("p", cryptocompare_prices[ currencies[i] ]));
+               } else {
+                  wlog("cryptocompare-apikey is not set");
+               }
+               int count = (coingecko_prices[ currencies[i] ] == 0 ? 0 : 1) + (cryptocompare_prices[ currencies[i] ] == 0 ? 0 : 1);
+               if( count == 0 ) {
+                 elog("Can't retrieve REM token price data neither from https://www.cryptocompare.com/ not from https://www.coingecko.com/en");
+                 continue;
+               }
+               double price_sum = (coingecko_prices[ currencies[i] ] == 0 ? 0 : coingecko_prices[ currencies[i] ]) +
+                                  (cryptocompare_prices[ currencies[i] ] == 0 ? 0 : cryptocompare_prices[ currencies[i] ]);
+               average_prices[ eosio::chain::string_to_name(boost::algorithm::to_lower_copy("REM." + currencies[i]).c_str()) ] = price_sum / count;
              }
-             int count = (coingecko_prices[ currencies[i] ] == 0 ? 0 : 1) + (cryptocompare_prices[ currencies[i] ] == 0 ? 0 : 1);
-             if( count == 0 ) {
-               elog("Can't retrieve REM token price data neither from https://www.cryptocompare.com/ not from https://www.coingecko.com/en");
-               continue;
-             }
-             double price_sum = (coingecko_prices[ currencies[i] ] == 0 ? 0 : coingecko_prices[ currencies[i] ]) +
-                                (cryptocompare_prices[ currencies[i] ] == 0 ? 0 : cryptocompare_prices[ currencies[i] ]);
-             average_prices[ eosio::chain::string_to_name(boost::algorithm::to_lower_copy("REM." + currencies[i]).c_str()) ] = price_sum / count;
+
+             this->push_set_price_transaction(average_prices);
            }
-
-           this->push_set_price_transaction(average_prices);
-
            sleep(update_price_period);
+
          } FC_LOG_WAIT_AND_CONTINUE()
        }
      }
@@ -205,6 +210,8 @@ void rem_oracle_plugin::set_program_options(options_description&, options_descri
          "A private key to sign set price actions")
 
         ("update_price_period", bpo::value<uint32_t>()->default_value(update_price_period), "")
+        ("setprice_minutes_from", bpo::value<uint32_t>()->default_value(setprice_minutes_from), "")
+        ("setprice_minutes_to", bpo::value<uint32_t>()->default_value(setprice_minutes_to), "")
         ;
 }
 
@@ -229,6 +236,8 @@ void rem_oracle_plugin::plugin_initialize(const variables_map& options) {
     my->_cryptocompare_apikey = cryptocompare_apikey;
 
     update_price_period = options.at( "update_price_period" ).as<uint32_t>();
+    setprice_minutes_from = options.at( "setprice_minutes_from" ).as<uint32_t>();
+    setprice_minutes_to = options.at( "setprice_minutes_to" ).as<uint32_t>();
 
   } FC_LOG_AND_RETHROW()
 
