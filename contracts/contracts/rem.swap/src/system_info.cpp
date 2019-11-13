@@ -19,6 +19,7 @@ namespace eosio {
       int64_t              total_ram_stake = 0;
       //producer name and pervote factor
       std::vector<std::pair<eosio::name, double>> last_schedule;
+      std::vector<std::pair<eosio::name, double>> standby;
       uint32_t last_schedule_version = 0;
       block_timestamp current_round_start_time;
 
@@ -38,7 +39,7 @@ namespace eosio {
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (core_symbol)(max_ram_size)(min_account_stake)
-         (total_ram_bytes_reserved)(total_ram_stake)(last_schedule)(last_schedule_version)
+         (total_ram_bytes_reserved)(total_ram_stake)(last_schedule)(standby)(last_schedule_version)
          (current_round_start_time) (last_producer_schedule_update)(last_pervote_bucket_fill)
          (perstake_bucket)(pervote_bucket)(perblock_bucket)(total_unpaid_blocks)(total_guardians_stake)
          (total_activated_stake)(thresh_activated_stake_time)(last_producer_schedule_size)

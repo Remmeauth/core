@@ -40,8 +40,7 @@ namespace eosio {
 
       string swap_payload = join({swap_pubkey.substr(3), txid, swap_params_data.chain_id, quantity.to_string(),
                                   return_address, return_chain_id, std::to_string(swap_timepoint.sec_since_epoch())});
-
-      checksum256 swap_hash = sha256(swap_payload);
+      checksum256 swap_hash = sha256(swap_payload.c_str(), swap_payload.size());
 
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
       auto swap_hash_itr = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
@@ -117,7 +116,7 @@ namespace eosio {
       const asset producers_reward(swap_params_data.in_swap_fee, system_contract::get_core_symbol());
       quantity.amount -= producers_reward.amount;
       to_rewards(producers_reward);
-      transfer(receiver, quantity);
+      transfer(receiver, quantity, "Swap from `" + return_chain_id + "`");
 
       swap_table.modify(*swap_hash_itr, rampayer, [&](auto &s) {
          s.status = static_cast<int8_t>(swap_status::FINISHED);
@@ -163,7 +162,7 @@ namespace eosio {
       create_user(receiver, owner_key, active_key, min_account_stake);
 
       if ( quantity.amount > 0 ) {
-         transfer(receiver, quantity);
+         transfer(receiver, quantity, "Swap from `" + return_chain_id + "`");
       }
 
       swap_table.modify(*swap_hash_itr, rampayer, [&](auto &s) {
@@ -203,11 +202,20 @@ namespace eosio {
       });
    }
 
-   void swap::setswapfee(const int64_t &amount) {
+   void swap::setswapparam(const int64_t &in_swap_fee, const string &chain_id,
+                           const string &eth_swap_contract_address, const string &eth_return_chainid) {
       require_auth( get_self() );
-      check(amount > 0, "amount must be a positive");
+      check(in_swap_fee > 0, "the swap fee in remchain should be a positive");
+      check(!chain_id.empty(), "invalid chain id");
+      check(!eth_return_chainid.empty(), "invalid ethereum return chain id");
 
-      swap_params_data.in_swap_fee = amount;
+      validate_address(name(eth_return_chainid), eth_swap_contract_address);
+
+      swap_params_data.in_swap_fee                = in_swap_fee;
+      swap_params_data.chain_id                   = chain_id;
+      swap_params_data.eth_swap_contract_address  = eth_swap_contract_address;
+      swap_params_data.eth_return_chainid         = eth_return_chainid;
+
       swap_params_table.set(swap_params_data, same_payer);
    }
 
@@ -221,14 +229,6 @@ namespace eosio {
       chains_table.modify(*it, same_payer, [&](auto &c) {
          c.out_swap_min_amount = amount;
       });
-   }
-
-   void swap::setchainid(const string &chain_id) {
-      require_auth( get_self() );
-      check(!chain_id.empty(), "invalid chain id");
-
-      swap_params_data.chain_id = chain_id;
-      swap_params_table.set(swap_params_data, same_payer);
    }
 
    void swap::addchain(const name &chain_id, const bool &input, const bool &output, const int64_t &out_swap_min_amount) {
@@ -260,7 +260,7 @@ namespace eosio {
       string swap_payload = join({swap_pubkey_str.substr(3), txid, swap_params_data.chain_id, quantity.to_string(),
                                   return_address, return_chain_id, std::to_string(swap_timepoint.sec_since_epoch())});
 
-      checksum256 swap_hash = sha256(swap_payload);
+      checksum256 swap_hash = sha256(swap_payload.c_str(), swap_payload.size());
       return swap_hash;
    }
 
@@ -276,7 +276,7 @@ namespace eosio {
       string sign_payload = (owner_key.size() == 0) ? join({receiver.to_string(), payload}) :
                             join({receiver.to_string(), owner_key, active_key, payload});
 
-      checksum256 digest = sha256(sign_payload);
+      checksum256 digest = sha256(sign_payload.c_str(), sign_payload.size());
       return digest;
    }
 
@@ -349,9 +349,9 @@ namespace eosio {
       require_recipient(get_self());
    }
 
-   void swap::transfer(const name &receiver, const asset &quantity) {
+   void swap::transfer(const name &receiver, const asset &quantity, const string &memo) {
       token::transfer_action transfer(system_contract::token_account, {get_self(), system_contract::active_permission});
-      transfer.send(get_self(), receiver, quantity, string("atomic-swap"));
+      transfer.send(get_self(), receiver, quantity, memo);
    }
 
    void swap::create_user(const name &user, const public_key &owner_key,
