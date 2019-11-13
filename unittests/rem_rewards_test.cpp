@@ -62,7 +62,7 @@ std::vector<rem_genesis_account> rem_test_genesis( {
   {N(produ),         500'000'0000ll},
   {N(runnerup1),     280'000'0000ll},
   {N(runnerup2),     270'000'0000ll},
-  {N(runnerup3),     260'000'0000ll},
+  {N(runnerup3),     270'000'0000ll},
 });
 
 class rewards_tester : public TESTER {
@@ -467,7 +467,7 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
         { //check that only producers that started producing will receive pervote rewards
             torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
             // 10'0000 * 0.6 perstake share
-            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 );
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 );
             // 10'0000 * 0.3 pervote share
             BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 );
 
@@ -499,9 +499,9 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"runnerup1"} );
             torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
             // ~ 2 * 10'0000 * 0.6 perstake share
-            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 * 2 );
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 * 2 );
             // ~ 2 * 10'0000 * 0.3 pervote share
-            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2'9982 );
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2'9981 );
 
             for (const auto& prod: producers) {
                 BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
@@ -523,9 +523,9 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"runnerup2"} );
             torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
             // ~ 3 * 10'0000 * 0.6 perstake share
-            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 * 3 );
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 * 3 );
             // ~ 3 * 10'0000 * 0.3 pervote share
-            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2 * 2'9982 );
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2 * 2'9981 );
 
             for (const auto& prod: producers) {
                 BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
@@ -547,9 +547,9 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             BOOST_TEST_REQUIRE(control->head_block_state()->active_schedule.producers.at(20).producer_name == name{"runnerup3"} );
             torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
             // ~ 4 * 10'0000 * 0.6 perstake share
-            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9995 * 4 );
+            BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 * 4 );
             // ~ 4 * 10'0000 * 0.3 pervote share
-            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 3 * 2'9982 );
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 3 * 2'9981 );
 
             for (const auto& prod: producers) {
                 BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
@@ -598,8 +598,8 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             }
             torewards( config::system_account_name, config::system_account_name, asset{ 10'0000 } );
             BOOST_TEST_REQUIRE( get_producer_info( N(runnerup1) )["pending_pervote_reward"].as_int64() == 0 );
-            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup2) )["pending_pervote_reward"].as_int64() == 166 );
-            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup3) )["pending_pervote_reward"].as_int64() == 166 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup2) )["pending_pervote_reward"].as_int64() == 1033 );
+            BOOST_TEST_REQUIRE( get_producer_info( N(runnerup3) )["pending_pervote_reward"].as_int64() == 1033 );
         }
 
     } FC_LOG_AND_RETHROW()
