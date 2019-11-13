@@ -57,6 +57,10 @@ def start_node(nodeIndex, account):
                 '    --swap-signing-key ' + account['pvt'] +
                 '    --swap-authority ' + account['name'] + '@active'
                 '    --update_price_period 5'
+                #'    --oracle-authority remproducer1@active'
+                #'    --oracle-authority remproducer2@active'
+                #'    --swap-authority remproducer1@active'
+                #'    --swap-authority remproducer2@active'
         )
     if cryptocompare_apikey:
         swap_and_oracle_opts += (

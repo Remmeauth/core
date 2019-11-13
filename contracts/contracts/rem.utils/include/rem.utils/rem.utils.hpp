@@ -62,6 +62,7 @@ namespace eosio {
       void validate_eth_address_checksum(string checksum_address);
       string bytetohex(unsigned char *data, int len);
       std::array<unsigned char, 32> sha3_256(const string& address);
+      bool is_lower(const string &address);
    };
    /** @}*/ // end of @defgroup eosioutils rem.utils
 } /// namespace eosio

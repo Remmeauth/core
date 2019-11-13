@@ -45,9 +45,9 @@ namespace eosio {
 
 class eth_swap_plugin_impl {
   public:
-    fc::crypto::private_key    _swap_signing_key;
-    name                       _swap_signing_account;
-    std::string                _swap_signing_permission;
+    std::vector<fc::crypto::private_key>    _swap_signing_key;
+    std::vector<name>                       _swap_signing_account;
+    std::vector<std::string>                _swap_signing_permission;
     std::string                _eth_wss_provider;
     uint64_t                   _last_processed_block;
 
@@ -181,63 +181,65 @@ class eth_swap_plugin_impl {
     }
 
     void push_init_swap_transaction(const swap_event_data& data) {
-        bool is_tx_sent = false;
-        uint32_t push_tx_attempt = 0;
-        while(!is_tx_sent) {
-            if(push_tx_attempt)
-              wlog("Retrying to push init swap transaction: ${id}", ( "id", data.txid ));
-            std::vector<signed_transaction> trxs;
-            trxs.reserve(2);
+        for(size_t i = 0; i < this->_swap_signing_key.size(); i++) {
+          bool is_tx_sent = false;
+          uint32_t push_tx_attempt = 0;
+          while(!is_tx_sent) {
+              if(push_tx_attempt)
+                wlog("Retrying to push init swap transaction: ${id}", ( "id", data.txid ));
+              std::vector<signed_transaction> trxs;
+              trxs.reserve(2);
 
-            controller& cc = app().get_plugin<chain_plugin>().chain();
-            auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
+              controller& cc = app().get_plugin<chain_plugin>().chain();
+              auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
 
-            if( data.chain_id != chain_id ) {
-                elog("Invalid chain identifier ${c}", ("c", data.chain_id));
-                return;
-            }
-            signed_transaction trx;
+              if( data.chain_id != std::string(chainid) ) {
+                  elog("Invalid chain identifier ${c}", ("c", data.chain_id));
+                  return;
+              }
+              signed_transaction trx;
 
-            uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
+              uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
 
-            trx.actions.emplace_back(vector<chain::permission_level>{{this->_swap_signing_account,name(this->_swap_signing_permission)}},
-              init{this->_swap_signing_account,
-                data.txid,
-                data.swap_pubkey,
-                uint64_to_rem_asset(data.amount),
-                data.return_address,
-                data.return_chain_id,
-                epoch_block_timestamp(slot)});
+              trx.actions.emplace_back(vector<chain::permission_level>{{this->_swap_signing_account[i],name(this->_swap_signing_permission[i])}},
+                init{this->_swap_signing_account[i],
+                  data.txid,
+                  data.swap_pubkey,
+                  uint64_to_rem_asset(data.amount),
+                  data.return_address,
+                  data.return_chain_id,
+                  epoch_block_timestamp(slot)});
 
-            trx.expiration = cc.head_block_time() + fc::seconds(init_swap_expiration_time);
-            trx.set_reference_block(cc.head_block_id());
-            trx.max_net_usage_words = 5000;
-            trx.sign(this->_swap_signing_key, chainid);
-            trxs.emplace_back(std::move(trx));
-            try {
-               auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-               app().post(priority::low, [trxs_copy, &is_tx_sent]() {
-                 for (size_t i = 0; i < trxs_copy->size(); ++i) {
-                     app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                     [&is_tx_sent](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
-                       is_tx_sent = true;
-                       if (result.contains<fc::exception_ptr>()) {
-                          elog("Failed to push init swap transaction: ${res}", ( "res", result.get<fc::exception_ptr>()->to_string() ));
-                       } else {
-                          if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
-                              auto trx_id = result.get<transaction_trace_ptr>()->id;
-                              ilog("Pushed init swap transaction: ${id}", ( "id", trx_id ));
-                          }
-                       }
-                    });
-                 }
-               });
-            } FC_LOG_AND_DROP()
-            sleep(wait_for_accept_tx);
-            if(!is_tx_sent) {
-              sleep(retry_push_tx_time);
-            }
-            push_tx_attempt++;
+              trx.expiration = cc.head_block_time() + fc::seconds(init_swap_expiration_time);
+              trx.set_reference_block(cc.head_block_id());
+              trx.max_net_usage_words = 5000;
+              trx.sign(this->_swap_signing_key[i], chainid);
+              trxs.emplace_back(std::move(trx));
+              try {
+                 auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
+                 app().post(priority::low, [trxs_copy, &is_tx_sent]() {
+                   for (size_t i = 0; i < trxs_copy->size(); ++i) {
+                       app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
+                       [&is_tx_sent](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                         is_tx_sent = true;
+                         if (result.contains<fc::exception_ptr>()) {
+                            elog("Failed to push init swap transaction: ${res}", ( "res", result.get<fc::exception_ptr>()->to_string() ));
+                         } else {
+                            if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
+                                auto trx_id = result.get<transaction_trace_ptr>()->id;
+                                ilog("Pushed init swap transaction: ${id}", ( "id", trx_id ));
+                            }
+                         }
+                      });
+                   }
+                 });
+              } FC_LOG_AND_DROP()
+              sleep(wait_for_accept_tx);
+              if(!is_tx_sent) {
+                sleep(retry_push_tx_time);
+              }
+              push_tx_attempt++;
+          }
         }
     }
 };
@@ -249,15 +251,14 @@ void eth_swap_plugin::set_program_options(options_description&, options_descript
   cfg.add_options()
         ("eth-wss-provider", bpo::value<std::string>(),
          "Ethereum websocket provider. For example wss://ropsten.infura.io/ws/v3/<infura_id>")
-        ("swap-authority", bpo::value<std::string>(),
+        ("swap-authority", bpo::value<std::vector<std::string>>(),
          "Account name and permission to authorize init swap actions. For example blockproducer1@active")
-        ("swap-signing-key", bpo::value<std::string>(),
+        ("swap-signing-key", bpo::value<std::vector<std::string>>(),
          "A private key to sign init swap actions")
 
          ("eth_swap_contract_address", bpo::value<std::string>()->default_value(eth_swap_contract_address), "")
          ("eth_swap_request_event", bpo::value<std::string>()->default_value(eth_swap_request_event), "")
          ("return_chain_id", bpo::value<std::string>()->default_value(return_chain_id), "")
-         ("chain_id", bpo::value<std::string>()->default_value(chain_id), "")
 
          ("eth_events_window_length", bpo::value<uint32_t>()->default_value(eth_events_window_length), "")
          ("blocks_per_filter", bpo::value<uint32_t>()->default_value(blocks_per_filter), "")
@@ -272,19 +273,21 @@ void eth_swap_plugin::set_program_options(options_description&, options_descript
 
 void eth_swap_plugin::plugin_initialize(const variables_map& options) {
     try {
-      std::string swap_auth = options.at( "swap-authority" ).as<std::string>();
+      std::vector<std::string> swap_auth = options.at( "swap-authority" ).as<std::vector<std::string>>();
+      std::vector<std::string> swap_signing_key = options.at( "swap-signing-key" ).as<std::vector<std::string>>();
+      for(size_t i = 0; i < swap_auth.size(); i++) {
+        auto space_pos = swap_auth[i].find('@');
+        EOS_ASSERT( (space_pos != std::string::npos), chain::plugin_config_exception,
+                    "invalid authority" );
+        std::string permission = swap_auth[i].substr( space_pos + 1 );
+        std::string account = swap_auth[i].substr( 0, space_pos );
 
-      auto space_pos = swap_auth.find('@');
-      EOS_ASSERT( (space_pos != std::string::npos), chain::plugin_config_exception,
-                  "invalid authority" );
+        struct name swap_signing_account(account);
+        my->_swap_signing_account.push_back(swap_signing_account);
+        my->_swap_signing_permission.push_back(permission);
+        my->_swap_signing_key.push_back(fc::crypto::private_key( swap_signing_key[std::min(i, swap_signing_key.size()-1)] ));
+      }
 
-      std::string permission = swap_auth.substr( space_pos + 1 );
-      std::string account = swap_auth.substr( 0, space_pos );
-      struct name swap_signing_account(account);
-
-      my->_swap_signing_key = fc::crypto::private_key(options.at( "swap-signing-key" ).as<std::string>());
-      my->_swap_signing_account = swap_signing_account;
-      my->_swap_signing_permission = permission;
       my->_last_processed_block = 0;
 
       //std::string prefix = "wss://";
@@ -295,7 +298,6 @@ void eth_swap_plugin::plugin_initialize(const variables_map& options) {
       eth_swap_contract_address = options.at( "eth_swap_contract_address" ).as<std::string>();
       eth_swap_request_event    = options.at( "eth_swap_request_event" ).as<std::string>();
       return_chain_id           = options.at( "return_chain_id" ).as<std::string>();
-      chain_id                  = options.at( "chain_id" ).as<std::string>();
 
       eth_events_window_length = options.at( "eth_events_window_length" ).as<uint32_t>();
       blocks_per_filter = options.at( "blocks_per_filter" ).as<uint32_t>();

@@ -2,6 +2,7 @@
 #include <rem.token/rem.token.hpp>
 
 #include <cmath>
+#include <numeric>
 
 namespace eosiosystem {
 
@@ -14,14 +15,28 @@ namespace eosiosystem {
 
    int64_t system_contract::share_pervote_reward_between_producers(int64_t amount)
    {
+      const auto reward_period_without_producing = microseconds(_grotation.rotation_period.count() * _grotation.standby_prods_to_rotate);
+      const auto ct = current_time_point();
       int64_t total_reward_distributed = 0;
       for (const auto& p: _gstate.last_schedule) {
          const auto reward = int64_t(amount * p.second);
          total_reward_distributed += reward;
          const auto& prod = _producers.get(p.first.value);
-         _producers.modify(prod, eosio::same_payer, [&](auto& p) {
-            p.pending_pervote_reward += reward;
-         });
+         if (ct - prod.last_block_time <= reward_period_without_producing) {
+            _producers.modify(prod, eosio::same_payer, [&](auto &p) {
+               p.pending_pervote_reward += reward;
+            });
+         }
+      }
+      for (const auto& p: _gstate.standby) {
+         const auto reward = int64_t(amount * p.second);
+         total_reward_distributed += reward;
+         const auto& prod = _producers.get(p.first.value);
+         if (ct - prod.last_block_time <= reward_period_without_producing) {
+            _producers.modify(prod, eosio::same_payer, [&](auto &p) {
+               p.pending_pervote_reward += reward;
+            });
+         }
       }
       check(total_reward_distributed <= amount, "distributed reward above the given amount");
       return total_reward_distributed;
@@ -29,15 +44,44 @@ namespace eosiosystem {
 
    void system_contract::update_pervote_shares()
    {
-      std::for_each(std::begin(_gstate.last_schedule), std::end(_gstate.last_schedule),
-         [this](auto& p)
-         {
-            const auto& prod_name = p.first;
-            const auto& prod = _producers.get(prod_name.value);
-            const double share = prod.total_votes / _gstate.total_active_producer_vote_weight;
-            // need to cut precision because sum of all shares can be greater that 1 due to floating point arithmetics
-            p.second = std::floor(share * 100000.0) / 100000.0;
-         });
+      auto share_accumulator = [this](double l, const std::pair<name, double>& r) -> double
+      {
+         const auto& prod = _producers.get(r.first.value);
+         return l + prod.total_votes;
+      };
+      double total_share = 0.0;
+      total_share = std::accumulate(std::begin(_gstate.last_schedule), std::end(_gstate.last_schedule),
+                                    total_share, share_accumulator);
+      total_share = std::accumulate(std::begin(_gstate.standby), std::end(_gstate.standby),
+                                    total_share, share_accumulator);
+      _gstate.total_active_producer_vote_weight = total_share;
+
+      auto update_pervote_share = [this](auto& p) {
+         const auto& prod_name = p.first;
+         const auto& prod = _producers.get(prod_name.value);
+         const double share = prod.total_votes / _gstate.total_active_producer_vote_weight;
+         // need to cut precision because sum of all shares can be greater that 1 due to floating point arithmetics
+         p.second = std::floor(share * 100000.0) / 100000.0;
+      };
+      std::for_each(std::begin(_gstate.last_schedule), std::end(_gstate.last_schedule), update_pervote_share);
+      std::for_each(std::begin(_gstate.standby), std::end(_gstate.standby), update_pervote_share);
+   }
+
+   void system_contract::update_standby()
+   {
+      std::vector<std::pair<name, double>> rotation;
+      std::transform(std::begin(_grotation.standby_rotation),
+                     std::end(_grotation.standby_rotation),
+                     std::back_inserter(rotation),
+                     [](const auto& auth) { return std::make_pair(auth.producer_name, 0.0); });
+      _gstate.standby.clear();
+      _gstate.standby.reserve(rotation.size());
+      auto name_double_comparator = [](const std::pair<name, double>& l, const std::pair<name, double>& r) { return l.first < r.first; };
+      std::sort(std::begin(rotation), std::end(rotation), name_double_comparator);
+      std::set_difference(std::begin(rotation), std::end(rotation),
+                          std::begin(_gstate.last_schedule), std::end(_gstate.last_schedule),
+                          std::back_inserter(_gstate.standby),
+                          name_double_comparator);
    }
 
    int64_t system_contract::share_perstake_reward_between_guardians(int64_t amount)
@@ -141,16 +185,15 @@ namespace eosiosystem {
          if (active_producers.size() != _gstate.last_schedule.size()) {
             _gstate.last_schedule.resize(active_producers.size());
          }
-         _gstate.total_active_producer_vote_weight = 0.0;
          for (size_t i = 0; i < active_producers.size(); i++) {
             const auto& prod_name = active_producers[i];
             const auto& prod = _producers.get(prod_name.value);
             _gstate.last_schedule[i] = std::make_pair(prod_name, 0.0);
-            _gstate.total_active_producer_vote_weight += prod.total_votes;
             _producers.modify(prod, same_payer, [&](auto& p) {
                p.last_expected_produced_blocks_update = timestamp;
             });
          }
+         update_standby();
          update_pervote_shares();
       }
 
@@ -171,6 +214,7 @@ namespace eosiosystem {
          if ( vote_is_reasserted( voter.last_reassertion_time ) ) {
             _producers.modify( prod, same_payer, [&](auto& p ) {
                   p.current_round_unpaid_blocks++;
+                  p.last_block_time = timestamp;
             });
          }
       }

@@ -191,6 +191,22 @@ vector<string> tx_permission;
 
 eosio::client::http::http_context context;
 
+namespace {
+   auto weeks_since_lock_time( const fc::time_point_sec lock_time ) {
+      return 25 - std::max( ((lock_time - fc::time_point::now()) - fc::days(7)).count() / fc::days(7).count(), int64_t{0} );
+   }
+
+   auto is_guardian( const int64_t staked, const fc::time_point_sec last_reassertion_time ) {
+      return (staked >= config::guardian_stake_threshold) && ((last_reassertion_time + fc::days(7)) > fc::time_point::now());
+   }
+
+   auto real_vote_weight( double last_vote_weight ) {
+      const auto eos_weight = std::pow( 2, int64_t((fc::time_point::now().sec_since_epoch() - (config::block_timestamp_epoch / 1000)) / fc::days(7).to_seconds()) / double(52) );
+      
+      return last_vote_weight / eos_weight;
+   }
+} // namespace anonymous
+
 void add_standard_transaction_options(CLI::App* cmd, string default_permission = "") {
    CLI::callback_t parse_expiration = [](CLI::results_t res) -> bool {
       double value_s;
@@ -1280,7 +1296,7 @@ struct list_producers_subcommand {
             weight = 1;
          printf("%-13s %-57s %-59s %s\n", "Producer", "Producer key", "Url", "Scaled votes");
          for ( auto& row : result.rows )
-            printf("%-13.13s %-57.57s %-59.59s %1.4f\n",
+            printf("%-13.13s %-57.57s %-59.59s %1.8f\n",
                    row["owner"].as_string().c_str(),
                    row["producer_key"].as_string().c_str(),
                    row["url"].as_string().c_str(),
@@ -1314,25 +1330,24 @@ struct list_voters_subcommand {
             return;
          }
 
-         printf("%-13s %-21.21s %-21.21s %-19s %-18s %s\n", "Voter", "Last vote weight", "Adjusted vote weight", "Guardian status", "Vote power maturity", "Staked");
+         printf("%-13s %-27.21s %-27.21s %-19s %-16s %s\n", "Voter", "Last vote weight", "Adjusted vote weight", "Guardian status", "Vote power maturity", "Staked");
          for ( auto& row : result.rows ) {
+            // some system accounts don't have `last_reassertion_time`
+            if ( row.get_object().find("last_reassertion_time") == row.get_object().end() ) {
+               continue;
+            }
+            
             const auto last_reassertion_time = fc::time_point_sec::from_iso_string( row["last_reassertion_time"].as_string() );
             const auto staked = row["staked"].as_int64();
-            const auto is_guardian = (staked >= config::guardian_stake_threshold) && ((last_reassertion_time + fc::days(7)) > fc::time_point::now());
-
             const auto stake_lock_time = fc::time_point_sec::from_iso_string( row["stake_lock_time"].as_string() );
-            const auto weeks_to_mature = std::max( (stake_lock_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
-            const auto eos_weight = std::pow( 2, int64_t((fc::time_point::now().sec_since_epoch() - (config::block_timestamp_epoch / 1000)) / fc::days(7).to_seconds()) / double(52) );
-            const auto rem_weight = 1.0 - weeks_to_mature / 25.0;
-            const auto real_votes = row["last_vote_weight"].as_double() / eos_weight / rem_weight;
 
             printf(
-               "%-13s %-21.8f %-21.8f %-19s %15li/25 %li\n",
+               "%-13s %-27.6f %-27.6f %-19s %16li/25 %li\n",
                row["owner"].as_string().c_str(),
                row["last_vote_weight"].as_double(),
-               real_votes,
-               (is_guardian ? "Yes" : "No"),
-               (25 - weeks_to_mature),
+               real_vote_weight( row["last_vote_weight"].as_double() ),
+               (is_guardian( staked, last_reassertion_time ) ? "Yes" : "No"),
+               weeks_since_lock_time( stake_lock_time ),
                row["staked"].as_int64()
             );
          }
@@ -1856,10 +1871,12 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
       if ( res.voter_info.is_object() ) {
          auto& obj = res.voter_info.get_object();
          string proxy = obj["proxy"].as_string();
+         bool voted = false;
          if ( proxy.empty() ) {
             auto& prods = obj["producers"].get_array();
+            voted = !prods.empty();
             std::cout << "producers:";
-            if ( !prods.empty() ) {
+            if ( voted ) {
                for ( size_t i = 0; i < prods.size(); ++i ) {
                   if ( i%3 == 0 ) {
                      std::cout << std::endl << indent;
@@ -1873,16 +1890,17 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
 
             const auto last_reassertion_time = fc::time_point_sec::from_iso_string( obj["last_reassertion_time"].as_string() );
             const auto staked = obj["staked"].as_int64();
-            const auto is_guardian = (staked >= config::guardian_stake_threshold) && ((last_reassertion_time + fc::days(7)) > fc::time_point::now());
 
             const auto stake_lock_time = fc::time_point_sec::from_iso_string( obj["stake_lock_time"].as_string() );
-            const auto weeks_to_mature = std::max( (stake_lock_time - fc::time_point::now()).count() / fc::days(7).count(), int64_t{0} );
+            const auto weeks_to_mature = weeks_since_lock_time( stake_lock_time );
+            const auto last_vote_weight = obj["last_vote_weight"].as_double();
 
             std::cout << std::endl << "Staking info:" << std::endl
-                      << indent << "Guardian status: " << std::right << std::setw(24) << (is_guardian ? "yes" : "no") << std::endl
-                      << indent << "Stake locked until: " << std::right << std::setw(21) << string(stake_lock_time) << std::endl
-                      << indent << "Vote power maturity: " << std::setw(17) << std::right << (25-weeks_to_mature) << "/25" << std::endl
-                      << indent << "Current vote power: " << std::right << std::setw(21) << std::fixed << setprecision(3) << (1.0 -weeks_to_mature / 25.0) << std::endl;
+                      << indent << "Guardian status: "      << std::right << std::setw(38) << (is_guardian( staked, last_reassertion_time ) ? "yes" : "no") << std::endl
+                      << indent << "Stake locked until: "   << std::right << std::setw(35) << string(stake_lock_time) << std::endl
+                      << indent << "Vote power maturity: "  << std::right << std::setw(31) << weeks_to_mature << "/25" << std::endl
+                      << indent << "Last vote weight: "     << std::right << std::setw(37) << std::fixed << setprecision(8) << last_vote_weight << std::endl
+                      << indent << "Adjusted vote weight: " << std::right << std::setw(33) << std::fixed << setprecision(8) << real_vote_weight( last_vote_weight ) << std::endl;
          } else {
             std::cout << "proxy:" << indent << proxy << std::endl;
          }
@@ -1892,6 +1910,7 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
       std::cout << fc::json::to_pretty_string(json) << std::endl;
    }
 }
+
 
 CLI::callback_t header_opt_callback = [](CLI::results_t res) {
    vector<string>::iterator itr;
