@@ -116,9 +116,9 @@ namespace eosio {
                         const block_timestamp &swap_timestamp, const signature &sign);
 
       /**
-       * Set swap fee action.
+       * Set token swap fee action.
        *
-       * @details Change amount of the swap fee, action permitted only for producers.
+       * @details Change amount of the token swap fee, action permitted only for producers.
        *
        * @param quantity - the quantity of tokens to be deducted.
        */
@@ -126,14 +126,15 @@ namespace eosio {
       void setswapfee(const int64_t &amount);
 
       /**
-       * Set minimum amount to out swap action.
+       * Set minimum amount to out token swap action.
        *
-       * @details Change minimum amount to out swap, action permitted only for producers.
+       * @details Change minimum amount to out token swap, action permitted only for producers.
        *
+       * @param chain_id - the chain id to swap tokens from remchain,
        * @param quantity - the quantity of tokens to be deducted.
        */
       [[eosio::action]]
-      void setminswpout(const int64_t &amount);
+      void setminswpout(const name &chain_id, const int64_t &amount);
 
       /**
        * Set remchain-id action.
@@ -152,10 +153,11 @@ namespace eosio {
        *
        * @param chain_id - the chain identifier to be added,
        * @param input - is supported input way to swap tokens according to chain identifier,
-       * @param output - is supported output way to swap tokens according to chain identifier.
+       * @param output - is supported output way to swap tokens according to chain identifier,
+       * @param out_swap_min_amount - the minimum amount to swap tokens from remchain to chain_id.
        */
       [[eosio::action]]
-      void addchain(const name &chain_id, const bool &input, const bool &output);
+      void addchain(const name &chain_id, const bool &input, const bool &output, const int64_t &out_swap_min_amount);
 
       /**
        * Init swap action.
@@ -225,23 +227,23 @@ namespace eosio {
       struct [[eosio::table]] swapparams {
          // fee for swap in remchain
          int64_t   in_swap_fee = 1000;
-         // minimum amount to swap tokens from remchain
-         int64_t   out_swap_min_amount = 5000000;
          string    chain_id = "0";
 
          // explicit serialization macro is not necessary, used here only to improve compilation time
-         EOSLIB_SERIALIZE( swapparams, (in_swap_fee)(out_swap_min_amount)(chain_id) )
+         EOSLIB_SERIALIZE( swapparams, (in_swap_fee)(chain_id) )
       };
 
       struct [[eosio::table]] chains {
-         name chain;
-         bool input;
-         bool output;
+         name     chain;
+         bool     input;
+         bool     output;
+         // minimum amount to swap tokens from remchain
+         int64_t  out_swap_min_amount = 5000000;
 
          uint64_t primary_key() const { return chain.value; }
 
          // explicit serialization macro is not necessary, used here only to improve compilation time
-         EOSLIB_SERIALIZE( chains, (chain)(input)(output))
+         EOSLIB_SERIALIZE( chains, (chain)(input)(output)(out_swap_min_amount))
       };
 
       typedef multi_index<"swaps"_n, swap_data,

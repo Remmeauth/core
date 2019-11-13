@@ -69,7 +69,7 @@ namespace eosio {
       }
       const uint8_t majority = (_producers.size() * 2 / 3) + 1;
       if ( majority <= quantity_active_appr ) { return true; }
-         return false;
+      return false;
    }
 
    void swap::check_pubkey_prefix(const string& pubkey_str) const {

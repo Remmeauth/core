@@ -14,9 +14,9 @@ namespace eosio {
    using eosiosystem::system_contract;
 
    swap::swap(name receiver, name code,  datastream<const char*> ds) : contract(receiver, code, ds),
-   swap_table(_self, _self.value),
-   swap_params_table(_self, _self.value),
-   chains_table(_self, _self.value) {
+   swap_table(get_self(), get_self().value),
+   swap_params_table(get_self(), get_self().value),
+   chains_table(get_self(), get_self().value) {
       if (!swap_params_table.exists()) {
          swap_params_table.set(swapparams{}, system_account);
       }
@@ -29,7 +29,7 @@ namespace eosio {
       require_auth(rampayer);
 
       const asset min_account_stake = get_min_account_stake();
-      const asset producers_reward(swap_params_data.in_swap_fee, system_contract::get_core_symbol() );
+      const asset producers_reward(swap_params_data.in_swap_fee, system_contract::get_core_symbol());
 
       check_pubkey_prefix(swap_pubkey);
       check(quantity.is_valid(), "invalid quantity");
@@ -54,11 +54,11 @@ namespace eosio {
       const bool is_producer = is_block_producer(rampayer);
       if (swap_hash_itr == swap_hash_idx.end()) {
          swap_table.emplace(rampayer, [&](auto &s) {
-            s.key = swap_table.available_primary_key();
-            s.txid = txid;
-            s.swap_id = swap_hash;
+            s.key            = swap_table.available_primary_key();
+            s.txid           = txid;
+            s.swap_id        = swap_hash;
             s.swap_timestamp = swap_timestamp;
-            s.status = static_cast<int8_t>(swap_status::INITIALIZED);
+            s.status         = static_cast<int8_t>(swap_status::INITIALIZED);
             if (is_producer) s.provided_approvals.push_back(rampayer);
          });
       } else {
@@ -196,7 +196,7 @@ namespace eosio {
       string retire_memo = return_chain_id + ' ' + return_address;
       to_rewards(producers_reward);
       retire_tokens(quantity, retire_memo);
-      require_recipient(_self);
+      require_recipient(get_self());
 
       swap_table.modify(*swap_hash_itr, rampayer, [&](auto &s) {
          s.status = static_cast<int8_t>(swap_status::CANCELED);
@@ -204,43 +204,49 @@ namespace eosio {
    }
 
    void swap::setswapfee(const int64_t &amount) {
-      require_auth( _self );
+      require_auth( get_self() );
       check(amount > 0, "amount must be a positive");
 
       swap_params_data.in_swap_fee = amount;
       swap_params_table.set(swap_params_data, same_payer);
    }
 
-   void swap::setminswpout(const int64_t &amount) {
-      require_auth( _self );
-      check(amount > 0, "amount must be a positive");
+   void swap::setminswpout(const name &chain_id, const int64_t &amount) {
+      require_auth( get_self() );
 
-      swap_params_data.out_swap_min_amount = amount;
-      swap_params_table.set(swap_params_data, same_payer);
+      auto it = chains_table.find(chain_id.value);
+      check(amount > 0, "amount must be a positive");
+      check(it != chains_table.end(), "not supported chain id");
+
+      chains_table.modify(*it, same_payer, [&](auto &c) {
+         c.out_swap_min_amount = amount;
+      });
    }
 
    void swap::setchainid(const string &chain_id) {
-      require_auth( _self );
+      require_auth( get_self() );
       check(!chain_id.empty(), "invalid chain id");
 
       swap_params_data.chain_id = chain_id;
       swap_params_table.set(swap_params_data, same_payer);
    }
 
-   void swap::addchain(const name &chain_id, const bool &input, const bool &output) {
-      require_auth( _self );
+   void swap::addchain(const name &chain_id, const bool &input, const bool &output, const int64_t &out_swap_min_amount) {
+      require_auth( get_self() );
+      check(out_swap_min_amount > 0, "the minimum amount to swap tokens from remchain should be a positive");
 
       auto it = chains_table.find(chain_id.value);
       if (it == chains_table.end()) {
-         chains_table.emplace( _self, [&]( auto& c ) {
-            c.chain = chain_id;
-            c.input = input;
-            c.output = output;
+         chains_table.emplace( get_self(), [&]( auto& c ) {
+            c.chain               = chain_id;
+            c.input               = input;
+            c.output              = output;
+            c.out_swap_min_amount = out_swap_min_amount;
          });
       } else {
-         chains_table.modify(*it, _self, [&](auto &c) {
-            c.input = input;
-            c.output = output;
+         chains_table.modify(*it, get_self(), [&](auto &c) {
+            c.input               = input;
+            c.output              = output;
          });
       }
    }
@@ -255,8 +261,6 @@ namespace eosio {
                                   return_address, return_chain_id, std::to_string(swap_timepoint.sec_since_epoch())});
 
       checksum256 swap_hash = sha256(swap_payload);
-
-
       return swap_hash;
    }
 
@@ -299,7 +303,7 @@ namespace eosio {
 
    void swap::validate_address(const name &chain_id, const string &address) {
       action(
-         permission_level{_self, system_contract::active_permission},
+         permission_level{get_self(), system_contract::active_permission},
          "rem.utils"_n, "validateaddr"_n,
          std::make_tuple(chain_id, address)
       ).send();
@@ -322,7 +326,7 @@ namespace eosio {
    }
 
    void swap::ontransfer(name from, name to, asset quantity, string memo) {
-      if (to != _self || from == _self) {
+      if (to != get_self() || from == get_self()) {
          return;
       }
       auto space_pos = memo.find(' ');
@@ -336,17 +340,18 @@ namespace eosio {
 
       validate_address(name(return_chain_id), return_address);
 
+      auto chain_it = chains_table.find(name(return_chain_id).value);
       check(quantity.symbol == system_contract::get_core_symbol(), "symbol precision mismatch");
-      check(quantity.amount >= swap_params_data.out_swap_min_amount, "the quantity must be greater than the swap minimum amount");
+      check(quantity.amount >= chain_it->out_swap_min_amount, "the quantity must be greater than the swap minimum amount");
 
       string retire_memo = return_chain_id + ' ' + return_address;
       retire_tokens(quantity, retire_memo);
-      require_recipient(_self);
+      require_recipient(get_self());
    }
 
    void swap::transfer(const name &receiver, const asset &quantity) {
-      token::transfer_action transfer(system_contract::token_account, {_self, system_contract::active_permission});
-      transfer.send(_self, receiver, quantity, string("atomic-swap"));
+      token::transfer_action transfer(system_contract::token_account, {get_self(), system_contract::active_permission});
+      transfer.send(get_self(), receiver, quantity, string("atomic-swap"));
    }
 
    void swap::create_user(const name &user, const public_key &owner_key,
@@ -373,25 +378,25 @@ namespace eosio {
          .waits = {}
       };
 
-      eosiosystem::system_contract::newaccount_action newaccount(system_account, {_self, system_contract::active_permission});
-      eosiosystem::system_contract::delegatebw_action delegatebw(system_account, {_self, system_contract::active_permission});
+      eosiosystem::system_contract::newaccount_action newaccount(system_account, {get_self(), system_contract::active_permission});
+      eosiosystem::system_contract::delegatebw_action delegatebw(system_account, {get_self(), system_contract::active_permission});
 
-      newaccount.send(_self, user, owner, active);
-      delegatebw.send(_self, user, min_account_stake, true);
+      newaccount.send(get_self(), user, owner, active);
+      delegatebw.send(get_self(), user, min_account_stake, true);
    }
 
    void swap::to_rewards(const asset &quantity) {
-      eosiosystem::system_contract::torewards_action torewards(system_account, {_self, system_contract::active_permission});
-      torewards.send(_self, quantity);
+      eosiosystem::system_contract::torewards_action torewards(system_account, {get_self(), system_contract::active_permission});
+      torewards.send(get_self(), quantity);
    }
 
    void swap::retire_tokens(const asset &quantity, const string &memo) {
-      token::retire_action retire(system_contract::token_account, {_self, system_contract::active_permission});
+      token::retire_action retire(system_contract::token_account, {get_self(), system_contract::active_permission});
       retire.send(quantity, memo);
    }
 
    void swap::issue_tokens(const name &rampayer, const asset &quantity) {
-      token::issue_action issue(system_contract::token_account, {_self, system_contract::active_permission});
-      issue.send(_self, quantity, string("swap issue tokens"));
+      token::issue_action issue(system_contract::token_account, {get_self(), system_contract::active_permission});
+      issue.send(get_self(), quantity, string("swap issue tokens"));
    }
 } /// namespace eosio

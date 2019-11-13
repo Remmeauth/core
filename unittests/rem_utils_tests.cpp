@@ -89,12 +89,15 @@ public:
       return r;
    }
 
-   auto addchain(const name &chain_id, const bool &input, const bool& output, const vector<permission_level>& level) {
+   auto addchain(const name &chain_id, const bool &input, const bool& output, const int64_t &out_swap_min_amount,
+                 const vector<permission_level>& level) {
 
       auto r = base_tester::push_action(N(rem.swap), N(addchain), level, mvo()
             ("chain_id", chain_id)
             ("input", input)
             ("output", output)
+            ("output", output)
+            ("out_swap_min_amount", out_swap_min_amount)
       );
       produce_block();
       return r;
@@ -250,7 +253,7 @@ utils_tester::utils_tester() {
 
    vector<permission_level> auths_level = { permission_level{config::system_account_name, config::active_name},
                                             permission_level{N(rem.swap), config::active_name}};
-   addchain(N(ethropsten), true, true, auths_level);
+   addchain(N(ethropsten), true, true, 5000000, auths_level);
 }
 
 BOOST_AUTO_TEST_SUITE(utils_tests)

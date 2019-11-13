@@ -187,12 +187,14 @@ public:
       return r;
    }
 
-   auto addchain(const name &chain_id, const bool &input, const bool& output, const vector<permission_level>& level) {
+   auto addchain(const name &chain_id, const bool &input, const bool& output, const int64_t &out_swap_min_amount,
+                 const vector<permission_level>& level) {
 
       auto r = base_tester::push_action(N(rem.swap), N(addchain), level, mvo()
          ("chain_id", chain_id)
          ("input", input)
          ("output", output)
+         ("out_swap_min_amount", out_swap_min_amount)
       );
       produce_block();
       return r;
@@ -207,9 +209,10 @@ public:
       return r;
    }
 
-   auto setminswpout(const int64_t &amount) {
+   auto setminswpout(const name &chain_id, const int64_t &amount) {
       vector<permission_level> level = {{N(rem.swap), config::active_name}, {N(rem), config::active_name}};
       auto r = base_tester::push_action(N(rem.swap), N(setminswpout), level, mvo()
+         ("chain_id", chain_id)
          ("amount", amount)
       );
       produce_block();
@@ -340,7 +343,7 @@ rem_swap_tester::rem_swap_tester() {
    // Create rem.msig, rem.token and rem.swap
    create_accounts(
       {N(rem.msig), N(rem.token), N(rem.rex), N(rem.ram), N(rem.ramfee), N(rem.stake), N(rem.bpay), N(rem.spay), N(rem.vpay),
-       N(rem.saving), N(rem.swap)});
+       N(rem.saving), N(rem.swap), N(rem.utils)});
 
    // Set code for the following accounts:
    //  - rem (code: rem.bios) (already set by tester constructor)
@@ -357,9 +360,9 @@ rem_swap_tester::rem_swap_tester() {
    set_code_abi(N(rem.swap),
                 contracts::rem_swap_wasm(),
                 contracts::rem_swap_abi().data()); //, &rem_active_pk);
-//   set_code_abi(N(rem.utils),
-//                contracts::rem_utils_wasm(),
-//                contracts::rem_utils_abi().data()); //, &rem_active_pk);
+   set_code_abi(N(rem.utils),
+                contracts::rem_utils_wasm(),
+                contracts::rem_utils_abi().data()); //, &rem_active_pk);
 
    // Set privileged for rem.msig, rem.token, rem.swap
    set_privileged(N(rem.msig));
@@ -452,8 +455,9 @@ rem_swap_tester::rem_swap_tester() {
    // add supported chain
    vector<permission_level> auths_level = { permission_level{config::system_account_name, config::active_name},
                                             permission_level{N(rem.swap), config::active_name}};
-   addchain(N(ethropsten), true, true, auths_level);
+   addchain(N(ethropsten), true, true, 5000000, auths_level);
    setswapfee(500000);
+   setminswpout(N(ethropsten), 5000000);
    setchainid(control->get_chain_id());
 }
 
@@ -1157,13 +1161,13 @@ BOOST_FIXTURE_TEST_CASE(cancel_after_finish_swap_test, rem_swap_tester) {
 BOOST_FIXTURE_TEST_CASE(init_return_swap_test, rem_swap_tester) {
    try {
       name sender = N(whale3);
-      string return_address = "9f21f19180c8692ebaa061fd231cd1b029ff2326";
+      string return_address = "0x9f21F19180C8692EBaa061fd231cd1B029Ff2326";
       string return_chain_id = "ethropsten";
       string memo = return_chain_id + ' ' + return_address;
       asset quantity = core_from_string("500.0000");
 
       // add to sender unstacked tokens by transfer from rem.swap
-      transfer(N(rem.swap), sender, quantity, "initial tansfer");
+      transfer(N(rem.swap), sender, quantity, "initial transfer");
       auto remswap_before_transfer_balance = get_balance(N(rem.swap));
       auto sender_before_transfer_balance = get_balance(sender);
 
@@ -1206,11 +1210,11 @@ BOOST_FIXTURE_TEST_CASE(set_swap_fee_test, rem_swap_tester) {
 
 BOOST_FIXTURE_TEST_CASE(set_min_swap_out_test, rem_swap_tester) {
    try {
-      setminswpout(5000000);
-      auto min_amount = get_singtable(N(rem.swap), N(swapparams), "swapparams")["out_swap_min_amount"];
+      setminswpout(N(ethropsten), 5000000);
+      auto min_amount = get_supported_chain(N(ethropsten))["out_swap_min_amount"];
       BOOST_REQUIRE_EQUAL(min_amount.as_int64(), 5000000);
       // amount must be a positive
-      BOOST_REQUIRE_THROW(setminswpout(-1000000), eosio_assert_message_exception);
+      BOOST_REQUIRE_THROW(setminswpout(N(xrp), -1000000), eosio_assert_message_exception);
    } FC_LOG_AND_RETHROW()
 }
 
@@ -1228,7 +1232,7 @@ BOOST_FIXTURE_TEST_CASE(set_chain_id_test, rem_swap_tester) {
 BOOST_FIXTURE_TEST_CASE(add_chain_test, rem_swap_tester) {
    try {
       vector<permission_level> auths_level = { permission_level{N(rem.swap), config::active_name}};
-      addchain(N(ethropsten), true, true, auths_level);
+      addchain(N(ethropsten), true, true, 1000000, auths_level);
 
       auto data = get_supported_chain(N(ethropsten));
 
@@ -1236,13 +1240,13 @@ BOOST_FIXTURE_TEST_CASE(add_chain_test, rem_swap_tester) {
       BOOST_REQUIRE_EQUAL(data["input"].as_string(), "1");
       BOOST_REQUIRE_EQUAL(data["output"].as_string(), "1");
 
-      addchain(N(ethropsten), true, false, auths_level);
+      addchain(N(ethropsten), true, false, 1000000, auths_level);
       data = get_supported_chain(N(ethropsten));
 
       BOOST_REQUIRE_EQUAL(data["output"].as_string(), "0");
 
       // missing required authority
-      BOOST_REQUIRE_THROW(addchain(N(ethropsten), true, false, { permission_level{N(proda), config::active_name}}),
+      BOOST_REQUIRE_THROW(addchain(N(ethropsten), true, false, 1000000, { permission_level{N(proda), config::active_name}}),
                           missing_auth_exception);
    } FC_LOG_AND_RETHROW()
 }

@@ -45,14 +45,16 @@ namespace eosio {
       static constexpr name swap_contract = "rem.swap"_n;
 
       struct [[eosio::table]] chains {
-         name chain;
-         bool input;
-         bool output;
+         name     chain;
+         bool     input;
+         bool     output;
+         // minimum amount to swap tokens from remchain
+         int64_t  out_swap_min_amount = 5000000;
 
          uint64_t primary_key() const { return chain.value; }
 
          // explicit serialization macro is not necessary, used here only to improve compilation time
-         EOSLIB_SERIALIZE( chains, (chain)(input)(output))
+         EOSLIB_SERIALIZE( chains, (chain)(input)(output)(out_swap_min_amount))
       };
       typedef multi_index<"chains"_n, chains> chains_index;
 
