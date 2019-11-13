@@ -108,14 +108,14 @@ namespace eosiosystem {
    }
 
    void system_contract::setinacttime( uint64_t period_in_minutes ) {
-   require_auth(_self);
+   require_auth(get_self());
 
    check(period_in_minutes != 0, "block producer maximum inactivity time cannot be zero");
    _gremstate.producer_max_inactivity_time = eosio::minutes(period_in_minutes);
     }
 
     void system_contract::setpnshperiod( uint64_t period_in_days ) {
-       require_auth(_self);
+       require_auth(get_self());
 
        check(period_in_days != 0, "punishment period cannot be zero");
        _gremstate.producer_inactivity_punishment_period = eosio::days(period_in_days);
@@ -236,7 +236,6 @@ namespace eosiosystem {
 
     const auto ct = current_time_point();
     check( prod->active() && prod->top21_chosen_time != time_point(eosio::seconds(0)), "can only punish top21 active producers" );
-    check( ct - _gremstate.producer_max_inactivity_time > prod->punished_until, "punishment period is not over yet" );
 
     check( ct - prod->last_block_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
     check( ct - prod->top21_chosen_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
