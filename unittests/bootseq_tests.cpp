@@ -33,6 +33,7 @@ std::vector<genesis_account> test_genesis( {
   {N(whale4),    40'000'000'0000ll},
   {N(whale3),    30'000'000'0000ll},
   {N(whale2),    20'000'000'0000ll},
+  {N(whale1),    10'000'000'0000ll},
   {N(proda),      1'000'000'0000ll},
   {N(prodb),      1'000'000'0000ll},
   {N(prodc),      1'000'000'0000ll},
@@ -177,6 +178,15 @@ public:
 
     asset get_balance( const account_name& act ) {
          return get_currency_balance(N(rem.token), symbol(CORE_SYMBOL), act);
+    }
+
+    fc::variant get_producer( const account_name& prod ) {
+       auto data = get_row_by_account(config::system_account_name, config::system_account_name, N(producers), prod);
+       if (data.empty()) {
+          return 0;
+       }
+
+       return abi_ser.binary_to_variant( "producer_info", data, abi_serializer_max_time );
     }
 
     int64_t get_pending_pervote_reward( const account_name& prod ) {
@@ -338,7 +348,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
 
         // register whales as producers
-        const auto whales_as_producers = { N(b1), N(whale4), N(whale3), N(whale2) };
+        const auto whales_as_producers = { N(b1), N(whale4), N(whale3), N(whale2), N(whale1) };
         for( const auto& producer : whales_as_producers ) {
            register_producer(producer);
         }
@@ -367,13 +377,13 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
                            N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
                            N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        votepro( N(whale2), {N(runnerup1), N(runnerup2), N(runnerup3)} );
+        votepro( N(whale1), {N(runnerup1), N(runnerup2), N(runnerup3)} );
         votepro( N(whale3), {N(proda), N(prodb), N(prodc), N(prodd), N(prode)} );
 
-        // Total Stakes = b1 + whale2 + whale3 stake = (100,000,000 - 1,000) + (20,000,000 - 1,000) + (30,000,000 - 1,000)
+        // Total Stakes = b1 + whale1 + whale3 stake = (100,000,000 - 1,000) + (10,000,000 - 1,000) + (30,000,000 - 1,000)
         vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(global), N(global) );
 
-        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1499999997000);
+        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 139999999'7000);
 
         // No producers will be set, since the total activated stake is less than 150,000,000
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
@@ -388,13 +398,13 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         // This will increase the total vote stake by (40,000,000 - 1,000)
         votepro( N(whale4), {N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1899999996000);
+        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 179999999'6000);
         for( auto prod : producer_candidates ) {
             votepro(prod, { prod });
         }
 
         produce_blocks(4);
-        BOOST_REQUIRE(control->head_block_state()->block_num == 91);
+        BOOST_TEST_REQUIRE(control->head_block_state()->block_num == 103);
         for( auto prod : producer_candidates ) {
             BOOST_REQUIRE(get_pending_pervote_reward(prod) == 0);
             BOOST_REQUIRE(get_expected_produced_blocks(prod) == 0);
@@ -403,7 +413,11 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         }
 
         produce_block();
-        BOOST_REQUIRE(get_current_round_unpaid_blocks(N(prodm)) == 1);
+
+        for (auto prod: producer_candidates) {
+            wdump((get_current_round_unpaid_blocks(prod)));
+        }
+        BOOST_REQUIRE(get_current_round_unpaid_blocks(N(prodn)) == 1);
         BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
 
         // Since the total vote stake is more than 150,000,000, the new producer set will be set
@@ -456,7 +470,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         auto vpay_balance = get_balance(N(rem.vpay)).get_amount();
         //check that rewards are distributed with right proportion
         BOOST_REQUIRE(saving_balance >= 2'000'0000);
-        BOOST_REQUIRE_EQUAL(spay_balance, 13'999'9985);
+        BOOST_REQUIRE_EQUAL(spay_balance, 13'999'9987);
         BOOST_REQUIRE(vpay_balance <= 4'000'0000);
         BOOST_REQUIRE_EQUAL(saving_balance + spay_balance + vpay_balance, 20000'0000);
 
@@ -469,7 +483,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         spay_balance = get_balance(N(rem.spay)).get_amount();
         vpay_balance = get_balance(N(rem.vpay)).get_amount();
         BOOST_REQUIRE(saving_balance >= 2000'0000 + 1000);
-        BOOST_REQUIRE_EQUAL(spay_balance, 14'000'5982);
+        BOOST_REQUIRE_EQUAL(spay_balance, 14'000'5976);
         BOOST_REQUIRE(vpay_balance <= 4000'0000 + 3000);
         BOOST_REQUIRE_EQUAL(saving_balance + spay_balance + vpay_balance, 20001'0000);
 
@@ -493,19 +507,20 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         BOOST_REQUIRE(get_total_votepay_shares() > 0.999 && get_total_votepay_shares() <= 1.0);
 
         //Counters of expected_produced_blocks
-        //proda-prodl - 36
-        //prodm       - 45
-        //prodn-prodo - 48
-        //prodp       - 37
+        //proda-prodm - 36
+        //prodn       - 45
+        //prodp-prodo - 48
+        //prodq       - 37
         //prodr-produ - 36
-        for (auto prod: { N(proda), N(prodb), N(prodc), N(prode), N(prodf), N(prodg), N(prodh), N(prodi), N(prodj), N(prodk), N(prodl) }) {
+        for (auto prod: { N(proda), N(prodb), N(prodc), N(prode), N(prodf), N(prodg),
+                          N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm) }) {
             BOOST_TEST(get_expected_produced_blocks(prod) == 36);
         }
-        BOOST_TEST(get_expected_produced_blocks(N(prodm)) == 45); //first producer in round
-        for (auto prod: { N(prodn), N(prodo) }) {
+        BOOST_TEST(get_expected_produced_blocks(N(prodn)) == 45); //first producer in round
+        for (auto prod: { N(prodp), N(prodo) }) {
             BOOST_TEST(get_expected_produced_blocks(prod) == 48);
         }
-        BOOST_TEST(get_expected_produced_blocks(N(prodp)) == 37); //last producer in round
+        BOOST_TEST(get_expected_produced_blocks(N(prodq)) == 37); //last producer in round
         for (auto prod: { N(prodr), N(prods), N(prodt), N(produ) }) {
             BOOST_TEST(get_expected_produced_blocks(prod) == 36);
         }
