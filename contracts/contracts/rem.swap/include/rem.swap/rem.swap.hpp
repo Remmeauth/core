@@ -192,8 +192,8 @@ namespace eosio {
 
       static constexpr name system_account = "rem"_n;
 
-      const time_point swap_lifetime = time_point(eosio::minutes(180)); // 180 days
-      const time_point swap_active_lifetime = time_point(eosio::minutes(7)); // 7 days
+      const time_point swap_lifetime = time_point(eosio::seconds(180)); // 180 days
+      const time_point swap_active_lifetime = time_point(eosio::seconds(7)); // 7 days
 
       struct [[eosio::table]] swap_data {
          uint64_t          key;

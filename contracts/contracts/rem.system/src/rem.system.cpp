@@ -71,13 +71,13 @@ namespace eosiosystem {
          .gifter_attr_name     = name{"accgifter"},
 
          .guardian_stake_threshold = 250'000'0000LL,
-         .producer_max_inactivity_time = eosio::minutes(30),
-         .producer_inactivity_punishment_period = eosio::minutes(30),
+         .producer_max_inactivity_time = eosio::seconds(30),
+         .producer_inactivity_punishment_period = eosio::seconds(30),
 
-         .stake_lock_period = eosio::minutes(180),
-         .stake_unlock_period = eosio::minutes(180),
+         .stake_lock_period = eosio::seconds(180),
+         .stake_unlock_period = eosio::seconds(180),
 
-         .reassertion_period = eosio::minutes( 7 )
+         .reassertion_period = eosio::seconds( 7 )
       };
 
       return rem_state;

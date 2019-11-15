@@ -232,13 +232,13 @@ namespace eosiosystem {
       name gifter_attr_name     = name{"accgifter"};
 
       int64_t guardian_stake_threshold = 250'000'0000LL;
-      microseconds producer_max_inactivity_time = eosio::minutes(30);
-      microseconds producer_inactivity_punishment_period = eosio::minutes(30);
+      microseconds producer_max_inactivity_time = eosio::seconds(30);
+      microseconds producer_inactivity_punishment_period = eosio::seconds(30);
 
-      microseconds stake_lock_period   = eosio::minutes(180);
-      microseconds stake_unlock_period = eosio::minutes(180);
+      microseconds stake_lock_period   = eosio::seconds(180);
+      microseconds stake_unlock_period = eosio::seconds(180);
 
-      microseconds reassertion_period = eosio::minutes( 7 );
+      microseconds reassertion_period = eosio::seconds( 7 );
 
       EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)
                                                 (gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name)

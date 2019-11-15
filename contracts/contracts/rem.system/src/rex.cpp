@@ -532,7 +532,7 @@ namespace eosiosystem {
       int64_t delta_stake = rented_tokens - itr->total_staked.amount;
       idx.modify ( itr, same_payer, [&]( auto& loan ) {
          loan.total_staked.amount = rented_tokens;
-         loan.expiration         += eosio::minutes(30);
+         loan.expiration         += eosio::seconds(30);
          loan.balance.amount     -= loan.payment.amount;
       });
       return delta_stake;
@@ -688,7 +688,7 @@ namespace eosiosystem {
          c.payment      = payment;
          c.balance      = fund;
          c.total_staked = asset( rented_tokens, core_symbol() );
-         c.expiration   = current_time_point() + eosio::minutes(30);
+         c.expiration   = current_time_point() + eosio::seconds(30);
          c.loan_num     = pool->loan_num;
       });
 
