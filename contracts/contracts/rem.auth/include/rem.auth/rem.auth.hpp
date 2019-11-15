@@ -132,7 +132,7 @@ namespace eosio {
       static constexpr name oracle_contract = "rem.oracle"_n;
 
       const asset key_store_price{10000, auth_symbol};
-      const time_point key_lifetime = time_point(seconds(31104000)); // 360 days
+      const time_point key_lifetime = time_point(eosio::minutes(360)); // 360 days
 
       struct [[eosio::table]] authkeys {
          uint64_t          key;

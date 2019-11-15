@@ -289,12 +289,12 @@ namespace eosiosystem {
       // apply unlock rules only within _gremstate.stake_unlock_period
       if ( voter.last_undelegate_time <= voter.stake_lock_time + _gremstate.stake_unlock_period ) {
          check(voter.locked_stake != 0 && voter.locked_stake >= unstake_quantity.amount, "insufficient locked amount");
-         check( ct - voter.last_undelegate_time > eosio::days(1), "already undelegated within past day" );
+         check( ct - voter.last_undelegate_time > eosio::minutes(1), "already undelegated within past day" );
 
-         const auto unclaimed_days = voter.last_undelegate_time.time_since_epoch().count() ? (ct - voter.last_undelegate_time).count() / eosio::days( 1 ).count()
+         const auto unclaimed_days = voter.last_undelegate_time.time_since_epoch().count() ? (ct - voter.last_undelegate_time).count() / eosio::minutes( 1 ).count()
                                                                                              : 1;
 
-         const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::days( 1 ).count();
+         const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::minutes( 1 ).count();
 
          auto undelegate_limit = voter.locked_stake * unclaimed_days / unlock_period_in_days;
          check(unstake_quantity.amount <= undelegate_limit, "insufficient unlocked amount: "s + asset(undelegate_limit, core_symbol()).to_string());

@@ -72,12 +72,12 @@ namespace eosiosystem {
 
          .guardian_stake_threshold = 250'000'0000LL,
          .producer_max_inactivity_time = eosio::minutes(30),
-         .producer_inactivity_punishment_period = eosio::days(30),
+         .producer_inactivity_punishment_period = eosio::minutes(30),
 
-         .stake_lock_period = eosio::days(180),
-         .stake_unlock_period = eosio::days(180),
+         .stake_lock_period = eosio::minutes(180),
+         .stake_unlock_period = eosio::minutes(180),
 
-         .reassertion_period = eosio::days( 7 )
+         .reassertion_period = eosio::minutes( 7 )
       };
 
       return rem_state;
