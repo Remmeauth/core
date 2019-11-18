@@ -273,6 +273,15 @@ namespace eosiosystem {
       });
    } // delegatebw
 
+   void system_contract::setstakelock( const name& acc, const time_point& tp )
+   {
+      require_auth( get_self() );
+      const auto& voter = _voters.get( acc.value, "user has no resources");
+      _voters.modify( voter, same_payer, [&]( auto& v ) {
+         v.stake_lock_time = tp;
+      });
+   } // setstakelock
+
    void system_contract::undelegatebw( const name& from, const name& receiver,
                                        const asset& unstake_quantity)
    {

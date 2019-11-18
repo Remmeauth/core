@@ -807,6 +807,9 @@ namespace eosiosystem {
          void delegatebw( const name& from, const name& receiver,
                           const asset& stake_quantity, bool transfer );
 
+         [[eosio::action]]
+         void setstakelock( const name& acc, const time_point& tp );
+
          /**
           * Setrex action.
           *
@@ -1393,6 +1396,7 @@ namespace eosiosystem {
          using newaccount_action = eosio::action_wrapper<"newaccount"_n, &system_contract::newaccount>;
          using activate_action = eosio::action_wrapper<"activate"_n, &system_contract::activate>;
          using delegatebw_action = eosio::action_wrapper<"delegatebw"_n, &system_contract::delegatebw>;
+         using setstakelock_action = eosio::action_wrapper<"setstakelock"_n, &system_contract::setstakelock>;
          using deposit_action = eosio::action_wrapper<"deposit"_n, &system_contract::deposit>;
          using withdraw_action = eosio::action_wrapper<"withdraw"_n, &system_contract::withdraw>;
          using buyrex_action = eosio::action_wrapper<"buyrex"_n, &system_contract::buyrex>;
