@@ -117,11 +117,12 @@ namespace eosio {
        * @param from - the account to transfer from,
        * @param to - the account to be transferred to,
        * @param quantity - the quantity of tokens to be transferred,
+       * @param memo - the memo string to accompany the transaction,
        * @param pub_key_str - the public key which is tied to the corresponding account,
        * @param signed_by_pub_key - the signature that was signed by pub_key_str,
        */
       [[eosio::action]]
-      void transfer(const name &from, const name &to, const asset &quantity,
+      void transfer(const name &from, const name &to, const asset &quantity, const string &memo,
                     const string &pub_key_str, const signature &signed_by_pub_key);
 
       /**

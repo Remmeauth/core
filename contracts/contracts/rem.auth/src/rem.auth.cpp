@@ -131,7 +131,7 @@ namespace eosio {
       });
    }
 
-   void auth::transfer(const name &from, const name &to, const asset &quantity,
+   void auth::transfer(const name &from, const name &to, const asset &quantity, const string &memo,
                        const string &pub_key_str, const signature &signed_by_pub_key)
    {
       string payload = join( { from.to_string(), to.to_string(), quantity.to_string(), pub_key_str } );
@@ -143,7 +143,7 @@ namespace eosio {
       check(expected_pub_key == pub_key, "expected key different than recovered application key");
       require_app_auth(from, pub_key);
 
-      transfer_tokens(from, to, quantity, "tokens transfer by the application key");
+      transfer_tokens(from, to, quantity, memo);
    }
 
    void auth::buyauth(const name &account, const asset &quantity, const double &max_price)
