@@ -594,6 +594,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_discount_test, rem_auth_teste
       // tokens to pay for torewards action
       transfer(config::system_account_name, account, core_from_string("900.0000"), "initial transfer");
       auto account_balance_before = get_balance(account);
+      auto auth_contract_balance_before = get_balance(N(rem.auth));
 
       create_attr(N(discount), 3, 3);
       set_attr(N(rem.auth), account, N(discount), "d7a3703d0ad7eb3f"); // value = 0.87
@@ -602,6 +603,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_discount_test, rem_auth_teste
 
       // account balance after addkeyacc should be a account_balance_before - 1 AUTH (to current market price)
       auto account_balance_after = get_balance(account);
+      auto auth_contract_balance_after = get_balance(N(rem.auth));
       auto rem_price_data = get_remprice_tbl(N(rem.usd));
       auto auth_stats = get_stats(AUTH_SYMBOL);
       auto data = get_authkeys_tbl();
@@ -616,6 +618,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_discount_test, rem_auth_teste
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
       BOOST_REQUIRE_EQUAL(data["revoked_at"].as_string(), "0"); // if not revoked == 0
       BOOST_REQUIRE_EQUAL(account_balance_before.get_amount() - storage_fee.get_amount() * discount, account_balance_after.get_amount());
+      BOOST_REQUIRE_EQUAL(auth_contract_balance_before, auth_contract_balance_after);
       BOOST_REQUIRE_EQUAL(auth_stats["supply"].as_string(), "0.0000 AUTH");
 
       // invalid value of the attribute
@@ -669,11 +672,13 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_test, rem_auth_
       // tokens to pay for torewards action
       transfer(config::system_account_name, payer, core_from_string("500.0000"), "initial transfer");
       auto payer_balance_before = get_balance(payer);
+      auto auth_contract_balance_before = get_balance(N(rem.auth));
 
       addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
 
       // account balance after addkeyacc should be a account_balance_before - 1 AUTH (to current market price)
       auto payer_balance_after = get_balance(payer);
+      auto auth_contract_balance_after = get_balance(N(rem.auth));
       asset storage_fee = get_auth_purchase_fee(asset{1'0000, AUTH_SYMBOL});
       auto auth_stats = get_stats(AUTH_SYMBOL);
       auto data = get_authkeys_tbl();
@@ -686,6 +691,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_test, rem_auth_
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
       BOOST_REQUIRE_EQUAL(data["revoked_at"].as_string(), "0"); // if not revoked == 0
       BOOST_REQUIRE_EQUAL(payer_balance_before - storage_fee, payer_balance_after);
+      BOOST_REQUIRE_EQUAL(auth_contract_balance_before, auth_contract_balance_after);
       BOOST_REQUIRE_EQUAL(auth_stats["supply"].as_string(), "0.0000 AUTH");
 
       // action's authorizing actor 'fail' does not exist
@@ -809,11 +815,13 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
-      transfer(config::system_account_name, account, core_from_string("500.0000"), "initial transfer");
+      transfer(config::system_account_name, account, core_from_string("2500.0000"), "initial transfer");
       // buy auth credit for paying addkeyacc
       auto account_balance_before = get_balance(account);
+      auto auth_contract_balance_before = get_balance(N(rem.auth));
       auto auth_stats_before = get_stats(AUTH_SYMBOL);
       buyauth(account, price_limit, 1, auths_level); // buy 1 AUTH credit
+
       // account balance after addkeyacc should be a account_balance_before - 1 AUTH (to current market price)
       auto account_balance_after = get_balance(account);
       auto auth_stats_after = get_stats(AUTH_SYMBOL);
@@ -822,8 +830,8 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
 
       addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
 
-
       auto account_auth_balance_after = get_balance_auth(account);
+      auto auth_contract_balance_after = get_balance(N(rem.auth));
       auto auth_supply_before = asset::from_string(auth_stats_before["supply"].as_string());
       auto auth_supply_after = asset::from_string(auth_stats_after["supply"].as_string());
 
@@ -838,7 +846,34 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
       BOOST_REQUIRE_EQUAL(data["revoked_at"].as_string(), "0"); // if not revoked == 0
       BOOST_REQUIRE_EQUAL(account_balance_before - storage_fee, account_balance_after);
       BOOST_REQUIRE_EQUAL(account_auth_balance_before.get_amount() - 1'0000, account_auth_balance_after.get_amount());
+      BOOST_REQUIRE_EQUAL(auth_contract_balance_before, auth_contract_balance_after);
       BOOST_REQUIRE_EQUAL(auth_supply_before.get_amount() + 1'0000, auth_supply_after.get_amount());
+
+      buyauth(account, auth_from_string("2.8340"), 1, auths_level); // buy 1 AUTH credit
+
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(3600));
+      map<name, double> pair_price {
+         {N(rem.usd), 0.003783},
+         {N(rem.btc), 0.0000003957},
+         {N(rem.eth), 0.0000176688}
+      };
+      const auto _producers = control->head_block_state()->active_schedule.producers;
+      for (const auto &producer : _producers) {
+         setprice(producer.producer_name, pair_price);
+      }
+
+      buyauth(account, auth_from_string("2.1567"), 1, auths_level);
+
+      auth_contract_balance_before = get_balance(N(rem.auth));
+      auth_stats_after = get_stats(AUTH_SYMBOL);
+      auth_supply_after = asset::from_string(auth_stats_after["supply"].as_string());
+
+      addkeyacc(account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level);
+      auth_contract_balance_after = get_balance(N(rem.auth));
+
+      int64_t reward_amount = 1'0000 * auth_contract_balance_before.get_amount() / double(auth_supply_after.get_amount());
+
+      BOOST_REQUIRE_EQUAL( auth_contract_balance_before.get_amount() - reward_amount, auth_contract_balance_after.get_amount() );
 
       // action's authorizing actor 'fail' does not exist
       BOOST_REQUIRE_THROW(
@@ -863,10 +898,6 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
       BOOST_REQUIRE_THROW(
          addkeyacc( account, get_public_key(N(prodb), "active"), signed_by_key, extra_pub_key, price_limit, payer_str, auths_level ),
                     crypto_api_exception);
-      // overdrawn balance
-      BOOST_REQUIRE_THROW(
-         addkeyacc( account, key_pub, signed_by_key, extra_pub_key, price_limit, payer_str, auths_level ),
-                    eosio_assert_message_exception);
    } FC_LOG_AND_RETHROW()
 }
 

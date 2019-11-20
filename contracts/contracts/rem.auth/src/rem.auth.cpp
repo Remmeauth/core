@@ -218,7 +218,7 @@ namespace eosio {
          retire.send(key_storage_fee, "the use of AUTH credit to store a key");
       }
 
-      double reward_amount = rem_balance.amount / auth_credit_supply.amount;
+      double reward_amount = rem_balance.amount / double(auth_credit_supply.amount);
 
       system_contract::torewards_action torewards(system_account, { get_self(), system_contract::active_permission });
       torewards.send(get_self(), asset{static_cast<int64_t>(reward_amount * key_storage_fee.amount), system_contract::get_core_symbol()});
