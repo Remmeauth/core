@@ -177,7 +177,7 @@ namespace eosio {
       size_t i = 0;
       for (auto _table_itr = authkeys_tbl.begin(); _table_itr != authkeys_tbl.end();) {
          time_point not_valid_after = _table_itr->not_valid_after.to_time_point();
-         bool not_expired = time_point_sec(current_time_point()) <= not_valid_after + key_expiration_time;
+         bool not_expired = time_point_sec(current_time_point()) <= not_valid_after + key_cleanup_time;
 
          if (not_expired || i >= max_clear_depth) {
             break;
@@ -192,7 +192,6 @@ namespace eosio {
    {
       bool is_pay_by_auth = (price_limit.symbol == auth_symbol);
       bool is_pay_by_rem  = (price_limit.symbol == system_contract::get_core_symbol());
-      double account_discount = get_account_discount(account);
 
       check(is_pay_by_rem || is_pay_by_auth, "unavailable payment method");
       check(price_limit.is_valid(), "invalid price limit");
@@ -202,6 +201,7 @@ namespace eosio {
       asset rem_balance = get_balance(system_contract::token_account, get_self(), system_contract::get_core_symbol());
 
       if (is_pay_by_rem) {
+         double account_discount = get_account_discount(account);
          asset purchase_fee = get_purchase_fee(key_storage_fee);
          purchase_fee.amount *= account_discount;
          check(purchase_fee < price_limit, "currently REM/USD price is above price limit");
@@ -227,15 +227,16 @@ namespace eosio {
    double auth::get_account_discount(const name &account) const
    {
       attribute_info_table attributes_info(get_self(), get_self().value);
-      if (attributes_info.begin() == attributes_info.end())
+      if (attributes_info.begin() == attributes_info.end()) {
          return 1;
+      }
 
       vector<char> data;
       for (auto it = attributes_info.begin(); it != attributes_info.end(); ++it) {
          attributes_table attributes(get_self(), it->attribute_name.value);
          auto idx = attributes.get_index<"reciss"_n>();
          auto attr_it = idx.find( attribute_data::combine_receiver_issuer(account, get_self()) );
-         if (attr_it == idx.end()) {
+         if (attr_it == idx.end() || !it->valid) {
             continue;
          }
          data = attr_it->attribute.data;
@@ -255,10 +256,10 @@ namespace eosio {
       auto authkeys_idx = authkeys_tbl.get_index<"byname"_n>();
       auto it = authkeys_idx.find(account.value);
 
-      check(it != authkeys_idx.end(), "account has no linked app keys");
+      check(it != authkeys_idx.end(), "account has no linked application keys");
 
       it = find_active_appkey(account, pub_key);
-      check(it != authkeys_idx.end(), "account has no active app keys");
+      check(it != authkeys_idx.end(), "account has no active application keys");
    }
 
    asset auth::get_balance(const name& token_contract_account, const name& owner, const symbol& sym)
@@ -277,6 +278,7 @@ namespace eosio {
       double remusd_price = remusd_it->price;
       int64_t purchase_fee = 1 / remusd_price;
 
+      check(purchase_fee > 0, "invalid REM/USD price");
       return asset{ quantity_auth.amount * purchase_fee, system_contract::get_core_symbol() };
    }
 

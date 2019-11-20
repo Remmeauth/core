@@ -155,8 +155,8 @@ namespace eosio {
       using addkeyapp_action = action_wrapper<"addkeyapp"_n, &auth::addkeyapp>;
       using revokeacc_action = action_wrapper<"revokeacc"_n, &auth::revokeacc>;
       using revokeapp_action = action_wrapper<"revokeapp"_n, &auth::revokeapp>;
-      using buyauth_action = action_wrapper<"buyauth"_n,     &auth::buyauth>;
-      using transfer_action = action_wrapper<"transfer"_n,   &auth::transfer>;
+      using buyauth_action   = action_wrapper<"buyauth"_n,     &auth::buyauth>;
+      using transfer_action  = action_wrapper<"transfer"_n,   &auth::transfer>;
 
       using confirm_action    = eosio::action_wrapper<"confirm"_n,    &auth::confirm>;
       using create_action     = eosio::action_wrapper<"create"_n,     &auth::create>;
@@ -170,7 +170,7 @@ namespace eosio {
 
       const asset key_storage_fee{1'0000, auth_symbol};
       const time_point key_lifetime = time_point(days(360));
-      const time_point key_expiration_time = time_point(days(180)); // the time that should be passed after not_valid_after to delete key
+      const time_point key_cleanup_time = time_point(days(180)); // the time that should be passed after not_valid_after to delete key
 
       enum class data_type : int32_t { Boolean = 0, Int, LargeInt, Double, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, MaxVal };
       enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
@@ -193,10 +193,10 @@ namespace eosio {
          EOSLIB_SERIALIZE( authkeys, (key)(owner)(public_key)(extra_public_key)(not_valid_before)(not_valid_after)(revoked_at))
       };
       typedef multi_index<"authkeys"_n, authkeys,
-            indexed_by<"byname"_n, const_mem_fun < authkeys, uint64_t, &authkeys::by_name>>,
-            indexed_by<"bynotvalbfr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_before>>,
+            indexed_by<"byname"_n,       const_mem_fun < authkeys, uint64_t, &authkeys::by_name>>,
+            indexed_by<"bynotvalbfr"_n,  const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_before>>,
             indexed_by<"bynotvalaftr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_after>>,
-            indexed_by<"byrevoked"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_revoked>>
+            indexed_by<"byrevoked"_n,    const_mem_fun <authkeys, uint64_t, &authkeys::by_revoked>>
             > authkeys_idx;
 
       authkeys_idx authkeys_tbl;
