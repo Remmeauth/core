@@ -536,12 +536,6 @@ BOOST_FIXTURE_TEST_CASE(init_swap_test, rem_swap_tester) {
                                     init_swap_data.return_chain_id,
                                     time_point_sec::from_iso_string("2020-01-13T18:09:16.000")),
                                     eosio_assert_message_exception);
-      // block producer authorization required
-      BOOST_REQUIRE_THROW(
-         init_swap(N(rem.swap), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
-                   init_swap_data.return_address, init_swap_data.return_chain_id,
-                   init_swap_data.swap_timestamp), eosio_assert_message_exception);
-         // TODO: uncomment this when rem.utils will be merged
    } FC_LOG_AND_RETHROW()
 }
 

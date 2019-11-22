@@ -58,19 +58,23 @@ namespace eosio {
             if (is_producer) s.provided_approvals.push_back(rampayer);
          });
       } else {
-         check(is_producer, "block producer authorization required");
-         check(swap_hash_itr->status != static_cast<int8_t>(swap_status::CANCELED), "swap already canceled");
 
-         const vector<name> &approvals = swap_hash_itr->provided_approvals;
-         bool is_already_approved = std::find(approvals.begin(), approvals.end(), rampayer) == approvals.end();
+         if (is_producer) {
+            check(is_producer, "block producer authorization required");
+            check(swap_hash_itr->status != static_cast<int8_t>(swap_status::CANCELED), "swap already canceled");
 
-         check(is_already_approved, "approval already exists");
+            const vector <name> &approvals = swap_hash_itr->provided_approvals;
+            bool is_already_approved = std::find(approvals.begin(), approvals.end(), rampayer) == approvals.end();
 
-         swap_table.modify(*swap_hash_itr, rampayer, [&](auto &s) {
-            s.provided_approvals.push_back(rampayer);
-         });
+            check(is_already_approved, "approval already exists");
+
+            swap_table.modify(*swap_hash_itr, rampayer, [&](auto &s) {
+               s.provided_approvals.push_back(rampayer);
+            });
+         }
+
       }
-
+      // moved out, because existing case when the majority of the active producers = 1
       if (is_producer) {
          cleanup_swaps();
          swap_hash_itr = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
@@ -395,6 +399,6 @@ namespace eosio {
 
    void swap::issue_tokens(const name &rampayer, const asset &quantity) {
       token::issue_action issue(system_contract::token_account, {get_self(), system_contract::active_permission});
-      issue.send(get_self(), quantity, string("swap issue tokens"));
+      issue.send(get_self(), quantity, "swap issue tokens");
    }
 } /// namespace eosio

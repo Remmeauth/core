@@ -49,19 +49,31 @@ namespace eosio {
 
    typedef eosio::singleton< "global"_n, eosio_global_state >   global_state_singleton;
 
-   asset swap::get_min_account_stake() {
+   asset swap::get_min_account_stake() const {
       global_state_singleton global( system_account, system_account.value );
       auto _gstate = global.get();
       return { static_cast<int64_t>( _gstate.min_account_stake ), system_contract::get_core_symbol() };
    }
 
+   vector<name> swap::get_producers() const {
+      global_state_singleton global( system_account, system_account.value );
+      auto _gstate = global.get();
+      vector<name> _producers;
+      for(const auto &producer: _gstate.last_schedule)
+         _producers.push_back(producer.first);
+      for(const auto &producer: _gstate.standby) {
+         _producers.push_back(producer.first);
+      }
+      return _producers;
+   }
+
    bool swap::is_block_producer( const name& user ) const {
-      vector<name> _producers = get_active_producers();
+      vector<name> _producers = get_producers();
       return std::find(_producers.begin(), _producers.end(), user) != _producers.end();
    }
 
    bool swap::is_swap_confirmed( const vector<name>& provided_approvals ) const {
-      vector<name> _producers = get_active_producers();
+      vector<name> _producers = get_producers();
       uint8_t quantity_active_appr = 0;
       for (const auto& producer: provided_approvals) {
          auto prod_appr = std::find(_producers.begin(), _producers.end(), producer);

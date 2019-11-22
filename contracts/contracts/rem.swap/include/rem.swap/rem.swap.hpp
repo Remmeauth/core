@@ -249,7 +249,8 @@ namespace eosio {
 
       bool is_block_producer(const name &user) const;
       bool is_swap_confirmed(const vector <name> &provided_approvals) const;
-      static asset get_min_account_stake();
+      asset get_min_account_stake() const;
+      vector<name> get_producers() const;
 
       checksum256 get_swap_id(const string &txid, const string &swap_pubkey_str, const asset &quantity,
                               const string &return_address, const string &return_chain_id,
