@@ -9,13 +9,9 @@
 #include <eosio/crypto.hpp>
 #include <eosio/singleton.hpp>
 #include <eosio/eosio.hpp>
-#include <eosio/permission.hpp>
-#include <eosio/privileged.hpp>
 #include <eosio/time.hpp>
 
-#include <vector>
 #include <numeric>
-#include <string>
 
 namespace eosio {
 
@@ -218,7 +214,7 @@ namespace eosio {
       };
 
       struct [[eosio::table]] swapparams {
-         int64_t   in_swap_fee = 1000; // fee for swap in remchain
+         int64_t   in_swap_fee = 500000; // fee for swap in remchain
          string    chain_id = "0";
          string    eth_swap_contract_address = "0";
          string    eth_return_chainid = "0";
@@ -278,4 +274,56 @@ namespace eosio {
       void check_pubkey_prefix(const string &pubkey_str) const;
    };
    /** @}*/ // end of @defgroup remswap rem.swap
+   inline auto get_base58_map(std::array<int8_t, 256> &base58_map, bool &map_initialized) {
+      const char base58_chars[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+      if(!map_initialized) {
+         for (unsigned i = 0; i < base58_map.size(); ++i)
+            base58_map[i] = -1;
+         for (unsigned i = 0; i < sizeof(base58_chars); ++i)
+            base58_map[base58_chars[i]] = i;
+         map_initialized = true;
+      }
+      return base58_map;
+   }
+
+   template <size_t size>
+   inline std::array<uint8_t, size> base58_to_binary(std::string_view s) {
+      bool map_initialized = false;
+      std::array<int8_t, 256> base58_map{{0}};
+      std::array<uint8_t, size> result{{0}};
+      for (auto& src_digit : s) {
+         int carry = get_base58_map(base58_map, map_initialized)[src_digit];
+         if (carry < 0)
+            check(0, "invalid base-58 value");
+         for (auto& result_byte : result) {
+            int x = result_byte * 58 + carry;
+            result_byte = x;
+            carry = x >> 8;
+         }
+         if (carry)
+            check(0, "base-58 value is out of range");
+      }
+      std::reverse(result.begin(), result.end());
+      return result;
+   }
+
+   inline public_key string_to_public_key(std::string_view s) {
+      public_key key;
+      bool is_k1_type = s.size() >= 3 && ( s.substr(0, 3) == "EOS" || s.substr(0, 3) == "REM");
+      bool is_r1_type = s.size() >= 7 && s.substr(0, 7) == "PUB_R1_";
+
+      check(is_k1_type || is_r1_type, "unrecognized public key format");
+      auto whole = base58_to_binary<37>( is_k1_type ? s.substr(3) : s.substr(7) );
+      check(whole.size() == std::get_if<0>(&key)->size() + 4, "invalid public key length");
+
+      memcpy(std::get_if<0>(&key)->data(), whole.data(), std::get_if<0>(&key)->size());
+      return key;
+   }
+
+   inline string join( vector<string>&& vec, string delim = "*" ) {
+      return std::accumulate(std::next(vec.begin()), vec.end(), vec[0],
+                             [&delim](string& a, string& b) {
+                                return a + delim + b;
+      });
+   }
 } /// namespace eosio

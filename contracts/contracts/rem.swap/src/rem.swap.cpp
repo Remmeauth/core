@@ -6,9 +6,6 @@
 #include <rem.token/rem.token.hpp>
 #include <rem.system/rem.system.hpp>
 
-#include "base58.cpp"
-#include "system_info.cpp"
-
 namespace eosio {
 
    using eosiosystem::system_contract;
@@ -342,6 +339,7 @@ namespace eosio {
 
       auto chain_it = chains_table.find(name(return_chain_id).value);
       check(quantity.symbol == system_contract::get_core_symbol(), "symbol precision mismatch");
+      check(chain_it != chains_table.end() && chain_it->output, "not supported chain id");
       check(quantity.amount >= chain_it->out_swap_min_amount, "the quantity must be greater than the swap minimum amount");
 
       string retire_memo = return_chain_id + ' ' + return_address;

@@ -256,7 +256,7 @@ utils_tester::utils_tester() {
    addchain(N(ethropsten), true, true, 5000000, auths_level);
 }
 
-BOOST_AUTO_TEST_SUITE(utils_tests)
+BOOST_AUTO_TEST_SUITE(rem_utils_tests)
 
 BOOST_FIXTURE_TEST_CASE( validate_eth_address_test, utils_tester ) {
    try {
@@ -295,15 +295,6 @@ BOOST_FIXTURE_TEST_CASE( validate_eth_address_test_without_hexpre, utils_tester 
       for (const auto &address: valid_addresses) {
          validate_address(N(proda), ethchainid, address);
       }
-   } FC_LOG_AND_RETHROW()
-}
-
-BOOST_FIXTURE_TEST_CASE( validate_eth_address_test_with_non_existed_chain_id, utils_tester ) {
-   try {
-      name ethchainid = N(nonexchain);
-      string ethaddress = "0x9fB8A18fF402680b47387AE0F4e38229EC64f098";
-      // not supported chain id
-      BOOST_REQUIRE_THROW(validate_address(N(proda), ethchainid, ethaddress), eosio_assert_message_exception);
    } FC_LOG_AND_RETHROW()
 }
 

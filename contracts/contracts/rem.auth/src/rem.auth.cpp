@@ -4,9 +4,9 @@
 
 #include <rem.auth/rem.auth.hpp>
 #include <rem.system/rem.system.hpp>
+#include <rem.swap/rem.swap.hpp>
+#include <rem.oracle/rem.oracle.hpp>
 #include <rem.token/rem.token.hpp>
-
-#include <base58.cpp>
 
 namespace eosio {
    using eosiosystem::system_contract;
@@ -205,7 +205,7 @@ namespace eosio {
    }
 
    double auth::get_market_price(const name &pair) const {
-      remprice_inx remprice_table(oracle_contract, oracle_contract.value);
+      remprice_idx remprice_table(oracle_contract, oracle_contract.value);
       auto it = remprice_table.find(pair.value);
       check(it != remprice_table.end(), "pair does not exist");
       return it->price;
@@ -246,13 +246,6 @@ namespace eosio {
    {
       public_key expected_pub_key = recover_key(digest, sign);
       return expected_pub_key == pub_key;
-   }
-
-   string auth::join( vector<string>&& vec, string delim ) {
-      return std::accumulate(std::next(vec.begin()), vec.end(), vec[0],
-                             [&delim](string& a, string& b) {
-                                return a + delim + b;
-      });
    }
 } /// namespace eosio
 

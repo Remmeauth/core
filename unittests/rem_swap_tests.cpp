@@ -200,10 +200,14 @@ public:
       return r;
    }
 
-   auto setswapfee(const int64_t &amount) {
+   auto setswapparam(const int64_t &in_swap_fee, const string &chain_id,
+                     const string &eth_swap_contract_address, const string &eth_return_chainid) {
       vector<permission_level> level = {{N(rem.swap), config::active_name}, {N(rem), config::active_name}};
-      auto r = base_tester::push_action(N(rem.swap), N(setswapfee), level, mvo()
-         ("amount", amount)
+      auto r = base_tester::push_action(N(rem.swap), N(setswapparam), level, mvo()
+         ("in_swap_fee", in_swap_fee)
+         ("chain_id", chain_id)
+         ("eth_swap_contract_address", eth_swap_contract_address)
+         ("eth_return_chainid", eth_return_chainid)
       );
       produce_block();
       return r;
@@ -214,15 +218,6 @@ public:
       auto r = base_tester::push_action(N(rem.swap), N(setminswpout), level, mvo()
          ("chain_id", chain_id)
          ("amount", amount)
-      );
-      produce_block();
-      return r;
-   }
-
-   auto setchainid(const string &chain_id) {
-      vector<permission_level> level = {{N(rem.swap), config::active_name}, {N(rem), config::active_name}};
-      auto r = base_tester::push_action(N(rem.swap), N(setchainid), level, mvo()
-         ("chain_id", chain_id)
       );
       produce_block();
       return r;
@@ -310,7 +305,7 @@ public:
       return min_account_stake;
    }
 
-   string get_pubkey_str(const crypto::private_key& priv_key) {
+   static string get_pubkey_str(const crypto::private_key& priv_key) {
       crypto::public_key pub_key = priv_key.get_public_key();
       return string(pub_key);
    }
@@ -456,9 +451,8 @@ rem_swap_tester::rem_swap_tester() {
    vector<permission_level> auths_level = { permission_level{config::system_account_name, config::active_name},
                                             permission_level{N(rem.swap), config::active_name}};
    addchain(N(ethropsten), true, true, 5000000, auths_level);
-   setswapfee(500000);
+   setswapparam(500000, control->get_chain_id(), "0x81b7E08F65Bdf5648606c89998A9CC8164397647", "ethropsten");
    setminswpout(N(ethropsten), 5000000);
-   setchainid(control->get_chain_id());
 }
 
 BOOST_AUTO_TEST_SUITE(rem_swap_tests)
@@ -1198,15 +1192,15 @@ BOOST_FIXTURE_TEST_CASE(init_return_swap_test, rem_swap_tester) {
    } FC_LOG_AND_RETHROW()
 };
 
-BOOST_FIXTURE_TEST_CASE(set_swap_fee_test, rem_swap_tester) {
-   try {
-      setswapfee(2000000);
-      auto swap_fee = get_singtable(N(rem.swap), N(swapparams), "swapparams")["in_swap_fee"];
-      BOOST_REQUIRE_EQUAL(swap_fee.as_int64(), 2000000);
-      // amount must be a positive
-      BOOST_REQUIRE_THROW(setswapfee(-1000000), eosio_assert_message_exception);
-   } FC_LOG_AND_RETHROW()
-}
+//BOOST_FIXTURE_TEST_CASE(set_swap_fee_test, rem_swap_tester) {
+//   try {
+//      setswapfee(2000000);
+//      auto swap_fee = get_singtable(N(rem.swap), N(swapparams), "swapparams")["in_swap_fee"];
+//      BOOST_REQUIRE_EQUAL(swap_fee.as_int64(), 2000000);
+//      // amount must be a positive
+//      BOOST_REQUIRE_THROW(setswapfee(-1000000), eosio_assert_message_exception);
+//   } FC_LOG_AND_RETHROW()
+//}
 
 BOOST_FIXTURE_TEST_CASE(set_min_swap_out_test, rem_swap_tester) {
    try {
@@ -1218,16 +1212,16 @@ BOOST_FIXTURE_TEST_CASE(set_min_swap_out_test, rem_swap_tester) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_FIXTURE_TEST_CASE(set_chain_id_test, rem_swap_tester) {
-   try {
-      string expected_chain_id("0x", 32);
-      setchainid(expected_chain_id);
-      auto chain_id = get_singtable(N(rem.swap), N(swapparams), "swapparams")["chain_id"];
-      BOOST_REQUIRE_EQUAL(chain_id.as_string(), expected_chain_id);
-      // invalid chain-id
-      BOOST_REQUIRE_THROW(setchainid(""), eosio_assert_message_exception);
-   } FC_LOG_AND_RETHROW()
-}
+//BOOST_FIXTURE_TEST_CASE(set_chain_id_test, rem_swap_tester) {
+//   try {
+//      string expected_chain_id("0x", 32);
+//      setchainid(expected_chain_id);
+//      auto chain_id = get_singtable(N(rem.swap), N(swapparams), "swapparams")["chain_id"];
+//      BOOST_REQUIRE_EQUAL(chain_id.as_string(), expected_chain_id);
+//      // invalid chain-id
+//      BOOST_REQUIRE_THROW(setchainid(""), eosio_assert_message_exception);
+//   } FC_LOG_AND_RETHROW()
+//}
 
 BOOST_FIXTURE_TEST_CASE(add_chain_test, rem_swap_tester) {
    try {

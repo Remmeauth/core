@@ -3,6 +3,7 @@
  */
 
 #include <rem.swap/rem.swap.hpp>
+#include <rem.system/rem.system.hpp>
 
 namespace eosio {
 
@@ -55,12 +56,12 @@ namespace eosio {
    }
 
    bool swap::is_block_producer( const name& user ) const {
-      vector<name> _producers = eosio::get_active_producers();
+      vector<name> _producers = get_active_producers();
       return std::find(_producers.begin(), _producers.end(), user) != _producers.end();
    }
 
    bool swap::is_swap_confirmed( const vector<name>& provided_approvals ) const {
-      vector<name> _producers = eosio::get_active_producers();
+      vector<name> _producers = get_active_producers();
       uint8_t quantity_active_appr = 0;
       for (const auto& producer: provided_approvals) {
          auto prod_appr = std::find(_producers.begin(), _producers.end(), producer);
