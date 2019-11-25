@@ -8,8 +8,6 @@
 
 #include <base58.cpp>
 
-#include "attr.cpp"
-
 namespace eosio {
    using eosiosystem::system_contract;
 
@@ -295,7 +293,3 @@ namespace eosio {
       });
    }
 } /// namespace eosio
-
-EOSIO_DISPATCH( eosio::auth, (addkeyacc)(addkeyapp)(revokeacc)(revokeapp)(buyauth)(transfer)(cleanupkeys)
-                             // define in attr.cpp
-                             (confirm)(create)(invalidate)(remove)(setattr)(unsetattr)                   )
