@@ -34,13 +34,14 @@ namespace eosiosystem {
    struct [[eosio::table, eosio::contract("rem.system")]] refund_request {
       name            owner;
       time_point_sec  request_time;
+      time_point      last_claim_time;
       eosio::asset    resource_amount;
 
       bool is_empty()const { return resource_amount.amount == 0; }
       uint64_t  primary_key()const { return owner.value; }
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( refund_request, (owner)(request_time)(resource_amount) )
+      EOSLIB_SERIALIZE( refund_request, (owner)(request_time)(last_claim_time)(resource_amount) )
    };
 
    /**
@@ -286,24 +287,6 @@ namespace eosiosystem {
       const auto& voter = _voters.get(from.value, "user has no resources");
       check(voter.stake_lock_time <= ct, "cannot undelegate during stake lock period");
 
-      // apply unlock rules only within _gremstate.stake_unlock_period
-      if ( voter.last_undelegate_time <= voter.stake_lock_time + _gremstate.stake_unlock_period ) {
-         check(voter.locked_stake != 0 && voter.locked_stake >= unstake_quantity.amount, "insufficient locked amount");
-         check( ct - voter.last_undelegate_time > eosio::days(1), "already undelegated within past day" );
-
-         const auto unclaimed_days = voter.last_undelegate_time.time_since_epoch().count() ? (ct - voter.last_undelegate_time).count() / eosio::days( 1 ).count()
-                                                                                             : 1;
-
-         const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::days( 1 ).count();
-
-         auto undelegate_limit = voter.locked_stake * unclaimed_days / unlock_period_in_days;
-         check(unstake_quantity.amount <= undelegate_limit, "insufficient unlocked amount: "s + asset(undelegate_limit, core_symbol()).to_string());
-
-         _voters.modify(voter, same_payer, [&](auto &v) {
-               v.last_undelegate_time = ct;
-         });
-      }
-
       changebw( from, receiver, -unstake_quantity , false);
    } // undelegatebw
 
@@ -314,11 +297,23 @@ namespace eosiosystem {
       refunds_table refunds_tbl( get_self(), owner.value );
       auto req = refunds_tbl.find( owner.value );
       check( req != refunds_tbl.end(), "refund request not found" );
-      check( req->request_time + seconds(refund_delay_sec) <= current_time_point(),
-             "refund is not available yet" );
+      
+      const auto ct = current_time_point();
+      check( ct - req->last_claim_time > eosio::days( 1 ), "already claimed refunds within past day" );
+
+      const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::days( 1 ).count();
+      const auto unclaimed_days = std::min( (ct - req->last_claim_time).count() / eosio::days( 1 ).count(), unlock_period_in_days ); 
+      asset refund_amount = req->resource_amount * unclaimed_days / unlock_period_in_days;
+
+      check( refund_amount > asset{ 0, core_symbol() }, "insufficient unlocked amount" );
+
       token::transfer_action transfer_act{ token_account, { {stake_account, active_permission}, {req->owner, active_permission} } };
       transfer_act.send( stake_account, req->owner, req->resource_amount, "unstake" );
-      refunds_tbl.erase( req );
+      
+      refunds_tbl.modify( req, same_payer, [&refund_amount, &ct]( auto& refund_request ){
+         refund_request.last_claim_time = ct;
+         refund_request.resource_amount -= refund_amount;
+      });
    }
 
 
@@ -327,9 +322,9 @@ namespace eosiosystem {
 
       refunds_table refunds_tbl( get_self(), owner.value );
       auto req = refunds_tbl.get( owner.value, "refund request not found" );
-      check( req.request_time + seconds(refund_delay_sec) <= current_time_point(), "refund is not available yet" );
+      check( req.request_time + refund_delay_sec <= current_time_point(), "refund is not available yet" );
 
       changebw( owner, owner, req.resource_amount, false );
+      // TODO check if we need refunds_table.erase( req );
    }
-
 } //namespace eosiosystem
