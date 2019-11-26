@@ -7,6 +7,7 @@ target_include_directories(rem.swap
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../rem.system/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../rem.utils/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../rem.token/include
 )
 

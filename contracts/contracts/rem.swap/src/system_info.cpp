@@ -49,13 +49,22 @@ namespace eosio {
 
    typedef eosio::singleton< "global"_n, eosio_global_state >   global_state_singleton;
 
-   asset swap::get_min_account_stake() const {
+   asset swap::get_min_account_stake() const
+   {
       global_state_singleton global( system_account, system_account.value );
       auto _gstate = global.get();
       return { static_cast<int64_t>( _gstate.min_account_stake ), system_contract::get_core_symbol() };
    }
 
-   vector<name> swap::get_producers() const {
+   asset swap::get_producers_reward(const name &chain_id) const
+   {
+      auto it = chains_table.find(chain_id.value);
+      check(it != chains_table.end() && it->input, "not supported chain id");
+      return asset{ it->in_swap_min_amount, system_contract::get_core_symbol() };
+   }
+
+   vector<name> swap::get_producers() const
+   {
       global_state_singleton global( system_account, system_account.value );
       auto _gstate = global.get();
       vector<name> _producers;
@@ -67,12 +76,14 @@ namespace eosio {
       return _producers;
    }
 
-   bool swap::is_block_producer( const name& user ) const {
+   bool swap::is_block_producer( const name& user ) const
+   {
       vector<name> _producers = get_producers();
       return std::find(_producers.begin(), _producers.end(), user) != _producers.end();
    }
 
-   bool swap::is_swap_confirmed( const vector<name>& provided_approvals ) const {
+   bool swap::is_swap_confirmed( const vector<name>& provided_approvals ) const
+   {
       vector<name> _producers = get_producers();
       uint8_t quantity_active_appr = 0;
       for (const auto& producer: provided_approvals) {
@@ -86,7 +97,8 @@ namespace eosio {
       return false;
    }
 
-   void swap::check_pubkey_prefix(const string& pubkey_str) const {
+   void swap::check_pubkey_prefix(const string& pubkey_str) const
+   {
       string pubkey_pre = pubkey_str.substr(0, 3);
       check(pubkey_pre == "EOS" || pubkey_pre == "REM", "invalid type of public key");
    }

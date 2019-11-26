@@ -187,24 +187,24 @@ public:
       return r;
    }
 
-   auto addchain(const name &chain_id, const bool &input, const bool& output, const int64_t &out_swap_min_amount,
+   auto addchain(const name &chain_id, const bool &input, const bool& output,
+                 const int64_t &in_swap_min_amount, const int64_t &out_swap_min_amount,
                  const vector<permission_level>& level) {
 
       auto r = base_tester::push_action(N(rem.swap), N(addchain), level, mvo()
          ("chain_id", chain_id)
          ("input", input)
          ("output", output)
+         ("in_swap_min_amount", in_swap_min_amount)
          ("out_swap_min_amount", out_swap_min_amount)
       );
       produce_block();
       return r;
    }
 
-   auto setswapparam(const int64_t &in_swap_fee, const string &chain_id,
-                     const string &eth_swap_contract_address, const string &eth_return_chainid) {
+   auto setswapparam(const string &chain_id, const string &eth_swap_contract_address, const string &eth_return_chainid) {
       vector<permission_level> level = {{N(rem.swap), config::active_name}, {N(rem), config::active_name}};
       auto r = base_tester::push_action(N(rem.swap), N(setswapparam), level, mvo()
-         ("in_swap_fee", in_swap_fee)
          ("chain_id", chain_id)
          ("eth_swap_contract_address", eth_swap_contract_address)
          ("eth_return_chainid", eth_return_chainid)
@@ -450,9 +450,8 @@ rem_swap_tester::rem_swap_tester() {
    // add supported chain
    vector<permission_level> auths_level = { permission_level{config::system_account_name, config::active_name},
                                             permission_level{N(rem.swap), config::active_name}};
-   addchain(N(ethropsten), true, true, 5000000, auths_level);
-   setswapparam(500000, control->get_chain_id(), "0x81b7E08F65Bdf5648606c89998A9CC8164397647", "ethropsten");
-   setminswpout(N(ethropsten), 5000000);
+   addchain(N(ethropsten), true, true, 1000000, 5000000, auths_level);
+   setswapparam(control->get_chain_id(), "0x81b7E08F65Bdf5648606c89998A9CC8164397647", "ethropsten");
 }
 
 BOOST_AUTO_TEST_SUITE(rem_swap_tests)
@@ -591,7 +590,10 @@ BOOST_FIXTURE_TEST_CASE(finish_swap_test, rem_swap_tester) {
 
       auto receiver_before_balance = get_balance(receiver);
       auto remswap_before_balance = get_balance(N(rem.swap));
-      asset producers_reward = get_swap_fee();
+      asset producers_reward = asset(
+         get_supported_chain(name(init_swap_data.return_chain_id))["in_swap_min_amount"].as_int64(),
+         symbol(CORE_SYMBOL)
+         );
 
       finish_swap(init_swap_data.rampayer, receiver, init_swap_data.txid, init_swap_data.swap_pubkey,
                   init_swap_data.quantity, init_swap_data.return_address, init_swap_data.return_chain_id,
@@ -816,7 +818,10 @@ BOOST_FIXTURE_TEST_CASE(finishnewacc_swap_test, rem_swap_tester) {
       auto sign = swap_key_priv.sign(swap_digest);
 
       auto remswap_before_balance = get_balance(N(rem.swap));
-      asset producers_reward = get_swap_fee();
+      asset producers_reward = asset(
+         get_supported_chain(name(init_swap_data.return_chain_id))["in_swap_min_amount"].as_int64(),
+         symbol(CORE_SYMBOL)
+      );
 
       finish_swap_new_account(init_swap_data.rampayer, receiver, owner_acc_pubkey, active_acc_pubkey,
                               init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
@@ -1196,15 +1201,15 @@ BOOST_FIXTURE_TEST_CASE(init_return_swap_test, rem_swap_tester) {
 //   } FC_LOG_AND_RETHROW()
 //}
 
-BOOST_FIXTURE_TEST_CASE(set_min_swap_out_test, rem_swap_tester) {
-   try {
-      setminswpout(N(ethropsten), 5000000);
-      auto min_amount = get_supported_chain(N(ethropsten))["out_swap_min_amount"];
-      BOOST_REQUIRE_EQUAL(min_amount.as_int64(), 5000000);
-      // amount must be a positive
-      BOOST_REQUIRE_THROW(setminswpout(N(xrp), -1000000), eosio_assert_message_exception);
-   } FC_LOG_AND_RETHROW()
-}
+//BOOST_FIXTURE_TEST_CASE(set_min_swap_out_test, rem_swap_tester) {
+//   try {
+//      setminswpout(N(ethropsten), 5000000);
+//      auto min_amount = get_supported_chain(N(ethropsten))["out_swap_min_amount"];
+//      BOOST_REQUIRE_EQUAL(min_amount.as_int64(), 5000000);
+//      // amount must be a positive
+//      BOOST_REQUIRE_THROW(setminswpout(N(xrp), -1000000), eosio_assert_message_exception);
+//   } FC_LOG_AND_RETHROW()
+//}
 
 //BOOST_FIXTURE_TEST_CASE(set_chain_id_test, rem_swap_tester) {
 //   try {
@@ -1220,7 +1225,7 @@ BOOST_FIXTURE_TEST_CASE(set_min_swap_out_test, rem_swap_tester) {
 BOOST_FIXTURE_TEST_CASE(add_chain_test, rem_swap_tester) {
    try {
       vector<permission_level> auths_level = { permission_level{N(rem.swap), config::active_name}};
-      addchain(N(ethropsten), true, true, 1000000, auths_level);
+      addchain(N(ethropsten), true, true, 100'0000, 100'0000, auths_level);
 
       auto data = get_supported_chain(N(ethropsten));
 
@@ -1228,13 +1233,13 @@ BOOST_FIXTURE_TEST_CASE(add_chain_test, rem_swap_tester) {
       BOOST_REQUIRE_EQUAL(data["input"].as_string(), "1");
       BOOST_REQUIRE_EQUAL(data["output"].as_string(), "1");
 
-      addchain(N(ethropsten), true, false, 1000000, auths_level);
+      addchain(N(ethropsten), true, false, 100'0000, 100'0000, auths_level);
       data = get_supported_chain(N(ethropsten));
 
       BOOST_REQUIRE_EQUAL(data["output"].as_string(), "0");
 
       // missing required authority
-      BOOST_REQUIRE_THROW(addchain(N(ethropsten), true, false, 1000000, { permission_level{N(proda), config::active_name}}),
+      BOOST_REQUIRE_THROW(addchain(N(ethropsten), true, false, 100'0000, 100'0000, { permission_level{N(proda), config::active_name}}),
                           missing_auth_exception);
    } FC_LOG_AND_RETHROW()
 }
