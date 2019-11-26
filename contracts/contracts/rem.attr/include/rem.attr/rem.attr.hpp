@@ -4,7 +4,7 @@
 
 namespace eosio {
 
-   struct [[eosio::table, eosio::contract("rem.attr")]] attribute_info {
+   struct [[eosio::table, eosio::contract("rem.auth")]] attribute_info {
       name    attribute_name;
       int32_t type;
       int32_t ptype;
