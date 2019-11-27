@@ -64,12 +64,6 @@ struct set_attr_expected_t : public set_attr_t {
    virtual bool isValueOk(std::string actualValue) const {
       bytes b(actualValue.size() / 2);
       const auto size = fc::from_hex(actualValue, b.data(), b.size());
-
-      if (std::is_integral<T>::value) {
-         for (size_t i = 0; i < b.size() / 2; i++) {
-            std::swap(b[i], b[b.size() - (1 + i)]);
-         }
-      }
       const auto v = fc::raw::unpack<T>(b);
       return v == expectedValue;
    }
@@ -358,7 +352,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
             "06426c61697a65", // encoded string "Blaize"
             "Blaize");
         set_attr_expected_t<int64_t> attr8(N(proda), N(prodb), N(largeint),
-            "8000000000000000", // encoded number -9223372036854775808
+            "0000000000000080", // encoded number -9223372036854775808 (8000000000000000 reversed because of mechanics of pack/unpack)
             -9223372036854775808);
         set_attr_expected_t<int64_t> attr9(N(prodb), N(prodb), N(largeint),
            "ffffffffffffffff", // encoded number -1
