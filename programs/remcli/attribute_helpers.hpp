@@ -95,25 +95,9 @@ std::string decodeAttribute(const std::string& hex, int32_t type)
       v = fc::raw::unpack<bool>(data);
    }
    else if (type == 1) {
-      if (data.size() < sizeof(int32_t)) {
-         std::vector<char> tmp(sizeof(int32_t) - data.size(), 0);
-         std::copy(std::begin(data), std::end(data), std::back_inserter(tmp));
-         data.swap(tmp);
-      }
-      for (size_t i = 0; i < data.size() / 2; i++) {
-         std::swap(data[i], data[data.size() - (1 + i)]);
-      }
       v = fc::raw::unpack<int32_t>(data);
    }
    else if (type == 2) {
-      if (data.size() < sizeof(int64_t)) {
-         std::vector<char> tmp(sizeof(int64_t) - data.size(), 0);
-         std::copy(std::begin(data), std::end(data), std::back_inserter(tmp));
-         data.swap(tmp);
-      }
-      for (size_t i = 0; i < data.size() / 2; i++) {
-         std::swap(data[i], data[data.size() - (1 + i)]);
-      }
       v = fc::raw::unpack<int64_t>(data);
    }
    else if (type == 3) {
@@ -123,14 +107,6 @@ std::string decodeAttribute(const std::string& hex, int32_t type)
       v = fc::raw::unpack<std::string>(data);
    }
    else if (type == 5) {
-      if (data.size() < sizeof(int64_t)) {
-         std::vector<char> tmp(sizeof(int64_t) - data.size(), 0);
-         std::copy(std::begin(data), std::end(data), std::back_inserter(tmp));
-         data.swap(tmp);
-      }
-      for (size_t i = 0; i < data.size() / 2; i++) {
-         std::swap(data[i], data[data.size() - (1 + i)]);
-      }
       v = fc::time_point(fc::seconds(fc::raw::unpack<int64_t>(data)));
    }
    else if (type == 6) {
