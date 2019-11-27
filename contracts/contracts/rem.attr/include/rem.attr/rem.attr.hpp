@@ -82,6 +82,7 @@ namespace eosio {
          indexed_by<"reciss"_n, const_mem_fun<attribute_data, uint128_t, &attribute_data::by_receiver_issuer>  >
          > attributes_table;
 
+      void check_attribute_data(const std::vector<char>& data, int32_t type) const;
       void check_permission(const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;
    };
