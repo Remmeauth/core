@@ -211,6 +211,10 @@ public:
        return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "voter_info", data, abi_serializer_max_time );
     }
 
+   fc::variant get_refund_request( name account ) {
+      vector<char> data = get_row_by_account( config::system_account_name, account, N(refunds), account );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "refund_request", data, abi_serializer_max_time );
+   }
 
     // Vote for producers
     void votepro( account_name voter, vector<account_name> producers ) {
@@ -232,6 +236,28 @@ public:
        );
        produce_block();
        return r;
+   }
+
+   auto open(account_name owner,
+             const string &symbolname,
+             account_name ram_payer) {
+      auto r = base_tester::push_action(
+          N(rem.token), N(open), owner,
+          mvo()("owner", owner)("symbol", symbolname)("ram_payer", ram_payer)
+      );
+
+      produce_block();
+      return r;
+   }
+
+   auto refund( const name& to ) {
+      auto r = base_tester::push_action(
+         config::system_account_name, N(refund), to,
+         mvo()("owner", to)
+      );
+
+      produce_block();
+      return r;
    }
 
    auto refund_to_stake( const name& to ) {
@@ -292,6 +318,7 @@ voting_tester::voting_tester() {
    // Create genesis accounts
    for( const auto& account : rem_test_genesis ) {
       create_account( account.name, config::system_account_name );
+      // open( account.name, CORE_SYM_STR, account.name );
    }
 
    deploy_contract();
@@ -743,71 +770,78 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          BOOST_REQUIRE_EXCEPTION( undelegate_bandwidth( N(proda), N(proda), core_from_string("1.0000") ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: cannot undelegate during stake lock period") );
       }
 
+      // fixes `no balance object found`
+      // we need this because balances added before rem.system is deployed
+      open( N(proda), CORE_SYM_STR, N(proda) );
 
       // +180 Days
       // GMT: Monday, June 29, 2020
+      const auto undelegated_funds = 100'000'0000LL;
       {
          produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(180) );
 
-         // 499'999'9000 * 1 / 180 = 2'777'7772
-         const auto one_day_undelegate_limit = 2'777'7772LL;
+         undelegate_bandwidth( N(proda), N(proda), asset{ undelegated_funds } );
 
-         BOOST_REQUIRE_EXCEPTION( undelegate_bandwidth( N(proda), N(proda), asset{ one_day_undelegate_limit + 1 } ), eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient unlocked amount") );
-         undelegate_bandwidth( N(proda), N(proda), asset{ one_day_undelegate_limit } );
+         const auto voter = get_voter_info( N(proda) );
+         BOOST_TEST( (initial_locked_stake - undelegated_funds) == voter["staked"].as_int64() );
 
-         auto voter = get_voter_info( name("proda") );
-         BOOST_TEST( (initial_locked_stake-one_day_undelegate_limit) == voter["locked_stake"].as_int64() );
+         const auto proda_refund = get_refund_request( N(proda) );
+         BOOST_TEST( asset{ undelegated_funds } == proda_refund["resource_amount"].as<asset>() );
+         BOOST_CHECK( microseconds_since_epoch_of_iso_string( proda_refund["request_time"] ) == microseconds_since_epoch_of_iso_string( proda_refund["last_claim_time"] ) );
+
+         BOOST_REQUIRE_EXCEPTION( refund( N(proda) ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: already claimed refunds within past day") );
       }
+
 
       // +10 Days
       {
          produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(10) );
 
-         // 497'222'1228 * 1 / 180 = 27623451
-         const auto remaining_locked_stake = 497'222'1228;
-         const auto one_day_undelegate_limit = 2'762'3451LL;
-         undelegate_bandwidth( N(proda), N(proda), asset{ 10 * one_day_undelegate_limit } );
+         const auto remaining_locked_stake = 100'000'0000LL;
+         const auto one_day_undelegate_limit = 555'5555LL;
 
-         auto voter = get_voter_info( name("proda") );
-         BOOST_TEST( (remaining_locked_stake - 10 * one_day_undelegate_limit) == voter["locked_stake"].as_int64() );
+         refund( N(proda) );
+         
+         const auto proda_refund = get_refund_request( N(proda) );
+         BOOST_TEST( asset{ remaining_locked_stake - 10 * one_day_undelegate_limit } == proda_refund["resource_amount"].as<asset>() );
       }
 
-      // +180 Days
-      {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(180) );
+      // // +180 Days
+      // {
+      //    produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(180) );
 
-         const auto minimal_account_stake = 100'0000; // minimum stake for account 100.0000 REM
-         const auto remaining_locked_stake = 469'598'6718 - 100'0000;
+      //    const auto minimal_account_stake = 100'0000; // minimum stake for account 100.0000 REM
+      //    const auto remaining_locked_stake = 469'598'6718 - 100'0000;
 
-         // cannot undelegate more than locked
-         BOOST_REQUIRE_EXCEPTION( undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake + minimal_account_stake + 1 } ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: insufficient locked amount") );
+      //    // cannot undelegate more than locked
+      //    BOOST_REQUIRE_EXCEPTION( undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake + minimal_account_stake + 1 } ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: insufficient locked amount") );
 
-         undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake } );
+      //    undelegate_bandwidth( N(proda), N(proda), asset{ remaining_locked_stake } );
 
-         auto voter = get_voter_info( name("proda") );
-         BOOST_TEST( minimal_account_stake == voter["locked_stake"].as_int64() );
-      }
+      //    auto voter = get_voter_info( name("proda") );
+      //    BOOST_TEST( minimal_account_stake == voter["locked_stake"].as_int64() );
+      // }
 
-      // +3 Days
-      {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(3) );
+      // // +3 Days
+      // {
+      //    produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days(3) );
 
-         const auto staked_before_refund = get_voter_info( name("proda") )["staked"];
-         const auto locked_before_refund = get_voter_info( name("proda") )["locked_stake"];
-         const auto lock_time_refund = microseconds_since_epoch_of_iso_string( get_voter_info( name("proda") )["stake_lock_time"] );
+      //    const auto staked_before_refund = get_voter_info( name("proda") )["staked"];
+      //    const auto locked_before_refund = get_voter_info( name("proda") )["locked_stake"];
+      //    const auto lock_time_refund = microseconds_since_epoch_of_iso_string( get_voter_info( name("proda") )["stake_lock_time"] );
 
-         refund_to_stake( N(proda) );
-         produce_blocks(2);
-         BOOST_TEST( staked_before_refund < get_voter_info( name("proda") )["staked"].as_int64() );
-         BOOST_TEST( initial_locked_stake == get_voter_info( name("proda") )["staked"].as_int64() );
-         BOOST_TEST( locked_before_refund < get_voter_info( name("proda") )["locked_stake"].as_int64() );
-         BOOST_TEST( initial_locked_stake == get_voter_info( name("proda") )["locked_stake"].as_int64() );
-         BOOST_CHECK( lock_time_refund == microseconds_since_epoch_of_iso_string( get_voter_info( name("proda") )["stake_lock_time"] ) );
-      }
+      //    refund_to_stake( N(proda) );
+      //    produce_blocks(2);
+      //    BOOST_TEST( staked_before_refund < get_voter_info( name("proda") )["staked"].as_int64() );
+      //    BOOST_TEST( initial_locked_stake == get_voter_info( name("proda") )["staked"].as_int64() );
+      //    BOOST_TEST( locked_before_refund < get_voter_info( name("proda") )["locked_stake"].as_int64() );
+      //    BOOST_TEST( initial_locked_stake == get_voter_info( name("proda") )["locked_stake"].as_int64() );
+      //    BOOST_CHECK( lock_time_refund == microseconds_since_epoch_of_iso_string( get_voter_info( name("proda") )["stake_lock_time"] ) );
+      // }
 
-      {
-         undelegate_bandwidth( N(proda), N(proda), asset{ initial_locked_stake - 100'0000LL } );
-      }
+      // {
+      //    undelegate_bandwidth( N(proda), N(proda), asset{ initial_locked_stake - 100'0000LL } );
+      // }
    } FC_LOG_AND_RETHROW()
 }
 

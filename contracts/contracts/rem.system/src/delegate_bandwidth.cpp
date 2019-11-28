@@ -35,13 +35,14 @@ namespace eosiosystem {
       name            owner;
       time_point_sec  request_time;
       time_point      last_claim_time;
+      time_point      unlock_time;
       eosio::asset    resource_amount;
 
       bool is_empty()const { return resource_amount.amount == 0; }
       uint64_t  primary_key()const { return owner.value; }
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( refund_request, (owner)(request_time)(last_claim_time)(resource_amount) )
+      EOSLIB_SERIALIZE( refund_request, (owner)(request_time)(last_claim_time)(unlock_time)(resource_amount) )
    };
 
    /**
@@ -194,6 +195,8 @@ namespace eosiosystem {
                   r.owner = from;
                   r.resource_amount = -temp_balance;
                   r.request_time = current_time_point();
+                  r.last_claim_time = current_time_point();
+                  r.unlock_time = current_time_point() + _gremstate.stake_unlock_period;
                });
                temp_balance.amount = 0;
                need_deferred_trx = true;
@@ -295,20 +298,19 @@ namespace eosiosystem {
       require_auth( owner );
 
       refunds_table refunds_tbl( get_self(), owner.value );
-      auto req = refunds_tbl.find( owner.value );
-      check( req != refunds_tbl.end(), "refund request not found" );
+      const auto& req = refunds_tbl.get( owner.value, "refund request not found" );
       
       const auto ct = current_time_point();
-      check( ct - req->last_claim_time > eosio::days( 1 ), "already claimed refunds within past day" );
+      check( ct - req.last_claim_time > eosio::days( 1 ), "already claimed refunds within past day" );
 
-      const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::days( 1 ).count();
-      const auto unclaimed_days = std::min( (ct - req->last_claim_time).count() / eosio::days( 1 ).count(), unlock_period_in_days ); 
-      asset refund_amount = req->resource_amount * unclaimed_days / unlock_period_in_days;
+      const auto unlock_period_in_days = (req.unlock_time - req.last_claim_time).count() / eosio::days( 1 ).count();
+      const auto unclaimed_days = std::min( (ct - req.last_claim_time).count() / eosio::days( 1 ).count(), unlock_period_in_days ); 
+      asset refund_amount = req.resource_amount * unclaimed_days / unlock_period_in_days;
 
       check( refund_amount > asset{ 0, core_symbol() }, "insufficient unlocked amount" );
 
-      token::transfer_action transfer_act{ token_account, { {stake_account, active_permission}, {req->owner, active_permission} } };
-      transfer_act.send( stake_account, req->owner, req->resource_amount, "unstake" );
+      token::transfer_action transfer_act{ token_account, { {stake_account, active_permission}, {req.owner, active_permission} } };
+      transfer_act.send( stake_account, req.owner, refund_amount, "unstake" );
       
       refunds_tbl.modify( req, same_payer, [&refund_amount, &ct]( auto& refund_request ){
          refund_request.last_claim_time = ct;
@@ -324,7 +326,13 @@ namespace eosiosystem {
       auto req = refunds_tbl.get( owner.value, "refund request not found" );
       check( req.request_time + refund_delay_sec <= current_time_point(), "refund is not available yet" );
 
-      changebw( owner, owner, req.resource_amount, false );
+      const auto ct = current_time_point();
+
+      const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::days( 1 ).count();
+      const auto unclaimed_days = std::min( (ct - req.last_claim_time).count() / eosio::days( 1 ).count(), unlock_period_in_days ); 
+      asset refund_amount = req.resource_amount * ( 1.0 - unclaimed_days / unlock_period_in_days );
+
+      changebw( owner, owner, refund_amount, false );
       // TODO check if we need refunds_table.erase( req );
    }
 } //namespace eosiosystem
