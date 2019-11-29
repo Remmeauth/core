@@ -792,6 +792,8 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          BOOST_REQUIRE_EXCEPTION( refund( N(proda) ), eosio_assert_message_exception, fc_exception_message_is("assertion failure with message: already claimed refunds within past day") );
       }
 
+      // fixes `no balance object found`
+      transfer( config::system_account_name, N(rem.stake), asset{ 1'000'000'0000LL } );
 
       // +10 Days
       {
