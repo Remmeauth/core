@@ -243,9 +243,8 @@ namespace eosiosystem {
     _producers.modify( prod, same_payer, [&](auto& p) {
           p.punished_until = ct + _gremstate.producer_inactivity_punishment_period;
           p.top21_chosen_time = time_point(eosio::seconds(0));
+          p.deactivate();
        });
-
-    rmvproducer(producer);
 }
 
    void system_contract::updtrevision( uint8_t revision ) {
