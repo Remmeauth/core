@@ -107,6 +107,20 @@ namespace eosiosystem {
       _gremstate.per_vote_share = vote_share;
    }
 
+   void system_contract::setinacttime( uint64_t period_in_minutes ) {
+   require_auth(get_self());
+
+   check(period_in_minutes != 0, "block producer maximum inactivity time cannot be zero");
+   _gremstate.producer_max_inactivity_time = eosio::minutes(period_in_minutes);
+    }
+
+    void system_contract::setpnshperiod( uint64_t period_in_days ) {
+       require_auth(get_self());
+
+       check(period_in_days != 0, "punishment period cannot be zero");
+       _gremstate.producer_inactivity_punishment_period = eosio::days(period_in_days);
+    }
+
    void system_contract::setlockperiod( uint64_t period_in_days ) {
       require_auth(get_self());
 
@@ -215,6 +229,23 @@ namespace eosiosystem {
             p.deactivate();
       });
    }
+
+   void system_contract::punishprod( const name& producer ) {
+    auto prod = _producers.find( producer.value );
+    check( prod != _producers.end(), "producer not found" );
+
+    const auto ct = current_time_point();
+    check( prod->active() && prod->top21_chosen_time != time_point(eosio::seconds(0)), "can only punish top21 active producers" );
+
+    check( ct - prod->last_block_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
+    check( ct - prod->top21_chosen_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
+
+    _producers.modify( prod, same_payer, [&](auto& p) {
+          p.punished_until = ct + _gremstate.producer_inactivity_punishment_period;
+          p.top21_chosen_time = time_point(eosio::seconds(0));
+          p.deactivate();
+       });
+}
 
    void system_contract::updtrevision( uint8_t revision ) {
       require_auth( get_self() );
