@@ -208,8 +208,8 @@ namespace eosio {
    void swap::setswapparam(const string &chain_id, const string &eth_swap_contract_address, const string &eth_return_chainid)
    {
       require_auth( get_self() );
-      check(!chain_id.empty(), "invalid chain id");
-      check(!eth_return_chainid.empty(), "invalid ethereum return chain id");
+      check(!chain_id.empty(), "empty chain id");
+      check(!eth_return_chainid.empty(), "empty ethereum return chain id");
 
       utils::validate_address_action validate_address(system_contract::utils_account, {get_self(), system_contract::active_permission});
       validate_address.send(name(eth_return_chainid), eth_swap_contract_address);
