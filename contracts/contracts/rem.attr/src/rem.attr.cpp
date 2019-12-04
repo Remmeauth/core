@@ -162,6 +162,9 @@ namespace eosio {
          case data_type::Binary:
             check( data.size() == data.front() + 1, "invalid Binary value" );
             break;
+         case data_type::Double:
+            check( data.size() == sizeof(double), "invalid Double value" );
+            break;
       }
    }
 

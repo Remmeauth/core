@@ -37,7 +37,7 @@ namespace eosio {
       using unsetattr_action  = eosio::action_wrapper<"unsetattr"_n,   &attribute::unsetattr>;
 
    private:
-      enum class data_type : int32_t { Boolean = 0, Int, LargeInt, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, MaxVal };
+      enum class data_type : int32_t { Boolean = 0, Int, LargeInt, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, Double, MaxVal };
       enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
 
       struct [[eosio::table]] attribute_info {
