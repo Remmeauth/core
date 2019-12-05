@@ -1,0 +1,249 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.1",
+    "types": [],
+    "structs": [
+        {
+            "name": "account",
+            "base": "",
+            "fields": [
+                {
+                    "name": "balance",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "addkeyacc",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "pub_key_str",
+                    "type": "string"
+                },
+                {
+                    "name": "signed_by_pub_key",
+                    "type": "signature"
+                },
+                {
+                    "name": "extra_pub_key",
+                    "type": "string"
+                },
+                {
+                    "name": "price_limit",
+                    "type": "asset"
+                },
+                {
+                    "name": "payer_str",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "addkeyapp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "new_pub_key_str",
+                    "type": "string"
+                },
+                {
+                    "name": "signed_by_new_pub_key",
+                    "type": "signature"
+                },
+                {
+                    "name": "extra_pub_key",
+                    "type": "string"
+                },
+                {
+                    "name": "pub_key_str",
+                    "type": "string"
+                },
+                {
+                    "name": "signed_by_pub_key",
+                    "type": "signature"
+                },
+                {
+                    "name": "price_limit",
+                    "type": "asset"
+                },
+                {
+                    "name": "payer_str",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "authkeys",
+            "base": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "uint64"
+                },
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "extra_public_key",
+                    "type": "string"
+                },
+                {
+                    "name": "not_valid_before",
+                    "type": "block_timestamp_type"
+                },
+                {
+                    "name": "not_valid_after",
+                    "type": "block_timestamp_type"
+                },
+                {
+                    "name": "revoked_at",
+                    "type": "uint32"
+                }
+            ]
+        },
+        {
+            "name": "buyauth",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "max_price",
+                    "type": "float64"
+                }
+            ]
+        },
+        {
+            "name": "revokeacc",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "pub_key_str",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "revokeapp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "revocation_pub_key_str",
+                    "type": "string"
+                },
+                {
+                    "name": "pub_key_str",
+                    "type": "string"
+                },
+                {
+                    "name": "signed_by_pub_key",
+                    "type": "signature"
+                }
+            ]
+        },
+        {
+            "name": "transfer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "pub_key_str",
+                    "type": "string"
+                },
+                {
+                    "name": "signed_by_pub_key",
+                    "type": "signature"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addkeyacc",
+            "type": "addkeyacc",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addkeyapp",
+            "type": "addkeyapp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "buyauth",
+            "type": "buyauth",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "revokeacc",
+            "type": "revokeacc",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "revokeapp",
+            "type": "revokeapp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "transfer",
+            "type": "transfer",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "accounts",
+            "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "authkeys",
+            "type": "authkeys",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": []
+}
