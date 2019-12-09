@@ -237,10 +237,8 @@ namespace eosiosystem {
             refunds_tbl.modify( req, same_payer, [&]( refund_request& r ) {
                const auto ct = current_time_point();
 
-               // eosio::print( "current time:", ct.time_since_epoch().count() );
-
-               r.request_time = ct;
-               r.last_claim_time = ct;
+               r.request_time     = ct;
+               r.last_claim_time  = ct;
                r.resource_amount += unstake_quantity;
 
                const auto restake_rate = double(unstake_quantity.amount) / r.resource_amount.amount;
@@ -291,9 +289,9 @@ namespace eosiosystem {
          refund_request.resource_amount -= refund_amount;
       });
 
-      // if ( req.is_empty() ) {
-      //    refunds_tbl.erase( req );
-      // }
+      if ( req.is_empty() ) {
+         refunds_tbl.erase( req );
+      }
    }
 
 

@@ -815,7 +815,7 @@ BOOST_FIXTURE_TEST_CASE( undelegate_locked_stake_test, voting_tester ) {
          BOOST_TEST( asset{ 100'000'0000LL } == get_balance(N(proda)) );
          
          const auto proda_refund = get_refund_request( N(proda) );
-         BOOST_TEST( asset{ 0LL } == proda_refund["resource_amount"].as<asset>() );
+         BOOST_TEST( proda_refund.is_null() );
       }
    } FC_LOG_AND_RETHROW()
 }
@@ -882,6 +882,7 @@ BOOST_FIXTURE_TEST_CASE( full_refund_to_stake_test, voting_tester ) {
       }
    } FC_LOG_AND_RETHROW()
 }
+
 
 BOOST_FIXTURE_TEST_CASE( partial_refund_to_stake_test, voting_tester ) {
    try {
@@ -966,7 +967,6 @@ BOOST_FIXTURE_TEST_CASE( partial_refund_to_stake_test, voting_tester ) {
 }
 
 
-
 BOOST_FIXTURE_TEST_CASE( re_undelegate_locked_stake_test, voting_tester ) {
    try {
       // we need this to activate 15% of tokens
@@ -1033,8 +1033,14 @@ BOOST_FIXTURE_TEST_CASE( re_undelegate_locked_stake_test, voting_tester ) {
          BOOST_TEST( asset{ 2 * undelegated_funds } == proda_refund["resource_amount"].as<asset>() );
 
          const auto unlock_time = microseconds_since_epoch_of_iso_string( proda_refund["unlock_time"] ).count();
-         const auto expected_unlock_time = 1611569960500000; // current time + 0.5 * (180 - 60 days) + 0.5 * 180
+         // current time + 0.5 * (180 - 60 days) + 0.5 * 180
+         const auto expected_unlock_time = 1611569960500000LL; // GMT: Monday, January 25, 2021
          BOOST_TEST( unlock_time == expected_unlock_time );
+
+         // undelegating resets last claim time to now so unlocked tokens are locked again
+         const auto last_claim_time = microseconds_since_epoch_of_iso_string( proda_refund["last_claim_time"] ).count();
+         const auto expected_last_claim_time = 1598627106000000; // GMT: Friday, August 28, 2020
+         BOOST_TEST( last_claim_time == expected_last_claim_time );
       }
    } FC_LOG_AND_RETHROW()
 }
