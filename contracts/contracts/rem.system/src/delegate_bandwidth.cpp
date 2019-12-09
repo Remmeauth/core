@@ -152,13 +152,6 @@ namespace eosiosystem {
          }
       } // tot_itr can be invalid, should go out of scope
 
-      // transfer staked tokens to stake_account (eosio.stake)
-      // for eosio.stake both transfer and refund make no sense
-      if ( stake_account != source_stake_from && 0 < stake_delta.amount ) { 
-         token::transfer_action transfer_act{ token_account, { {source_stake_from, active_permission} } };
-         transfer_act.send( source_stake_from, stake_account, asset(stake_delta), "stake bandwidth" );
-      }
-
       vote_stake_updater( from );
       update_voting_power( from, stake_delta );
    }
@@ -211,6 +204,13 @@ namespace eosiosystem {
                + microseconds{ static_cast< int64_t >( prevstake_rate * time_to_stake_unlock.count() ) }
                + microseconds{ static_cast< int64_t >( restake_rate * _gremstate.stake_lock_period.count() ) };
       });
+
+      // transfer staked tokens to stake_account (eosio.stake)
+      // for eosio.stake both transfer and refund make no sense
+      if ( stake_account != from ) { 
+         token::transfer_action transfer_act{ token_account, { {from, active_permission} } };
+         transfer_act.send( from, stake_account, asset(stake_quantity), "stake bandwidth" );
+      }
    } // delegatebw
 
    void system_contract::undelegatebw( const name& from, const name& receiver,
@@ -237,7 +237,10 @@ namespace eosiosystem {
             refunds_tbl.modify( req, same_payer, [&]( refund_request& r ) {
                const auto ct = current_time_point();
 
+               // eosio::print( "current time:", ct.time_since_epoch().count() );
+
                r.request_time = ct;
+               r.last_claim_time = ct;
                r.resource_amount += unstake_quantity;
 
                const auto restake_rate = double(unstake_quantity.amount) / r.resource_amount.amount;
@@ -274,8 +277,8 @@ namespace eosiosystem {
       const auto ct = current_time_point();
       check( ct - req.last_claim_time > eosio::days( 1 ), "already claimed refunds within past day" );
 
-      const auto unlock_period_in_days = (req.unlock_time - req.last_claim_time).count() / eosio::days( 1 ).count();
-      const auto unclaimed_days = std::min( (ct - req.last_claim_time).count() / eosio::days( 1 ).count(), unlock_period_in_days ); 
+      const auto unlock_period_in_days = (req.unlock_time - req.last_claim_time).count() / useconds_per_day;
+      const auto unclaimed_days = std::min( (ct - req.last_claim_time).count() / useconds_per_day, unlock_period_in_days ); 
       asset refund_amount = req.resource_amount * unclaimed_days / unlock_period_in_days;
 
       check( refund_amount > asset{ 0, core_symbol() }, "insufficient unlocked amount" );
@@ -298,24 +301,30 @@ namespace eosiosystem {
       require_auth( owner );
 
       refunds_table refunds_tbl( get_self(), owner.value );
-      auto req = refunds_tbl.get( owner.value, "refund request not found" );
-      check( req.request_time + refund_delay_sec <= current_time_point(), "refund is not available yet" );
+      const auto& req = refunds_tbl.get( owner.value, "refund request not found" );
 
       const auto ct = current_time_point();
 
-      const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::days( 1 ).count();
-      const auto unclaimed_days = std::min( (ct - req.last_claim_time).count() / eosio::days( 1 ).count(), unlock_period_in_days ); 
-      asset refund_amount = req.resource_amount * ( 1.0 - unclaimed_days / unlock_period_in_days );
+      const auto unlock_period_in_days = (req.unlock_time - req.last_claim_time).count() / useconds_per_day;
+      const auto days_to_unlock = std::max( unlock_period_in_days - (ct - req.last_claim_time).count() / useconds_per_day, int64_t{0} );
+      asset refund_amount = req.resource_amount * days_to_unlock / unlock_period_in_days;
+
+      eosio::print(
+         "now: ", ct.time_since_epoch().count(),
+         "\nunlock_period_in_days: ", unlock_period_in_days,
+         "\ndays_to_unlock: ", days_to_unlock,
+         "\nrefund_amount: ", refund_amount.amount
+      );
 
       changebw( owner, owner, refund_amount, false );
 
       refunds_tbl.modify( req, same_payer, [&refund_amount, &ct]( auto& refund_request ){
-         refund_request.last_claim_time = ct;
+         refund_request.unlock_time = ct;
          refund_request.resource_amount -= refund_amount;
       });
 
-      // if ( req.is_empty() ) {
-      //    refunds_tbl.erase( req );
-      // }
+      if ( req.is_empty() ) {
+         refunds_tbl.erase( req );
+      }
    }
 } //namespace eosiosystem
