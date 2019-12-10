@@ -279,15 +279,6 @@ namespace eosiosystem {
       const auto unclaimed_days = std::min( (ct - req.last_claim_time).count() / useconds_per_day, unlock_period_in_days ); 
       asset refund_amount = req.resource_amount * unclaimed_days / unlock_period_in_days;
 
-      eosio::print(
-         "now: ", ct.time_since_epoch().count(),
-         "\nunlock_period_in_days: ", unlock_period_in_days,
-         "\nunclaimed_days: ", unclaimed_days,
-         "\nlocked amount: ", req.resource_amount,
-         "\nrefund_amount: ", refund_amount.amount
-      );
-
-
       check( refund_amount > asset{ 0, core_symbol() }, "insufficient unlocked amount" );
 
       token::transfer_action transfer_act{ token_account, { {stake_account, active_permission}, {req.owner, active_permission} } };
@@ -315,13 +306,6 @@ namespace eosiosystem {
       const auto unlock_period_in_days = (req.unlock_time - req.last_claim_time).count() / useconds_per_day;
       const auto days_to_unlock = std::max( unlock_period_in_days - (ct - req.last_claim_time).count() / useconds_per_day, int64_t{0} );
       asset refund_amount = req.resource_amount * days_to_unlock / unlock_period_in_days;
-
-      eosio::print(
-         "now: ", ct.time_since_epoch().count(),
-         "\nunlock_period_in_days: ", unlock_period_in_days,
-         "\ndays_to_unlock: ", days_to_unlock,
-         "\nrefund_amount: ", refund_amount.amount
-      );
 
       changebw( owner, owner, refund_amount, false );
 
