@@ -34,13 +34,15 @@ namespace eosiosystem {
    struct [[eosio::table, eosio::contract("rem.system")]] refund_request {
       name            owner;
       time_point_sec  request_time;
+      time_point      last_claim_time;
+      time_point      unlock_time;
       eosio::asset    resource_amount;
 
       bool is_empty()const { return resource_amount.amount == 0; }
       uint64_t  primary_key()const { return owner.value; }
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( refund_request, (owner)(request_time)(resource_amount) )
+      EOSLIB_SERIALIZE( refund_request, (owner)(request_time)(last_claim_time)(unlock_time)(resource_amount) )
    };
 
    /**
@@ -150,75 +152,6 @@ namespace eosiosystem {
          }
       } // tot_itr can be invalid, should go out of scope
 
-      // create refund or update from existing refund
-      if ( stake_account != source_stake_from ) { //for eosio.stake both transfer and refund make no sense
-         refunds_table refunds_tbl( get_self(), from.value );
-         auto req = refunds_tbl.find( from.value );
-
-         //create/update/delete refund
-         auto temp_balance = stake_delta;
-         bool need_deferred_trx = false;
-
-
-         // net and cpu are same sign by assertions in delegatebw and undelegatebw
-         // redundant assertion also at start of changebw to protect against misuse of changebw
-         bool is_undelegating = stake_delta.amount < 0;
-         bool is_delegating_to_self = (!transfer && from == receiver);
-
-         if( is_delegating_to_self || is_undelegating ) {
-            if ( req != refunds_tbl.end() ) { //need to update refund
-               refunds_tbl.modify( req, same_payer, [&]( refund_request& r ) {
-                  if ( temp_balance.amount < 0 ) {
-                     r.request_time = current_time_point();
-                  }
-                  r.resource_amount -= temp_balance;
-                  if ( r.resource_amount.amount < 0 ) {
-                     temp_balance = -r.resource_amount;
-                     r.resource_amount.amount = 0;
-                  } else {
-                     temp_balance.amount = 0;
-                  }
-               });
-
-               check( 0 <= req->resource_amount.amount, "negative net refund amount" ); //should never happen
-
-               if ( req->is_empty() ) {
-                  refunds_tbl.erase( req );
-                  need_deferred_trx = false;
-               } else {
-                  need_deferred_trx = true;
-               }
-            } else if ( temp_balance.amount < 0 ) { //need to create refund
-               refunds_tbl.emplace( from, [&]( refund_request& r ) {
-                  r.owner = from;
-                  r.resource_amount = -temp_balance;
-                  r.request_time = current_time_point();
-               });
-               temp_balance.amount = 0;
-               need_deferred_trx = true;
-            } // else stake increase requested with no existing row in refunds_tbl -> nothing to do with refunds_tbl
-         } /// end if is_delegating_to_self || is_undelegating
-
-         if ( need_deferred_trx ) {
-            eosio::transaction out;
-            out.actions.emplace_back( permission_level{from, active_permission},
-                                      get_self(), "refund"_n,
-                                      from
-            );
-            out.delay_sec = refund_delay_sec;
-            eosio::cancel_deferred( from.value ); // TODO: Remove this line when replacing deferred trxs is fixed
-            out.send( from.value, from, true );
-         } else {
-            eosio::cancel_deferred( from.value );
-         }
-
-         auto transfer_amount = temp_balance;
-         if ( 0 < transfer_amount.amount ) {
-            token::transfer_action transfer_act{ token_account, { {source_stake_from, active_permission} } };
-            transfer_act.send( source_stake_from, stake_account, asset(transfer_amount), "stake bandwidth" );
-         }
-      }
-
       vote_stake_updater( from );
       update_voting_power( from, stake_delta );
    }
@@ -271,6 +204,13 @@ namespace eosiosystem {
                + microseconds{ static_cast< int64_t >( prevstake_rate * time_to_stake_unlock.count() ) }
                + microseconds{ static_cast< int64_t >( restake_rate * _gremstate.stake_lock_period.count() ) };
       });
+
+      // transfer staked tokens to stake_account (eosio.stake)
+      // for eosio.stake both transfer and refund make no sense
+      if ( stake_account != from ) { 
+         token::transfer_action transfer_act{ token_account, { {from, active_permission} } };
+         transfer_act.send( from, stake_account, asset(stake_quantity), "stake bandwidth" );
+      }
    } // delegatebw
 
    void system_contract::undelegatebw( const name& from, const name& receiver,
@@ -286,22 +226,40 @@ namespace eosiosystem {
       const auto& voter = _voters.get(from.value, "user has no resources");
       check(voter.stake_lock_time <= ct, "cannot undelegate during stake lock period");
 
-      // apply unlock rules only within _gremstate.stake_unlock_period
-      if ( voter.last_undelegate_time <= voter.stake_lock_time + _gremstate.stake_unlock_period ) {
-         check(voter.locked_stake != 0 && voter.locked_stake >= unstake_quantity.amount, "insufficient locked amount");
-         check( ct - voter.last_undelegate_time > eosio::days(1), "already undelegated within past day" );
+      // for eosio.stake both transfer and refund make no sense
+      if ( stake_account != from ) {
+         refunds_table refunds_tbl( get_self(), from.value );
+         auto req = refunds_tbl.find( from.value );
 
-         const auto unclaimed_days = voter.last_undelegate_time.time_since_epoch().count() ? (ct - voter.last_undelegate_time).count() / eosio::days( 1 ).count()
-                                                                                             : 1;
+         // net and cpu are same sign by assertions in delegatebw and undelegatebw
+         // redundant assertion also at start of changebw to protect against misuse of changebw
+         if ( req != refunds_tbl.end() ) { //need to update refund
+            refunds_tbl.modify( req, same_payer, [&]( refund_request& r ) {
+               const auto ct = current_time_point();
 
-         const auto unlock_period_in_days = _gremstate.stake_unlock_period.count() / eosio::days( 1 ).count();
+               r.request_time     = ct;
+               r.last_claim_time  = ct;
+               r.resource_amount += unstake_quantity;
 
-         auto undelegate_limit = voter.locked_stake * unclaimed_days / unlock_period_in_days;
-         check(unstake_quantity.amount <= undelegate_limit, "insufficient unlocked amount: "s + asset(undelegate_limit, core_symbol()).to_string());
+               const auto restake_rate = double(unstake_quantity.amount) / r.resource_amount.amount;
+               const auto prevstake_rate = 1.0 - restake_rate;
+               const auto time_to_stake_unlock = std::max( r.unlock_time - ct, microseconds{} );
 
-         _voters.modify(voter, same_payer, [&](auto &v) {
-               v.last_undelegate_time = ct;
-         });
+               r.unlock_time = ct
+                     + microseconds{ static_cast< int64_t >( prevstake_rate * time_to_stake_unlock.count() ) }
+                     + microseconds{ static_cast< int64_t >( restake_rate * _gremstate.stake_lock_period.count() ) };
+            });
+
+            check( 0 <= req->resource_amount.amount, "negative net refund amount" ); //should never happen
+         } else { //need to create refund
+            refunds_tbl.emplace( from, [&]( refund_request& r ) {
+               r.owner = from;
+               r.resource_amount    = unstake_quantity;
+               r.request_time       = current_time_point();
+               r.last_claim_time    = current_time_point();
+               r.unlock_time        = current_time_point() + _gremstate.stake_unlock_period;
+            });
+         } // else stake increase requested with no existing row in refunds_tbl -> nothing to do with refunds_tbl
       }
 
       changebw( from, receiver, -unstake_quantity , false);
@@ -312,13 +270,28 @@ namespace eosiosystem {
       require_auth( owner );
 
       refunds_table refunds_tbl( get_self(), owner.value );
-      auto req = refunds_tbl.find( owner.value );
-      check( req != refunds_tbl.end(), "refund request not found" );
-      check( req->request_time + seconds(refund_delay_sec) <= current_time_point(),
-             "refund is not available yet" );
-      token::transfer_action transfer_act{ token_account, { {stake_account, active_permission}, {req->owner, active_permission} } };
-      transfer_act.send( stake_account, req->owner, req->resource_amount, "unstake" );
-      refunds_tbl.erase( req );
+      const auto& req = refunds_tbl.get( owner.value, "refund request not found" );
+      
+      const auto ct = current_time_point();
+      check( ct - req.last_claim_time > eosio::days( 1 ), "already claimed refunds within past day" );
+
+      const auto unlock_period_in_days = (req.unlock_time - req.last_claim_time).count() / useconds_per_day;
+      const auto unclaimed_days = std::min( (ct - req.last_claim_time).count() / useconds_per_day, unlock_period_in_days ); 
+      asset refund_amount = req.resource_amount * unclaimed_days / unlock_period_in_days;
+
+      check( refund_amount > asset{ 0, core_symbol() }, "insufficient unlocked amount" );
+
+      token::transfer_action transfer_act{ token_account, { {stake_account, active_permission}, {req.owner, active_permission} } };
+      transfer_act.send( stake_account, req.owner, refund_amount, "unstake" );
+      
+      refunds_tbl.modify( req, same_payer, [&refund_amount, &ct]( auto& refund_request ){
+         refund_request.last_claim_time = ct;
+         refund_request.resource_amount -= refund_amount;
+      });
+
+      if ( req.is_empty() ) {
+         refunds_tbl.erase( req );
+      }
    }
 
 
@@ -326,10 +299,23 @@ namespace eosiosystem {
       require_auth( owner );
 
       refunds_table refunds_tbl( get_self(), owner.value );
-      auto req = refunds_tbl.get( owner.value, "refund request not found" );
-      check( req.request_time + seconds(refund_delay_sec) <= current_time_point(), "refund is not available yet" );
+      const auto& req = refunds_tbl.get( owner.value, "refund request not found" );
 
-      changebw( owner, owner, req.resource_amount, false );
+      const auto ct = current_time_point();
+
+      const auto unlock_period_in_days = (req.unlock_time - req.last_claim_time).count() / useconds_per_day;
+      const auto days_to_unlock = std::max( unlock_period_in_days - (ct - req.last_claim_time).count() / useconds_per_day, int64_t{0} );
+      asset refund_amount = req.resource_amount * days_to_unlock / unlock_period_in_days;
+
+      changebw( owner, owner, refund_amount, false );
+
+      refunds_tbl.modify( req, same_payer, [&refund_amount, &ct]( auto& refund_request ){
+         refund_request.unlock_time = ct;
+         refund_request.resource_amount -= refund_amount;
+      });
+
+      if ( req.is_empty() ) {
+         refunds_tbl.erase( req );
+      }
    }
-
 } //namespace eosiosystem
