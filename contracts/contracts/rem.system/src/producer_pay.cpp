@@ -290,7 +290,6 @@ namespace eosiosystem {
    void system_contract::claim_pervote( const name& producer )
    {
       const auto& prod = _producers.get( producer.value );
-      check( prod.active(), "producer does not have an active key" );
 
       const auto ct = current_time_point();
       check( ct - prod.last_claim_time > microseconds(useconds_per_day), "already claimed rewards within past day" );
