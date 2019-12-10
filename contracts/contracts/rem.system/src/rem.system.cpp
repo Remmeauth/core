@@ -314,19 +314,10 @@ namespace eosiosystem {
 
       if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name ) ) {
          const auto discount = eosio::attribute::get_attribute< int64_t >( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name );
-         eosio::print(
-            "discount: ", discount
-         );
          // discount attribute is set as percent with precision of 4 symbols
          // 0 - 0.0000%, 100'0000 - 100.0000%
          check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
          const auto discount_rate = discount / 100'0000.0;
-
-         eosio::print(
-            "creating acc with discount: ", discount,
-            "\nrate: ", discount_rate
-         );
-
 
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
