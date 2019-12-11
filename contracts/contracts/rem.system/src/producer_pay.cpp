@@ -230,7 +230,6 @@ namespace eosiosystem {
       if ( prod != _producers.end() ) {
          _gstate.total_unpaid_blocks++;
 
-         const auto& voter = _voters.get( producer.value );
          _producers.modify( prod, same_payer, [&](auto& p ) {
                p.current_round_unpaid_blocks++;
                p.last_block_time = timestamp;
