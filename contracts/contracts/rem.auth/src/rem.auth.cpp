@@ -3,8 +3,9 @@
  */
 
 #include <rem.auth/rem.auth.hpp>
-#include <../../rem.swap/src/base58.cpp> // TODO: fix includes
 #include <rem.system/rem.system.hpp>
+#include <rem.swap/rem.swap.hpp>
+#include <rem.oracle/rem.oracle.hpp>
 #include <rem.token/rem.token.hpp>
 
 namespace eosio {
@@ -140,6 +141,7 @@ namespace eosio {
       require_auth(account);
       check(quantity.is_valid(), "invalid quantity");
       check(quantity.amount > 0, "quantity should be a positive value");
+      check(max_price > 0, "maximum price should be a positive value");
       check(quantity.symbol == auth_symbol, "symbol precision mismatch");
 
       double remusd = get_market_price("rem.usd"_n);
@@ -147,9 +149,9 @@ namespace eosio {
       check(max_price > remusd, "currently rem-usd price is above maximum price");
       asset purchase_fee = get_authrem_price(quantity);
 
-      transfer_tokens(account, get_self(), purchase_fee, "purchase fee AUTH tokens");
+      transfer_tokens(account, get_self(), purchase_fee, "purchase fee AUTH credits");
       issue_tokens(quantity);
-      transfer_tokens(get_self(), account, quantity, "buying an auth token");
+      transfer_tokens(get_self(), account, quantity, "buying an AUTH credits");
    }
 
    void auth::sub_storage_fee(const name &account, const asset &price_limit)
@@ -174,7 +176,7 @@ namespace eosio {
          transfer_tokens(account, get_self(), authrem_price, "purchase fee REM tokens");
       } else {
          check(auth_credit_supply.amount > 0, "overdrawn balance");
-         transfer_tokens(account, get_self(), key_store_price, "purchase fee AUTH tokens");
+         transfer_tokens(account, get_self(), key_store_price, "purchase fee AUTH credits");
          retire_tokens(key_store_price);
       }
 
@@ -203,7 +205,7 @@ namespace eosio {
    }
 
    double auth::get_market_price(const name &pair) const {
-      remprice_inx remprice_table(oracle_contract, oracle_contract.value);
+      remprice_idx remprice_table(oracle_contract, oracle_contract.value);
       auto it = remprice_table.find(pair.value);
       check(it != remprice_table.end(), "pair does not exist");
       return it->price;
@@ -219,7 +221,7 @@ namespace eosio {
    void auth::issue_tokens(const asset &quantity)
    {
       token::issue_action issue(system_contract::token_account, {get_self(), system_contract::active_permission});
-      issue.send(get_self(), quantity, string("buy auth tokens"));
+      issue.send(get_self(), quantity, string("buy AUTH credits"));
    }
 
    void auth::retire_tokens(const asset &quantity)
@@ -244,13 +246,6 @@ namespace eosio {
    {
       public_key expected_pub_key = recover_key(digest, sign);
       return expected_pub_key == pub_key;
-   }
-
-   string auth::join( vector<string>&& vec, string delim ) {
-      return std::accumulate(std::next(vec.begin()), vec.end(), vec[0],
-                             [&delim](string& a, string& b) {
-                                return a + delim + b;
-      });
    }
 } /// namespace eosio
 

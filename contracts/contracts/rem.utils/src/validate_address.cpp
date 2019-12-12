@@ -4,6 +4,9 @@
 
 #include <rem.utils/rem.utils.hpp>
 
+#define USE_KECCAK
+#include <sha3/sha3.c>
+
 namespace eosio {
    void utils::validate_eth_address(string address) {
       if ( address.substr(0, 2) == "0x" ) { address = address.substr(2); }
