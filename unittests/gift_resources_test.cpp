@@ -286,7 +286,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
 {
    try
    {
-      const auto min_account_stake = get_global_state()["min_account_stake"].as<uint64_t>();
+      const auto min_account_stake = get_global_state()["min_account_stake"].as<int64_t>();
       BOOST_REQUIRE_EQUAL(min_account_stake, 1000000u);
       print_usage(N(rem));
       print_usage(N(rem.stake));
@@ -298,33 +298,35 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name).is_null());
          
          BOOST_REQUIRE_EXCEPTION(
-               create_account_with_resources(N(testram11111), config::system_account_name, asset{100'0000}, false),
+               create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake}, false),
                eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
          );
       }
 
-      // create and set `accgifter` attribute to `rem`
+      // create and set `accgifter` attribute to 100% for `rem`
       {
-         const auto acc_gifter_attr = create_attribute_t{.attr_name = acc_gifter_attr_name, .type = 0, .privacy_type = 3};
+         const auto acc_gifter_attr = create_attribute_t{.attr_name = acc_gifter_attr_name, .type = 1, .privacy_type = 3};
          create_attr(acc_gifter_attr.attr_name, acc_gifter_attr.type, acc_gifter_attr.privacy_type);
          
          const auto attr_info = get_attribute_info(acc_gifter_attr.attr_name);
          BOOST_REQUIRE(acc_gifter_attr.attr_name.to_string() == attr_info["attribute_name"].as_string());
          BOOST_REQUIRE(acc_gifter_attr.type == attr_info["type"].as_int64());
          BOOST_REQUIRE(acc_gifter_attr.privacy_type == attr_info["ptype"].as_int64());
-
-         set_attr(N(rem.attr), config::system_account_name, acc_gifter_attr_name, "01");
-         BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["data"].as_string() == "01");
+         
+         // the length of hex string should be even number
+         // 100% = 1000000 in decimal = 40420f0000000000 in hex big-endian
+         set_attr(N(rem.attr), config::system_account_name, acc_gifter_attr_name, "40420f0000000000");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["data"].as_string() == "40420f0000000000");
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["pending"].as_string().empty());
       }
 
       // now `accgifter` attribute is set for `rem` so it can create acc with gifted resources
       {
-         create_account_with_resources(N(testram11111), config::system_account_name, asset{100'0000}, false);
+         create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake}, false);
 
          const auto total_stake = get_total_stake(N(testram11111));
-         BOOST_REQUIRE_EQUAL(total_stake["own_stake_amount"].as_uint64(), 0);
-         BOOST_REQUIRE_EQUAL(total_stake["free_stake_amount"].as_uint64(), 100'0000);
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 0);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake);
       }
 
       // transfer resources to testram11111 so free_stake_amount is half covered
@@ -332,24 +334,82 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          delegate_bandwidth(N(rem.stake), N(testram11111), asset(50'0000));
 
          const auto total_stake = get_total_stake(N(testram11111));
-         BOOST_REQUIRE_EQUAL(total_stake["own_stake_amount"].as_uint64(), 50'0000);
-         BOOST_REQUIRE_EQUAL(total_stake["free_stake_amount"].as_uint64(), 50'0000);
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 50'0000);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 50'0000);
       }
 
-      // set `accgifter` attribute to `testram11111` so it can create account with gifted resources
+      // set `accgifter` attribute to 100% for `testram11111` so it can create account with gifted resources
       {
          // fixes `no balance object found`
-         transfer( config::system_account_name, N(testram11111), asset{ 1050'000 } );
+         transfer( config::system_account_name, N(testram11111), asset{ 10'000'0000 } );
+         BOOST_REQUIRE( get_balance(N(testram11111)) == asset{ 10'000'0000 } );
 
-         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "01");
-         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "01");
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "40420f0000000000");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "40420f0000000000");
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
 
-         create_account_with_resources(N(testram22222), N(testram11111), asset{100'0000}, false);
+         create_account_with_resources(N(testram22222), N(testram11111), asset{min_account_stake}, false);
 
          const auto total_stake = get_total_stake(N(testram22222));
-         BOOST_REQUIRE_EQUAL(total_stake["own_stake_amount"].as_uint64(), 0);
-         BOOST_REQUIRE_EQUAL(total_stake["free_stake_amount"].as_uint64(), 100'0000);
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 0);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake);
+         BOOST_TEST( get_balance(N(testram11111)) == asset{ 9'900'0000 } );
+      }
+
+      // set `accgifter` attribute to 50% for `testram11111` so now it should pay 50% of min stake
+      {
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "20a1070000000000");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "20a1070000000000");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
+
+         BOOST_REQUIRE_EXCEPTION(
+            create_account_with_resources(N(testram33333), N(testram11111), asset{min_account_stake}, false),
+            eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+         );
+
+         create_account_with_resources(N(testram33333), N(testram11111), asset{50'0000}, true);
+         BOOST_TEST( get_balance(N(testram11111)) == asset{ 9'850'0000 } );
+
+         const auto total_stake = get_total_stake(N(testram33333));
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 50'0000);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 50'0000);
+      }
+
+      // set `accgifter` attribute to 20% for `testram11111` so now it should pay 80% of min stake
+      {
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "400d030000000000");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "400d030000000000");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
+
+         BOOST_REQUIRE_EXCEPTION(
+            create_account_with_resources(N(testram44444), N(testram11111), asset{50'0000}, true),
+            eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+         );
+
+         create_account_with_resources(N(testram44444), N(testram11111), asset{80'0000}, true);
+         BOOST_TEST( get_balance(N(testram11111)) == asset{ 9'770'0000 } );
+
+         const auto total_stake = get_total_stake(N(testram44444));
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 80'0000);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 20'0000);
+      }
+
+      // create account with more than 80'0000 own resources
+      {
+         {
+            create_account_with_resources(N(testram55555), N(testram11111), asset{85'0000}, true);
+
+            const auto total_stake = get_total_stake(N(testram55555));
+            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 85'0000);
+            BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 15'0000);
+         }
+         {
+            create_account_with_resources(N(testram12121), N(testram11111), asset{165'0000}, true);
+
+            const auto total_stake = get_total_stake(N(testram12121));
+            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 165'0000);
+            BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 0);
+         }
       }
 
       // unset `accgifter` attribute to `testram11111`
@@ -358,7 +418,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name).is_null());
 
          BOOST_REQUIRE_EXCEPTION(
-            create_account_with_resources(N(testram33333), N(testram11111), asset{100'0000}, false),
+            create_account_with_resources(N(invalid55555), N(testram11111), asset{min_account_stake}, false),
             eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
          );
       }
