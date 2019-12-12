@@ -1,6 +1,8 @@
 #include <rem.token/rem.token.hpp>
 
+
 namespace eosio {
+using namespace std::string_literals;
 
 void token::create( const name&   issuer,
                     const asset&  maximum_supply )
@@ -103,7 +105,8 @@ void token::transfer( const name&    from,
 void token::sub_balance( const name& owner, const asset& value ) {
    accounts from_acnts( get_self(), owner.value );
 
-   const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );
+   const std::string err_str = "no balance object found for: "s + owner.to_string() + "; symbol: "s + value.symbol.code().to_string();
+   const auto& from = from_acnts.get( value.symbol.code().raw(), err_str.c_str() );
    check( from.balance.amount >= value.amount, "overdrawn balance" );
 
    from_acnts.modify( from, owner, [&]( auto& a ) {

@@ -150,9 +150,17 @@ namespace eosiosystem {
       }
 
       if (schedule_version > _gstate.last_schedule_version) {
+         std::vector<name> active_producers = eosio::get_active_producers();
          for (size_t producer_index = 0; producer_index < _gstate.last_schedule.size(); producer_index++) {
             const auto producer_name = _gstate.last_schedule[producer_index].first;
             const auto& prod = _producers.get(producer_name.value);
+
+            if( std::find(active_producers.begin(), active_producers.end(), producer_name) == active_producers.end() ) {
+              _producers.modify(prod, same_payer, [&](auto& p) {
+                 p.top21_chosen_time = time_point(eosio::seconds(0));
+              });
+            }
+
             //blocks from full rounds
             const auto full_rounds_passed = (timestamp.slot - prod.last_expected_produced_blocks_update.slot) / blocks_per_round;
             uint32_t expected_produced_blocks = full_rounds_passed * producer_repetitions;
@@ -181,7 +189,20 @@ namespace eosiosystem {
 
          _gstate.current_round_start_time = timestamp;
          _gstate.last_schedule_version = schedule_version;
-         std::vector<name> active_producers = eosio::get_active_producers();
+
+         for (size_t i = 0; i < active_producers.size(); i++) {
+            const auto& prod_name = active_producers[i];
+            const auto& prod = _producers.get(prod_name.value);
+            auto res = std::find_if(_gstate.last_schedule.begin(),
+                                    _gstate.last_schedule.end(),
+                                    [&prod_name](const std::pair<eosio::name, double>& element){ return element.first == prod_name;});
+            if( res == _gstate.last_schedule.end() ) {
+              _producers.modify(prod, same_payer, [&](auto& p) {
+                 p.top21_chosen_time = current_time_point();
+              });
+            }
+         }
+
          if (active_producers.size() != _gstate.last_schedule.size()) {
             _gstate.last_schedule.resize(active_producers.size());
          }
@@ -209,14 +230,10 @@ namespace eosiosystem {
       if ( prod != _producers.end() ) {
          _gstate.total_unpaid_blocks++;
 
-         const auto& voter = _voters.get( producer.value );
-         // TODO fix coupling in voter-producer entities
-         if ( vote_is_reasserted( voter.last_reassertion_time ) ) {
-            _producers.modify( prod, same_payer, [&](auto& p ) {
-                  p.current_round_unpaid_blocks++;
-                  p.last_block_time = timestamp;
-            });
-         }
+         _producers.modify( prod, same_payer, [&](auto& p ) {
+               p.current_round_unpaid_blocks++;
+               p.last_block_time = timestamp;
+         });
       }
 
       /// only update block producers once every minute, block_timestamp is in half seconds
@@ -269,7 +286,6 @@ namespace eosiosystem {
    void system_contract::claim_pervote( const name& producer )
    {
       const auto& prod = _producers.get( producer.value );
-      check( prod.active(), "producer does not have an active key" );
 
       const auto ct = current_time_point();
       check( ct - prod.last_claim_time > microseconds(useconds_per_day), "already claimed rewards within past day" );

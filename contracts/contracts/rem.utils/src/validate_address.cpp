@@ -4,6 +4,9 @@
 
 #include <rem.utils/rem.utils.hpp>
 
+#define USE_KECCAK
+#include <sha3/sha3.c>
+
 namespace eosio {
    void utils::validate_eth_address(string address) {
       if ( address.substr(0, 2) == "0x" ) { address = address.substr(2); }
@@ -12,7 +15,10 @@ namespace eosio {
       for (const auto& ch: address) {
          check(std::isxdigit(ch), "invalid hex symbol in ethereum address");
       }
-      validate_eth_address_checksum(address);
+
+      if (!is_lower(address)) {
+         validate_eth_address_checksum(address);
+      }
    }
 
    void utils::validate_eth_address_checksum(string checksum_address) {
@@ -26,7 +32,7 @@ namespace eosio {
       for (int i = 0; i < address.size(); ++i) {
          int v = (toupper(address_hash_str[i]) >= 'A') ? (toupper(address_hash_str[i]) - 'A' + 10) :
                                                          (toupper(address_hash_str[i]) - '0');
-         pivot = v > 8 ? toupper(address[i]) : tolower(address[i]);
+         pivot = v >= 8 ? toupper(address[i]) : tolower(address[i]);
          check(pivot == checksum_address[i], "invalid ethereum address checksum");
       }
    }
@@ -51,5 +57,12 @@ namespace eosio {
          s[2 * i + 1] = hexmap[data[i] & 0x0F];
       }
       return s;
+   }
+
+   bool utils::is_lower(const string &address) {
+      string lower_address = address;
+      std::transform(lower_address.begin(), lower_address.end(), lower_address.begin(), ::tolower);
+
+      return lower_address == address;
    }
 } /// namespace eosio

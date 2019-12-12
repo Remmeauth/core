@@ -16,7 +16,9 @@ const char* cryptocompare_host = "min-api.cryptocompare.com";
 const char* cryptocompare_endpoint = "/data/price";
 const char* cryptocompare_params = "?fsym=REM&tsyms=USD,BTC,ETH&apikey=";
 
-uint32_t update_price_period = 3600;  // seconds
+uint32_t setprice_minutes_from = 0; // push set price transaction if current minutes value >= setprice_minutes_from
+uint32_t setprice_minutes_to = 5;  // push set price transaction if current minutes value < setprice_minutes_to
+uint32_t update_price_period = (setprice_minutes_to - setprice_minutes_from)*60 - 10;  // seconds
 
 #define FC_LOG_WAIT_AND_CONTINUE(...)  \
     catch( const boost::interprocess::bad_alloc& ) {\
