@@ -11,6 +11,9 @@ namespace eosio {
 
       static bool has_attribute( const name& attr_contract_account, const name& issuer, const name& receiver, const name& attribute_name );
 
+      template< class T >
+      static T get_attribute( const name& attr_contract_account, const name& issuer, const name& receiver, const name& attribute_name );
+
       [[eosio::action]]
       void confirm( const name& owner, const name& issuer, const name& attribute_name );
 
@@ -95,10 +98,30 @@ namespace eosio {
          return false;
       }
 
+      if ( !it->is_valid() ) {
+         return false;
+      }
+
       attributes_table attributes( attr_contract_account, attribute_name.value );
       auto idx = attributes.get_index<"reciss"_n>();
       const auto attr_it = idx.find( attribute_data::combine_receiver_issuer(receiver, issuer) );
 
       return attr_it != idx.end();
+   }
+
+   template< class T >
+   T attribute::get_attribute( const name& attr_contract_account, const name& issuer, const name& receiver, const name& attribute_name )
+   {
+      attribute_info_table attributes_info{ attr_contract_account, attr_contract_account.value };
+      const auto& attribute_info = attributes_info.get( attribute_name.value, "attribute doesn't exist" );
+      check( attribute_info.is_valid(), "attribute is marked for deletion" );
+
+      attributes_table attributes( attr_contract_account, attribute_name.value );
+      const auto& idx = attributes.get_index<"reciss"_n>();
+      const auto& attr = idx.get( attribute_data::combine_receiver_issuer(receiver, issuer), "attribute not set by issuer to receiver" );
+
+      const T value = unpack< T >( attr.attribute.data.data(), sizeof( T ) );
+
+      return value;
    }
 } /// namespace eosio

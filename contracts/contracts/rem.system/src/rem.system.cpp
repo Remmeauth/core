@@ -308,18 +308,24 @@ namespace eosiosystem {
          }
       }
 
-      user_resources_table  userres( get_self(), newact.value );
 
       int64_t free_stake_amount = 0;
       int64_t free_gift_bytes   = 0;
 
       if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name ) ) {
+         const auto discount = eosio::attribute::get_attribute< int64_t >( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name );
+         // discount attribute is set as percent with precision of 4 symbols
+         // 0 - 0.0000%, 100'0000 - 100.0000%
+         check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
+         const auto discount_rate = discount / 100'0000.0;
+
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-         free_stake_amount                  = _gstate.min_account_stake;
+         free_stake_amount                  = discount_rate * _gstate.min_account_stake;
          free_gift_bytes                    = bytes_per_token * free_stake_amount;
       }
 
+      user_resources_table  userres( get_self(), newact.value );
       userres.emplace( newact, [&]( auto& res ) {
         res.owner = newact;
         res.net_weight = asset( 0, system_contract::get_core_symbol() );
