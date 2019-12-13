@@ -2119,6 +2119,7 @@ int main( int argc, char** argv ) {
       }
       EOS_ASSERT( 1 == res.rows.size(), multiple_attribute_info, "More than one attribute_info" );
       const auto attr_type = res.rows[0].get_object()["type"].as_int64();
+      const auto attr_privacy_type = res.rows[0].get_object()["ptype"].as_int64();
 
       eosio::uint128_t index_key = name(getAttrReceiver).to_uint64_t();
       index_key <<= 64;
@@ -2143,8 +2144,12 @@ int main( int argc, char** argv ) {
       auto decoded_attribute = decodeAttribute(attr_string, attr_type);
       const auto pending_attr_string = res.rows[0].get_object()["attribute"]["pending"].as_string();
       auto decoded_pending_attribute = decodeAttribute(pending_attr_string, attr_type);
-      std::cout << localized("Attribute:\n  Name: ${name}\n  Issuer: ${issuer}\n  Receiver: ${receiver}\n  Value:\n${value}\n  Pending value:\n${pending}",
-         ("name", getAttrName)("issuer", getAttrIssuer)("receiver", getAttrReceiver)("value", decoded_attribute)("pending", decoded_pending_attribute)) << std::endl;
+      std::cout << localized("Attribute:\n  Name: ${name}\n  Issuer: ${issuer}\n  Receiver: ${receiver}\n"
+                             "  Type: ${type}\n  Privacy type: ${ptype}\n"
+                             "  Value:\n  ${value}\n  Pending value:\n  ${pending}",
+         ("name", getAttrName)("issuer", getAttrIssuer)("receiver", getAttrReceiver)
+         ("type", data_type_string(static_cast<data_type>(attr_type)))("ptype", privacy_type_string(static_cast<privacy_type>(attr_privacy_type)))
+         ("value", decoded_attribute)("pending", decoded_pending_attribute)) << std::endl;
    });
 
    // get block
