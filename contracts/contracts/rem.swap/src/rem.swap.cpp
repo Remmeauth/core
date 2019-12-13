@@ -11,16 +11,6 @@ namespace eosio {
 
    using eosiosystem::system_contract;
 
-   swap::swap(name receiver, name code, datastream<const char*> ds) : contract(receiver, code, ds),
-   swap_table(get_self(), get_self().value),
-   swap_params_table(get_self(), get_self().value),
-   chains_table(get_self(), get_self().value) {
-      if (!swap_params_table.exists()) {
-         swap_params_table.set(swapparams{}, system_account);
-      }
-      swap_params_data = swap_params_table.get();
-   }
-
    void swap::init(const name &rampayer, const string &txid, const string &swap_pubkey,
                    const asset &quantity, const string &return_address, const string &return_chain_id,
                    const block_timestamp &swap_timestamp)
@@ -29,6 +19,7 @@ namespace eosio {
 
       const asset min_account_stake = get_min_account_stake();
       const asset producers_reward = get_producers_reward(name(return_chain_id));
+      swap_params_data = swap_params_table.get();
 
       check_pubkey_prefix(swap_pubkey);
       check(quantity.is_valid(), "invalid quantity");
@@ -59,22 +50,19 @@ namespace eosio {
             s.status         = static_cast<int8_t>(swap_status::INITIALIZED);
             if (is_producer) s.provided_approvals.push_back(rampayer);
          });
-      } else {
+      } else if (is_producer) {
+         check(is_producer, "block producer authorization required");
+         check(swap_hash_it->status != static_cast<int8_t>(swap_status::CANCELED), "swap already canceled");
+         check(swap_hash_it->status != static_cast<int8_t>(swap_status::FINISHED), "swap already finished");
 
-         if (is_producer) {
-            check(is_producer, "block producer authorization required");
-            check(swap_hash_it->status != static_cast<int8_t>(swap_status::CANCELED), "swap already canceled");
+         const vector <name> &approvals = swap_hash_it->provided_approvals;
+         bool is_already_approved = std::find(approvals.begin(), approvals.end(), rampayer) == approvals.end();
 
-            const vector <name> &approvals = swap_hash_it->provided_approvals;
-            bool is_already_approved = std::find(approvals.begin(), approvals.end(), rampayer) == approvals.end();
+         check(is_already_approved, "approval already exists");
 
-            check(is_already_approved, "approval already exists");
-
-            swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
-               s.provided_approvals.push_back(rampayer);
-            });
-         }
-
+         swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
+            s.provided_approvals.push_back(rampayer);
+         });
       }
       // moved out, because existing case when the majority of the active producers = 1
       if (is_producer) {
@@ -218,7 +206,8 @@ namespace eosio {
       swap_params_data.eth_swap_contract_address  = eth_swap_contract_address;
       swap_params_data.eth_return_chainid         = eth_return_chainid;
 
-      swap_params_table.set(swap_params_data, same_payer);
+      name payer = swap_params_table.exists() ? same_payer : system_account;
+      swap_params_table.set(swap_params_data, payer);
    }
 
    void swap::addchain(const name &chain_id, const bool &input, const bool &output,
@@ -252,6 +241,7 @@ namespace eosio {
                                  const block_timestamp &swap_timestamp)
    {
       time_point swap_timepoint = swap_timestamp.to_time_point();
+      swap_params_data = swap_params_table.get();
 
       string swap_payload = join({swap_pubkey_str.substr(3), txid, swap_params_data.chain_id, quantity.to_string(),
                                   return_address, return_chain_id, std::to_string(swap_timepoint.sec_since_epoch())});
@@ -265,6 +255,7 @@ namespace eosio {
                                     const string &return_chain_id, const block_timestamp &swap_timestamp)
    {
       time_point swap_timepoint = swap_timestamp.to_time_point();
+      swap_params_data = swap_params_table.get();
 
       string payload = join({txid, swap_params_data.chain_id, quantity.to_string(), return_address,
                              return_chain_id, std::to_string(swap_timepoint.sec_since_epoch())});

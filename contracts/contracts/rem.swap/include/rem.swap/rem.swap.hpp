@@ -30,7 +30,11 @@ namespace eosio {
     */
    class [[eosio::contract("rem.swap")]] swap : public contract {
    public:
-      swap(name receiver, name code, datastream<const char *> ds);
+      swap(name receiver, name code, datastream<const char*> ds)
+      :contract(receiver, code, ds),
+       swap_table(get_self(), get_self().value),
+       swap_params_table(get_self(), get_self().value),
+       chains_table(get_self(), get_self().value) {}
 
       /**
        * Initiate token swap action.
@@ -202,9 +206,9 @@ namespace eosio {
       };
 
       struct [[eosio::table]] swapparams {
-         string    chain_id = "0";
-         string    eth_swap_contract_address = "0";
-         string    eth_return_chainid = "0";
+         string    chain_id;
+         string    eth_swap_contract_address;
+         string    eth_return_chainid;
 
          // explicit serialization macro is not necessary, used here only to improve compilation time
          EOSLIB_SERIALIZE( swapparams, (chain_id)(eth_swap_contract_address)(eth_return_chainid) )
