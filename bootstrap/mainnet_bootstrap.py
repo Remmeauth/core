@@ -52,13 +52,13 @@ max_auth_token_supply = 1_000_000_000_000_0000
 rem_symbol = 'REM'
 auth_symbol = 'AUTH'
 
-producer_reward_per_swap = 1000_0000  # torewards 1000.0000 REM per swap
-min_swap_out_amount = 1000_0000
-
 swap_chains = [
-    # (chain_id, input, output)
-    ('ethropsten', '1', '1')
+    # (chain_id, input, output, producer_reward_per_swap, min_swap_out_amount)
+    ('ethropsten', '1', '1', 1000_0000, 1000_0000)
 ]
+
+eth_swap_contract_address = '0x39882AB5105b1D627E6AED3FF39c1B004a18E207'
+eth_chain_id = 'ethropsten'
 
 
 def get_chain_id():
@@ -155,14 +155,20 @@ def bootstrap_system_contracts():
     run(remcli + 'push action rem.oracle addpair \'["rem.btc"]\' -p rem.oracle -p rem')
     run(remcli + 'push action rem.oracle addpair \'["rem.eth"]\' -p rem.oracle -p rem')
 
-    run(remcli + f'push action rem.swap setswapfee \'["{producer_reward_per_swap}"]\' \
+    # run(remcli + f'push action rem.swap setswapfee \'["{producer_reward_per_swap}"]\' \
+    # -p rem.swap -p rem')
+    # run(remcli + f'push action rem.swap setchainid \'["{get_chain_id()}"]\' \
+    # -p rem.swap -p rem')
+
+    run(remcli + f'push action rem.swap setswapparam \'["{get_chain_id()}", \
+    "{eth_swap_contract_address}", "{eth_chain_id}"]\' \
     -p rem.swap -p rem')
-    run(remcli + f'push action rem.swap setminswpout \'["{min_swap_out_amount}"]\' \
-    -p rem.swap -p rem')
-    run(remcli + f'push action rem.swap setchainid \'["{get_chain_id()}"]\' \
-    -p rem.swap -p rem')
-    for chain_id, input, output, in swap_chains:
-        run(remcli + f'push action rem.swap addchain \'["{chain_id}", "{input}", "{output}"]\' \
+
+    # run(remcli + f'push action rem.swap setminswpout \'["{eth_chain_id}", "{min_swap_out_amount}"]\' \
+    # -p rem.swap -p rem')
+    for chain_id, input, output, producer_reward_per_swap, min_swap_out_amount in swap_chains:
+        run(remcli + f'push action rem.swap addchain \'["{chain_id}", "{input}", "{output}",\
+        "{producer_reward_per_swap}", "{min_swap_out_amount}"]\' \
         -p rem.swap -p rem')
 
 

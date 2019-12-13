@@ -191,22 +191,6 @@ vector<string> tx_permission;
 
 eosio::client::http::http_context context;
 
-namespace {
-   auto weeks_since_lock_time( const fc::time_point_sec lock_time ) {
-      return 25 - std::max( ((lock_time - fc::time_point::now()) - fc::days(7)).count() / fc::days(7).count(), int64_t{0} );
-   }
-
-   auto is_guardian( const int64_t staked, const fc::time_point_sec last_reassertion_time ) {
-      return (staked >= config::guardian_stake_threshold) && ((last_reassertion_time + fc::days(7)) > fc::time_point::now());
-   }
-
-   auto real_vote_weight( double last_vote_weight ) {
-      const auto eos_weight = std::pow( 2, int64_t((fc::time_point::now().sec_since_epoch() - (config::block_timestamp_epoch / 1000)) / fc::days(7).to_seconds()) / double(52) );
-      
-      return last_vote_weight / eos_weight;
-   }
-} // namespace anonymous
-
 void add_standard_transaction_options(CLI::App* cmd, string default_permission = "") {
    CLI::callback_t parse_expiration = [](CLI::results_t res) -> bool {
       double value_s;
@@ -527,6 +511,34 @@ void print_result( const fc::variant& result ) { try {
          cerr << fc::json::to_pretty_string( result ) << endl;
       }
 } FC_CAPTURE_AND_RETHROW( (result) ) }
+
+namespace {
+   auto weeks_since_lock_time( const fc::time_point_sec lock_time ) {
+      return 25 - std::max( ((lock_time - fc::time_point::now()) - fc::days(7)).count() / fc::days(7).count(), int64_t{0} );
+   }
+
+   auto is_guardian( const int64_t staked, const fc::time_point_sec last_reassertion_time ) {
+      static auto response = call(get_table_func, 
+         fc::mutable_variant_object("json", true)
+         ("code", name(config::system_account_name).to_string())
+         ("scope", name(config::system_account_name).to_string())("table", "globalrem")
+      );
+      static auto result = response.as<eosio::chain_apis::read_only::get_table_rows_result>();
+
+      auto reassertion_period = fc::days(30);
+      if ( !result.rows.empty() ) {
+         reassertion_period = fc::microseconds{ result.rows[0]["reassertion_period"]["_count"].as_int64() };
+      }
+
+      return (staked >= config::guardian_stake_threshold) && ((last_reassertion_time + reassertion_period) > fc::time_point::now());
+   }
+
+   auto real_vote_weight( double last_vote_weight ) {
+      const auto eos_weight = std::pow( 2, int64_t((fc::time_point::now().sec_since_epoch() - (config::block_timestamp_epoch / 1000)) / fc::days(7).to_seconds()) / double(52) );
+      
+      return last_vote_weight / eos_weight;
+   }
+} // namespace anonymous
 
 using std::cout;
 void send_actions(std::vector<chain::action>&& actions, packed_transaction::compression_type compression = packed_transaction::compression_type::none ) {
@@ -2107,6 +2119,7 @@ int main( int argc, char** argv ) {
       }
       EOS_ASSERT( 1 == res.rows.size(), multiple_attribute_info, "More than one attribute_info" );
       const auto attr_type = res.rows[0].get_object()["type"].as_int64();
+      const auto attr_privacy_type = res.rows[0].get_object()["ptype"].as_int64();
 
       eosio::uint128_t index_key = name(getAttrReceiver).to_uint64_t();
       index_key <<= 64;
@@ -2131,8 +2144,12 @@ int main( int argc, char** argv ) {
       auto decoded_attribute = decodeAttribute(attr_string, attr_type);
       const auto pending_attr_string = res.rows[0].get_object()["attribute"]["pending"].as_string();
       auto decoded_pending_attribute = decodeAttribute(pending_attr_string, attr_type);
-      std::cout << localized("Attribute:\n  Name: ${name}\n  Issuer: ${issuer}\n  Receiver: ${receiver}\n  Value:\n${value}\n  Pending value:\n${pending}",
-         ("name", getAttrName)("issuer", getAttrIssuer)("receiver", getAttrReceiver)("value", decoded_attribute)("pending", decoded_pending_attribute)) << std::endl;
+      std::cout << localized("Attribute:\n  Name: ${name}\n  Issuer: ${issuer}\n  Receiver: ${receiver}\n"
+                             "  Type: ${type}\n  Privacy type: ${ptype}\n"
+                             "  Value:\n  ${value}\n  Pending value:\n  ${pending}",
+         ("name", getAttrName)("issuer", getAttrIssuer)("receiver", getAttrReceiver)
+         ("type", data_type_string(static_cast<data_type>(attr_type)))("ptype", privacy_type_string(static_cast<privacy_type>(attr_privacy_type)))
+         ("value", decoded_attribute)("pending", decoded_pending_attribute)) << std::endl;
    });
 
    // get block

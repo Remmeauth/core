@@ -89,12 +89,15 @@ public:
       return r;
    }
 
-   auto addchain(const name &chain_id, const bool &input, const bool& output, const vector<permission_level>& level) {
+   auto addchain(const name &chain_id, const bool &input, const bool& output, const int64_t &in_swap_min_amount,
+                 const int64_t &out_swap_min_amount, const vector<permission_level>& level) {
 
       auto r = base_tester::push_action(N(rem.swap), N(addchain), level, mvo()
             ("chain_id", chain_id)
             ("input", input)
             ("output", output)
+            ("in_swap_min_amount", in_swap_min_amount)
+            ("out_swap_min_amount", out_swap_min_amount)
       );
       produce_block();
       return r;
@@ -250,34 +253,48 @@ utils_tester::utils_tester() {
 
    vector<permission_level> auths_level = { permission_level{config::system_account_name, config::active_name},
                                             permission_level{N(rem.swap), config::active_name}};
-   addchain(N(ethropsten), true, true, auths_level);
+   addchain(N(ethropsten), true, true, 5000000, 5000000, auths_level);
 }
 
-BOOST_AUTO_TEST_SUITE(utils_tests)
+BOOST_AUTO_TEST_SUITE(rem_utils_tests)
 
 BOOST_FIXTURE_TEST_CASE( validate_eth_address_test, utils_tester ) {
-   name ethchainid = N(ethropsten);
-   string ethaddress = "0x9fB8A18fF402680b47387AE0F4e38229EC64f098";
    try {
-      validate_address(N(proda), ethchainid, ethaddress);
+      name ethchainid = N(ethropsten);
+      vector<string> valid_addresses = {
+         "0xd18a02cafC6715c2e096636aB3349E4B79FAeCE7", "0xeB5F897477362945af744EbB244be03FbA0248F6",
+         "0x81b7E08F65Bdf5648606c89998A9CC8164397647", "0xCeAdcdA44010fe724Ff92Efc2cbCE9B5cf01842C",
+         "0xed092A687C65D12abd98420c57dE86694D7B682C", "0xc18De3aC4E50f9090435112866564dcFFEa7E2Fb",
+         "0x2a67090E67BcD5c1cc580f43a54DF5030797f1Bf", "0x61664145ae31775A634B237e527EB1472028B6B2",
+         "0xc9BCeB47b9795f6bbd190C30959Cd5E73792f2D3", "0x6B770956515f615A21E395cb97010100bAB5d1E6",
+         "0x48827A804e170A855cdf6Fa902728B517b982cDd", "0x5e904e42A2E5ff3Bae010c32b02CdcD988920c71",
+         "0xc18De3aC4E50f9090435112866564dcFFEa7E2Fb", "0xed092A687C65D12abd98420c57dE86694D7B682C",
+         "0x81b7E08F65Bdf5648606c89998A9CC8164397647", "0x48827A804e170A855cdf6Fa902728B517b982cDd",
+         "0x759dC16D1a8ab2D95F90cCd456774b3dF0c97CB8", "0x45cb76afdb1e30b7f1eca0c3faf0ea2619c0ea33",
+      };
+      for (const auto &address: valid_addresses) {
+         validate_address(N(proda), ethchainid, address);
+      }
    } FC_LOG_AND_RETHROW()
 }
 
 BOOST_FIXTURE_TEST_CASE( validate_eth_address_test_without_hexpre, utils_tester ) {
    try {
       name ethchainid = N(ethropsten);
-      string address = "9fB8A18fF402680b47387AE0F4e38229EC64f098";
-
-      validate_address(N(proda), ethchainid, address);
-   } FC_LOG_AND_RETHROW()
-}
-
-BOOST_FIXTURE_TEST_CASE( validate_eth_address_test_with_non_existed_chain_id, utils_tester ) {
-   try {
-      name ethchainid = N(nonexchain);
-      string ethaddress = "0x9fB8A18fF402680b47387AE0F4e38229EC64f098";
-      // not supported chain id
-      BOOST_REQUIRE_THROW(validate_address(N(proda), ethchainid, ethaddress), eosio_assert_message_exception);
+      vector<string> valid_addresses = {
+         "d18a02cafC6715c2e096636aB3349E4B79FAeCE7", "eB5F897477362945af744EbB244be03FbA0248F6",
+         "81b7E08F65Bdf5648606c89998A9CC8164397647", "CeAdcdA44010fe724Ff92Efc2cbCE9B5cf01842C",
+         "ed092A687C65D12abd98420c57dE86694D7B682C", "c18De3aC4E50f9090435112866564dcFFEa7E2Fb",
+         "2a67090E67BcD5c1cc580f43a54DF5030797f1Bf", "61664145ae31775A634B237e527EB1472028B6B2",
+         "c9BCeB47b9795f6bbd190C30959Cd5E73792f2D3", "6B770956515f615A21E395cb97010100bAB5d1E6",
+         "48827A804e170A855cdf6Fa902728B517b982cDd", "5e904e42A2E5ff3Bae010c32b02CdcD988920c71",
+         "c18De3aC4E50f9090435112866564dcFFEa7E2Fb", "ed092A687C65D12abd98420c57dE86694D7B682C",
+         "81b7E08F65Bdf5648606c89998A9CC8164397647", "48827A804e170A855cdf6Fa902728B517b982cDd",
+         "759dC16D1a8ab2D95F90cCd456774b3dF0c97CB8", "45cb76afdb1e30b7f1eca0c3faf0ea2619c0ea33",
+      };
+      for (const auto &address: valid_addresses) {
+         validate_address(N(proda), ethchainid, address);
+      }
    } FC_LOG_AND_RETHROW()
 }
 
@@ -310,7 +327,7 @@ BOOST_FIXTURE_TEST_CASE( validate_eth_address_test_with_address_invalid_symbol, 
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_FIXTURE_TEST_CASE( validate_eth_address_invalid_checksum, utils_tester ) {
+BOOST_FIXTURE_TEST_CASE( validate_eth_address_all_lower, utils_tester ) {
    try {
       name ethchainid = N(ethropsten);
       // valid address all upper
@@ -321,10 +338,21 @@ BOOST_FIXTURE_TEST_CASE( validate_eth_address_invalid_checksum, utils_tester ) {
       // invalid ethereum address checksum
       BOOST_REQUIRE_THROW(validate_address(N(proda), ethchainid, address), eosio_assert_message_exception);
 
-      // valid address all lower
-      address = "0xd423ae43105a0185c18f968cd8be0fa276689c04";
-      // invalid ethereum address checksum
-      BOOST_REQUIRE_THROW(validate_address(N(proda), ethchainid, address), eosio_assert_message_exception);
+      // valid addresses all lower
+      vector<string> valid_addresses = {
+         "0xd18a02cafc6715c2e096636ab3349e4b79faece7", "0xeb5f897477362945af744ebb244be03fba0248f6",
+         "0x81b7e08f65bdf5648606c89998a9cc8164397647", "0xceadcda44010fe724ff92efc2cbce9b5cf01842c",
+         "0xed092a687c65d12abd98420c57de86694d7b682c", "0xc18de3ac4e50f9090435112866564dcffea7e2fb",
+         "0x2a67090e67bcd5c1cc580f43a54df5030797f1bf", "0x61664145ae31775a634b237e527eb1472028b6b2",
+         "0xc9bceb47b9795f6bbd190c30959cd5e73792f2d3", "0x6b770956515f615a21e395cb97010100bab5d1e6",
+         "0x48827a804e170a855cdf6fa902728b517b982cdd", "0x5e904e42a2e5ff3bae010c32b02cdcd988920c71",
+         "0xc18de3ac4e50f9090435112866564dcffea7e2fb", "0xed092a687c65d12abd98420c57de86694d7b682c",
+         "0x81b7e08f65bdf5648606c89998a9cc8164397647", "0x48827a804e170a855cdf6fa902728b517b982cdd",
+         "0x759dc16d1a8ab2d95f90ccd456774b3df0c97cb8", "0x45cb76afdb1e30b7f1eca0c3faf0ea2619c0ea33",
+      };
+      for (const auto &address: valid_addresses) {
+         validate_address(N(proda), ethchainid, address);
+      }
    } FC_LOG_AND_RETHROW()
 }
 

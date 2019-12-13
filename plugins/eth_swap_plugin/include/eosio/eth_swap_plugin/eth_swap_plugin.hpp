@@ -73,13 +73,14 @@ constexpr int64_t block_timestamp_epoch = 946684800000ll;  // epoch is year 2000
 typedef eosio::chain::block_timestamp<block_interval_ms, block_timestamp_epoch> epoch_block_timestamp;
 
 std::string rem_token_id              = "REM";
-std::string eth_swap_contract_address = "0x39882ab5105b1d627e6aed3ff39c1b004a18e207";
+std::string eth_swap_contract_address;
 std::string eth_swap_request_event    = "0x0e918020302bf93eb479360905c1535ba1dbc8aeb6d20eff433206bf4c514e13";  // request swap event id in ethereum swap contract
-std::string return_chain_id           = "ethropsten";  // return chain identifier if case of swap cancellation
+std::string return_chain_id;  // return chain identifier if case of swap cancellation
 
 uint32_t request_swap_hex_data_length = 512;  // payload length of request swap event in hex symbols
 
 uint32_t wait_for_eth_node = 20;  // amount of seconds to sleep before reconnection if connection to ethereum node closes
+uint32_t wait_for_swapparams = 20; // amount of seconds to sleep before retrying to retrive eth smart contract from remprotocol
 
 /*
   amount of last blocks in ethereum to get request swap events

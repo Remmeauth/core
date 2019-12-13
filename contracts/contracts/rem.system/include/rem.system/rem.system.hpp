@@ -238,7 +238,7 @@ namespace eosiosystem {
       microseconds stake_lock_period   = eosio::days(180);
       microseconds stake_unlock_period = eosio::days(180);
 
-      microseconds reassertion_period = eosio::days( 7 );
+      microseconds reassertion_period = eosio::days( 30 );
 
       EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)
                                                 (gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name)
@@ -651,9 +651,12 @@ namespace eosiosystem {
          static constexpr eosio::name ram_account{"rem.ram"_n};
          static constexpr eosio::name ramfee_account{"rem.ramfee"_n};
          static constexpr eosio::name stake_account{"rem.stake"_n};
+         static constexpr eosio::name swap_account{"rem.swap"_n};
+         static constexpr eosio::name utils_account{"rem.utils"_n};
          static constexpr eosio::name bpay_account{"rem.bpay"_n};
          static constexpr eosio::name spay_account{"rem.spay"_n};
          static constexpr eosio::name vpay_account{"rem.vpay"_n};
+         static constexpr eosio::name oracle_account{"rem.oracle"_n};
          static constexpr eosio::name names_account{"rem.names"_n};
          static constexpr eosio::name saving_account{"rem.saving"_n};
          static constexpr eosio::name rex_account{"rem.rex"_n};
@@ -696,6 +699,15 @@ namespace eosiosystem {
 
        [[eosio::action]]
        void setunloperiod( uint64_t period_in_days);
+
+       [[eosio::action]]
+       void setinacttime( uint64_t period_in_minutes );
+
+       [[eosio::action]]
+       void setpnshperiod( uint64_t period_in_days );
+
+       [[eosio::action]]
+       void punishprod( const name& producer );
 
 
         // Actions:

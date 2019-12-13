@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from mainnet_bootstrap import run, remcli, public_key
+from mainnet_bootstrap import run, remcli, public_key, eth_swap_contract_address, eth_chain_id
 from time import sleep
 
 wallet_dir = './wallet/'
@@ -54,7 +54,6 @@ def start_node(nodeIndex, accounts):
     swap_and_oracle_opts = (
         '    --plugin eosio::eth_swap_plugin'
         '    --plugin eosio::rem_oracle_plugin'
-        '    --eth_swap_contract_address 0x39882AB5105b1D627E6AED3FF39c1B004a18E207'
     )
     if cryptocompare_apikey:
         swap_and_oracle_opts += (

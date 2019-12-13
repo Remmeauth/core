@@ -77,7 +77,7 @@ namespace eosiosystem {
          .stake_lock_period = eosio::days(180),
          .stake_unlock_period = eosio::days(180),
 
-         .reassertion_period = eosio::days( 7 )
+         .reassertion_period = eosio::days(30)
       };
 
       return rem_state;
@@ -106,6 +106,20 @@ namespace eosiosystem {
       _gremstate.per_stake_share = stake_share;
       _gremstate.per_vote_share = vote_share;
    }
+
+   void system_contract::setinacttime( uint64_t period_in_minutes ) {
+   require_auth(get_self());
+
+   check(period_in_minutes != 0, "block producer maximum inactivity time cannot be zero");
+   _gremstate.producer_max_inactivity_time = eosio::minutes(period_in_minutes);
+    }
+
+    void system_contract::setpnshperiod( uint64_t period_in_days ) {
+       require_auth(get_self());
+
+       check(period_in_days != 0, "punishment period cannot be zero");
+       _gremstate.producer_inactivity_punishment_period = eosio::days(period_in_days);
+    }
 
    void system_contract::setlockperiod( uint64_t period_in_days ) {
       require_auth(get_self());
@@ -216,6 +230,23 @@ namespace eosiosystem {
       });
    }
 
+   void system_contract::punishprod( const name& producer ) {
+    auto prod = _producers.find( producer.value );
+    check( prod != _producers.end(), "producer not found" );
+
+    const auto ct = current_time_point();
+    check( prod->active() && prod->top21_chosen_time != time_point(eosio::seconds(0)), "can only punish top21 active producers" );
+
+    check( ct - prod->last_block_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
+    check( ct - prod->top21_chosen_time >= _gremstate.producer_max_inactivity_time, "not enough inactivity to punish producer" );
+
+    _producers.modify( prod, same_payer, [&](auto& p) {
+          p.punished_until = ct + _gremstate.producer_inactivity_punishment_period;
+          p.top21_chosen_time = time_point(eosio::seconds(0));
+          p.deactivate();
+       });
+}
+
    void system_contract::updtrevision( uint8_t revision ) {
       require_auth( get_self() );
       check( _gstate2.revision < 255, "can not increment revision" ); // prevent wrap around
@@ -277,18 +308,24 @@ namespace eosiosystem {
          }
       }
 
-      user_resources_table  userres( get_self(), newact.value );
 
       int64_t free_stake_amount = 0;
       int64_t free_gift_bytes   = 0;
 
       if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name ) ) {
+         const auto discount = eosio::attribute::get_attribute< int64_t >( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name );
+         // discount attribute is set as percent with precision of 4 symbols
+         // 0 - 0.0000%, 100'0000 - 100.0000%
+         check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
+         const auto discount_rate = discount / 100'0000.0;
+
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-         free_stake_amount                  = _gstate.min_account_stake;
+         free_stake_amount                  = discount_rate * _gstate.min_account_stake;
          free_gift_bytes                    = bytes_per_token * free_stake_amount;
       }
 
+      user_resources_table  userres( get_self(), newact.value );
       userres.emplace( newact, [&]( auto& res ) {
         res.owner = newact;
         res.net_weight = asset( 0, system_contract::get_core_symbol() );

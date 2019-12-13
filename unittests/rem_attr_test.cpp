@@ -308,10 +308,10 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         }
 
         std::vector<create_attribute_t> attributes = {
-            { .attr_name=N(crosschain),  .type=3,  .privacy_type=1 },  // type: ChainAccount, privacy type: PublicPointer
-            { .attr_name=N(tags),        .type=9,  .privacy_type=4 },  // type: Set,          privacy type: PrivateConfirmedPointer
+            { .attr_name=N(crosschain),  .type=4,  .privacy_type=1 },  // type: ChainAccount, privacy type: PublicPointer
+            { .attr_name=N(tags),        .type=10, .privacy_type=4 },  // type: Set,          privacy type: PrivateConfirmedPointer
             { .attr_name=N(creator),     .type=0,  .privacy_type=3 },  // type: Bool,         privacy type: PrivatePointer
-            { .attr_name=N(name),        .type=4,  .privacy_type=0 },  // type: UTFString,    privacy type: SelfAssigned
+            { .attr_name=N(name),        .type=5,  .privacy_type=0 },  // type: UTFString,    privacy type: SelfAssigned
             { .attr_name=N(largeint),    .type=2,  .privacy_type=2 },  // type: LargeInt,     privacy type: PublicConfirmedPointer
         };
         for (const auto& a: attributes) {
@@ -324,7 +324,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(create), N(b1), mvo()("attribute_name", name(N(fail)))("type", 0)("ptype", 0)),
             missing_auth_exception);
         BOOST_REQUIRE_THROW(create_attr(N(fail), -1, 0), eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(create_attr(N(fail), 10, 0), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(create_attr(N(fail), 11, 0), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(create_attr(N(fail), 0, -1), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(create_attr(N(fail), 0, 5), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(create_attr(N(tags), 0, 0), eosio_assert_message_exception);

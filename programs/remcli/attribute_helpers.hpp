@@ -11,6 +11,58 @@
 #include <multibase/multibase.h>
 
 
+enum class data_type : int32_t { Boolean = 0, Int, LargeInt, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, Double, MaxVal };
+enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
+
+std::string data_type_string(data_type t)
+{
+   switch (t) {
+      case data_type::Boolean:
+         return "Boolean";
+      case data_type::Int:
+         return "Int";
+      case data_type::LargeInt:
+         return "LargeInt";
+      case data_type::ChainAccount:
+         return "ChainAccount";
+      case data_type::UTFString:
+         return "UTFString";
+      case data_type::DateTimeUTC:
+         return "DateTimeUTC";
+      case data_type::CID:
+         return "Content ID";
+      case data_type::OID:
+         return "Object ID";
+      case data_type::Binary:
+         return "Binary";
+      case data_type::Set:
+         return "Set";
+      case data_type::Double:
+         return "Double";
+      default:
+         return "";
+   }
+}
+
+std::string privacy_type_string(privacy_type t)
+{
+   switch (t) {
+      case privacy_type::SelfAssigned:
+         return "Self assigned";
+      case privacy_type::PublicPointer:
+         return "Public pointer";
+      case privacy_type::PublicConfirmedPointer:
+         return "Public confirmed pointer";
+      case privacy_type::PrivatePointer:
+         return "Private pointer";
+      case privacy_type::PrivateConfirmedPointer:
+         return "Private confirmed pointer";
+      default:
+         return "";
+   }
+}
+
+
 std::vector<char> encodeOID(const std::string& str)
 {
    std::vector<char> bytes;
