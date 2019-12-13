@@ -7,10 +7,7 @@
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
-#include <eosio/permission.hpp>
 #include <eosio/singleton.hpp>
-
-#include <numeric>
 
 namespace eosio {
 
@@ -157,20 +154,7 @@ namespace eosio {
          uint64_t primary_key()const { return balance.symbol.code().raw(); }
       };
 
-      struct [[eosio::table]] remprice {
-         name                    pair;
-         double                  price = 0;
-         vector<double>          price_points;
-         block_timestamp         last_update;
-
-         uint64_t primary_key()const { return pair.value; }
-
-         // explicit serialization macro is not necessary, used here only to improve compilation time
-         EOSLIB_SERIALIZE( remprice, (pair)(price)(price_points)(last_update))
-      };
-
       typedef multi_index<"accounts"_n, account> accounts;
-      typedef multi_index< "remprice"_n, remprice> remprice_inx;
       typedef multi_index<"authkeys"_n, authkeys,
             indexed_by<"bynotvalbfr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_before>>,
             indexed_by<"bynotvalaftr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_after>>,
@@ -192,7 +176,6 @@ namespace eosio {
       void require_app_auth(const name &account, const public_key &key);
       bool assert_recover_key(const checksum256 &digest, const signature &sign, const public_key &key);
 
-      string join(vector <string> &&vec, string delim = string("*"));
       checksum256 sha256(const string &str) {
          return eosio::sha256(str.c_str(), str.size());
       }

@@ -80,20 +80,11 @@ BOOST_AUTO_TEST_SUITE(ram_tests)
          // wait until stake-lock period ends
          produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 180 ) );
 
-         // undelegate 0.0001 REM to initiate stake unlocking
-         tester->push_action(
-            config::system_account_name, N(undelegatebw), N(testram33333),
-            mvo()("from", "testram33333")("receiver", "testram33333")("unstake_quantity", core_from_string("0.0001"))
-         );
-         produce_blocks(10);
-
-         // wait until stake-unlock period ends
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 180 ) );
          BOOST_REQUIRE_EXCEPTION(
                tester->push_action(config::system_account_name, N(undelegatebw), N(testram33333), mvo()
                      ("from", "testram33333")
                      ("receiver", "testram33333")
-                     ("unstake_quantity", core_from_string("2.9999"))),
+                     ("unstake_quantity", core_from_string("3.0000"))),
                eosio_assert_message_exception,
                fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake"));
          produce_blocks(10);
@@ -103,7 +94,7 @@ BOOST_AUTO_TEST_SUITE(ram_tests)
          int64_t net_weight;
          int64_t cpu_weight;
          {//unstake own REM tokens
-            unstake(N(testram33333), core_from_string("1.9999"));
+            unstake(N(testram33333), core_from_string("2.0000"));
             produce_blocks(10);
             PRINT_USAGE(testram33333)
             const auto t3total = get_total_stake(N(testram33333));
@@ -113,6 +104,13 @@ BOOST_AUTO_TEST_SUITE(ram_tests)
             BOOST_REQUIRE_EQUAL(cpu_weight, 1000000); // 100 REM
             BOOST_REQUIRE_EQUAL(t3total["own_stake_amount"].as_uint64(), 1000000);
          }
+
+         // wait until stake-unlock period ends and refund to balance
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 180 ) );
+         tester->push_action(
+            config::system_account_name, 
+            N(refund), N(testram33333), mvo()("owner", "testram33333")
+         );
 
          { //system account stake without transfer tokens
             stake(config::system_account_name, N(testram33333), core_from_string("1.0000"), false);

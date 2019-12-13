@@ -5,19 +5,28 @@
 #pragma once
 
 #include <eosio/asset.hpp>
-#include <eosio/crypto.hpp>
 #include <eosio/singleton.hpp>
 #include <eosio/eosio.hpp>
-#include <eosio/transaction.hpp>
-#include <eosio/permission.hpp>
-
-#include <time.h>
-#include <numeric>
 
 namespace eosio {
 
    using std::string;
    using std::vector;
+
+   // Defines 'remprice' to be stored market price to the specified pairs
+   struct [[eosio::table, eosio::contract("rem.oracle")]] remprice {
+      name                    pair;
+      double                  price = 0;
+      vector<double>          price_points;
+      block_timestamp         last_update;
+
+      uint64_t primary_key()const { return pair.value; }
+
+      // explicit serialization macro is not necessary, used here only to improve compilation time
+      EOSLIB_SERIALIZE( remprice, (pair)(price)(price_points)(last_update))
+   };
+
+   typedef multi_index< "remprice"_n, remprice> remprice_idx;
 
    /**
     * @defgroup eosiooracle rem.oracle
@@ -58,18 +67,6 @@ namespace eosio {
    private:
       static constexpr name system_account = "rem"_n;
 
-      struct [[eosio::table]] remprice {
-         name                    pair;
-         double                  price = 0;
-         vector<double>          price_points;
-         block_timestamp         last_update;
-
-         uint64_t primary_key()const { return pair.value; }
-
-         // explicit serialization macro is not necessary, used here only to improve compilation time
-         EOSLIB_SERIALIZE( remprice, (pair)(price)(price_points)(last_update))
-      };
-
       struct [[eosio::table]] pricedata {
          name                    producer;
          std::map<name, double>  pairs_data;
@@ -88,13 +85,12 @@ namespace eosio {
          EOSLIB_SERIALIZE( pairstable, (pairs))
       };
 
-      typedef multi_index< "remprice"_n, remprice>    remprice_inx;
-      typedef multi_index< "pricedata"_n, pricedata>  pricedata_inx;
-      typedef singleton< "pairstable"_n, pairstable>  pairs_inx;
+      typedef multi_index< "pricedata"_n, pricedata>  pricedata_idx;
+      typedef singleton< "pairstable"_n,  pairstable> pairs_idx;
 
-      pricedata_inx    pricedata_tbl;
-      remprice_inx     remprice_tbl;
-      pairs_inx        pairs_tbl;
+      pricedata_idx    pricedata_tbl;
+      remprice_idx     remprice_tbl;
+      pairs_idx        pairs_tbl;
       pairstable       pairstable_data;
 
       void check_pairs(const std::map<name, double> &pairs);
