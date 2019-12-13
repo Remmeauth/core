@@ -1,4 +1,4 @@
-add_contract(rem.attr rem.attr ${CMAKE_CURRENT_SOURCE_DIR}/src/rem.attr.cpp)
+add_contract(rem.auth rem.attr ${CMAKE_CURRENT_SOURCE_DIR}/src/rem.attr.cpp)
 
 target_include_directories(rem.attr
         PUBLIC
