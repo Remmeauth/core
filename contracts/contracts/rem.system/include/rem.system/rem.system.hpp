@@ -651,6 +651,8 @@ namespace eosiosystem {
          static constexpr eosio::name ram_account{"rem.ram"_n};
          static constexpr eosio::name ramfee_account{"rem.ramfee"_n};
          static constexpr eosio::name stake_account{"rem.stake"_n};
+         static constexpr eosio::name swap_account{"rem.swap"_n};
+         static constexpr eosio::name utils_account{"rem.utils"_n};
          static constexpr eosio::name bpay_account{"rem.bpay"_n};
          static constexpr eosio::name spay_account{"rem.spay"_n};
          static constexpr eosio::name vpay_account{"rem.vpay"_n};

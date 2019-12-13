@@ -4,9 +4,9 @@
 
 #include <rem.auth/rem.auth.hpp>
 #include <rem.system/rem.system.hpp>
+#include <rem.swap/rem.swap.hpp>
+#include <rem.oracle/rem.oracle.hpp>
 #include <rem.token/rem.token.hpp>
-
-#include <base58.cpp>
 
 namespace eosio {
    using eosiosystem::system_contract;
@@ -284,12 +284,5 @@ namespace eosio {
    {
       token::transfer_action transfer(system_contract::token_account, {from, system_contract::active_permission});
       transfer.send(from, to, quantity, memo);
-   }
-
-   string auth::join( vector<string>&& vec, string delim ) {
-      return std::accumulate(std::next(vec.begin()), vec.end(), vec[0],
-                             [&delim](string& a, string& b) {
-                                return a + delim + b;
-      });
    }
 } /// namespace eosio

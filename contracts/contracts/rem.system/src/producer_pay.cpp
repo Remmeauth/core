@@ -230,14 +230,10 @@ namespace eosiosystem {
       if ( prod != _producers.end() ) {
          _gstate.total_unpaid_blocks++;
 
-         const auto& voter = _voters.get( producer.value );
-         // TODO fix coupling in voter-producer entities
-         if ( vote_is_reasserted( voter.last_reassertion_time ) ) {
-            _producers.modify( prod, same_payer, [&](auto& p ) {
-                  p.current_round_unpaid_blocks++;
-                  p.last_block_time = timestamp;
-            });
-         }
+         _producers.modify( prod, same_payer, [&](auto& p ) {
+               p.current_round_unpaid_blocks++;
+               p.last_block_time = timestamp;
+         });
       }
 
       /// only update block producers once every minute, block_timestamp is in half seconds

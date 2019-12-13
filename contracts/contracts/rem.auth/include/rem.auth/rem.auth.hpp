@@ -11,8 +11,6 @@
 
 #include <rem.attr/rem.attr.hpp>
 
-#include <numeric>
-
 namespace eosio {
 
    using std::string;
@@ -202,8 +200,6 @@ namespace eosio {
       asset get_balance(const name& token_contract_account, const name& owner, const symbol& sym);
       asset get_purchase_fee(const asset &quantity_auth);
       double get_account_discount(const name &account) const;
-
-      string join(vector <string> &&vec, string delim = string("*"));
 
       void check_permission(const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;

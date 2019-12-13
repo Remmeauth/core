@@ -114,8 +114,9 @@ namespace eosiosystem {
                   tot.cpu_weight    += stake_delta;
                   if (from == receiver) {
                      tot.own_stake_amount += stake_delta.amount;
-                     //we have to decrease free bytes in case of own stake
-                     const int64_t new_free_stake_amount = tot.free_stake_amount - tot.own_stake_amount;
+
+                     // we have to decrease free bytes in case of own stake
+                     const int64_t new_free_stake_amount = std::min( static_cast< int64_t >(_gstate.min_account_stake) - tot.own_stake_amount, tot.free_stake_amount);
                      tot.free_stake_amount = std::max(new_free_stake_amount, 0LL);
                   }
                });
