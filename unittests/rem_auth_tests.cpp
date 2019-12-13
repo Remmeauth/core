@@ -596,6 +596,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_discount_test, rem_auth_teste
       auto account_balance_before = get_balance(account);
       auto auth_contract_balance_before = get_balance(N(rem.auth));
 
+      // attribute name, data_type::Double, privacy_type::PrivatePointer
       create_attr(N(discount), 3, 3);
       set_attr(N(rem.auth), account, N(discount), "d7a3703d0ad7eb3f"); // value = 0.87
 

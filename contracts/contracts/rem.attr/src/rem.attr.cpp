@@ -165,6 +165,11 @@ namespace eosio {
          case data_type::Double:
             check( data.size() == sizeof(double), "invalid Double value" );
             break;
+         case data_type::CID:
+         case data_type::OID:
+         case data_type::Set:
+         default:
+            break;
       }
    }
 
