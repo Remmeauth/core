@@ -238,7 +238,7 @@ namespace eosiosystem {
       microseconds stake_lock_period   = eosio::days(180);
       microseconds stake_unlock_period = eosio::days(180);
 
-      microseconds reassertion_period = eosio::days( 7 );
+      microseconds reassertion_period = eosio::days( 30 );
 
       EOSLIB_SERIALIZE( eosio_global_rem_state, (per_stake_share)(per_vote_share)
                                                 (gifter_attr_contract)(gifter_attr_issuer)(gifter_attr_name)
