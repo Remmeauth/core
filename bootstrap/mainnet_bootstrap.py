@@ -32,7 +32,11 @@ remcode_permission_accounts = [
 ]
 
 tech_accounts = {
-    'swapbot': 'EOS8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr',
+    'swapbot': 'EOS8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr',  # swapbot permission
+}
+
+remme_accounts = {
+    'remme': 'EOS8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr',   # active and owner
 }
 
 remnode_port = 8888
@@ -103,6 +107,9 @@ def create_system_accounts():
 def create_tech_accounts():
     for account_name, pk in tech_accounts.items():
         run(remcli + 'create account rem ' + account_name + ' ' + public_key)
+
+    for account_name, pk in remme_accounts.items():
+        run(remcli + 'create account rem ' + account_name + ' ' + pk)
 
 
 def configure_swapbot_permissions():
@@ -210,6 +217,16 @@ def set_system_contract():
     run(remcli + 'push action rem setpriv' + jsonArg(['rem.msig', 1]) + '-p rem@active')
 
 
+def create_default_attributes():
+    # name - accgifter, data_type - Int, privacy_type - PrivatePointer
+    run(
+        remcli + 'push action rem.attr create \'["accgifter", "1", "3"]\' -p rem.attr')
+
+    # name - displayname, data_type - UTFString, privacy_type - SelfAssigned
+    run(
+        remcli + 'push action rem.attr create \'["displayname", "5", "0"]\' -p rem.attr')
+
+
 if __name__ == '__main__':
     activate_protocol_features()
     create_system_accounts()
@@ -221,3 +238,4 @@ if __name__ == '__main__':
     create_auth_token()
     set_system_contract()
     bootstrap_system_contracts()
+    create_default_attributes()
