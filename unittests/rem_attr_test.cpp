@@ -307,10 +307,10 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         }
 
         std::vector<create_attribute_t> attributes = {
-            { .attr_name=N(crosschain),  .type=3,  .privacy_type=1 },  // type: ChainAccount, privacy type: PublicPointer
-            { .attr_name=N(tags),        .type=9,  .privacy_type=4 },  // type: Set,          privacy type: PrivateConfirmedPointer
+            { .attr_name=N(crosschain),  .type=4,  .privacy_type=1 },  // type: ChainAccount, privacy type: PublicPointer
+            { .attr_name=N(tags),        .type=10, .privacy_type=4 },  // type: Set,          privacy type: PrivateConfirmedPointer
             { .attr_name=N(creator),     .type=0,  .privacy_type=3 },  // type: Bool,         privacy type: PrivatePointer
-            { .attr_name=N(name),        .type=4,  .privacy_type=0 },  // type: UTFString,    privacy type: SelfAssigned
+            { .attr_name=N(name),        .type=5,  .privacy_type=0 },  // type: UTFString,    privacy type: SelfAssigned
             { .attr_name=N(largeint),    .type=2,  .privacy_type=2 },  // type: LargeInt,     privacy type: PublicConfirmedPointer
             { .attr_name=N(floating),    .type=10, .privacy_type=1 },  // type: Double,       privacy type: PublicPointer
         };

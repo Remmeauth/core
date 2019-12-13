@@ -77,7 +77,7 @@ namespace eosiosystem {
          .stake_lock_period = eosio::days(180),
          .stake_unlock_period = eosio::days(180),
 
-         .reassertion_period = eosio::days( 7 )
+         .reassertion_period = eosio::days(30)
       };
 
       return rem_state;
