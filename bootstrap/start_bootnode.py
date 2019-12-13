@@ -1,6 +1,7 @@
 import os
 import subprocess
-from mainnet_bootstrap import run, remcli, public_key
+
+from mainnet_bootstrap import run, remcli, public_key, eth_swap_contract_address, eth_chain_id
 from time import sleep
 
 wallet_dir = './wallet/'
@@ -40,7 +41,8 @@ def import_private_keys():
     run(remcli + 'wallet import --private-key ' + private_key)
 
 
-def start_node(nodeIndex, account):
+def start_node(nodeIndex, accounts):
+    account = accounts[0]
     dir = nodes_dir + ('%02d-' % nodeIndex) + account['name'] + '/'
     run('rm -rf ' + dir)
     run('mkdir -p ' + dir)
@@ -50,48 +52,50 @@ def start_node(nodeIndex, account):
         '    --plugin eosio::history_api_plugin'
     )
     swap_and_oracle_opts = (
-                '    --plugin eosio::eth_swap_plugin'
-                '    --plugin eosio::rem_oracle_plugin'
-                '    --oracle-authority ' + account['name'] + '@active' +
-                '    --oracle-signing-key ' + account['pvt'] +
-                '    --swap-signing-key ' + account['pvt'] +
-                '    --swap-authority ' + account['name'] + '@active'
-                '    --update_price_period 5'
-                #'    --oracle-authority remproducer1@active'
-                #'    --oracle-authority remproducer2@active'
-                #'    --swap-authority remproducer1@active'
-                #'    --swap-authority remproducer2@active'
-        )
+        '    --plugin eosio::eth_swap_plugin'
+        '    --plugin eosio::rem_oracle_plugin'
+    )
     if cryptocompare_apikey:
         swap_and_oracle_opts += (
-            '    --cryptocompare-apikey ' + cryptocompare_apikey
+                '    --cryptocompare-apikey ' + cryptocompare_apikey
         )
     if eth_wss_provider:
         swap_and_oracle_opts += (
-            '    --eth-wss-provider ' + eth_wss_provider
+                '    --eth-wss-provider ' + eth_wss_provider
         )
     cmd = (
-        remnode +
-        '    --max-irreversible-block-age -1'
-        '    --contracts-console'
-        '    --genesis-json ' + os.path.abspath(genesis) +
-        '    --blocks-dir ' + os.path.abspath(dir) + '/blocks'
-        '    --config-dir ' + os.path.abspath(dir) +
-        '    --data-dir ' + os.path.abspath(dir) +
-        '    --chain-state-db-size-mb 1024'
-        '    --http-server-address 127.0.0.1:' + str(8888 + nodeIndex) +
-        '    --p2p-listen-endpoint 127.0.0.1:' + str(9000 + nodeIndex) +
-        '    --max-clients ' + str(maxClients) +
-        '    --p2p-max-nodes-per-host ' + str(maxClients) +
-        '    --enable-stale-production'
-        '    --producer-name ' + account['name'] +
-        '    --private-key \'["' + account['pub'] + '","' + account['pvt'] + '"]\''
-        '    --access-control-allow-origin=\'*\''
-        '    --plugin eosio::http_plugin'
-        '    --plugin eosio::chain_api_plugin'
-        '    --plugin eosio::producer_api_plugin'
-        '    --plugin eosio::producer_plugin' + swap_and_oracle_opts +
-        otherOpts)
+            remnode +
+            '    --max-irreversible-block-age -1'
+            '    --contracts-console'
+            '    --genesis-json ' + os.path.abspath(genesis) +
+            '    --blocks-dir ' + os.path.abspath(dir) + '/blocks'
+            '    --config-dir ' + os.path.abspath(dir) +
+            '    --data-dir ' + os.path.abspath(dir) +
+            '    --chain-state-db-size-mb 1024'
+            '    --max-transaction-time 200'
+            '    --http-server-address 127.0.0.1:' + str(8888 + nodeIndex) +
+            '    --p2p-listen-endpoint 127.0.0.1:' + str(9000 + nodeIndex) +
+            '    --max-clients ' + str(maxClients) +
+            '    --p2p-max-nodes-per-host ' + str(maxClients) +
+            '    --enable-stale-production'
+            '    --access-control-allow-origin=\'*\''
+            '    --plugin eosio::http_plugin'
+            '    --plugin eosio::chain_api_plugin'
+            '    --plugin eosio::producer_api_plugin'
+            '    --plugin eosio::producer_plugin')
+    for account in accounts:
+        swap_and_oracle_opts += (
+                    '    --oracle-authority ' + account['name'] + '@active' +
+                    '    --oracle-signing-key ' + account['pvt'] +
+                    '    --swap-signing-key ' + account['pvt'] +
+                    '    --swap-authority ' + account['name'] + '@active'
+            )
+
+        cmd += (
+            '    --producer-name ' + account['name'] +
+            '    --private-key \'["' + account['pub'] + '","' + account['pvt'] + '"]\''
+            )
+    cmd += (swap_and_oracle_opts + otherOpts)
     with open(dir + 'stderr', mode='w') as f:
         f.write(cmd + '\n\n')
     background(cmd + '    2>>' + dir + 'stderr')
@@ -100,7 +104,7 @@ def start_node(nodeIndex, account):
 
 
 def step_start_boot():
-    start_node(0, {'name': 'rem', 'pvt': private_key, 'pub': public_key})
+    start_node(0, [{'name': 'rem', 'pvt': private_key, 'pub': public_key}])
     sleep(1.5)
 
 

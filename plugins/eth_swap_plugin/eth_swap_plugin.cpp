@@ -52,6 +52,33 @@ class eth_swap_plugin_impl {
     uint64_t                   _last_processed_block;
 
     void start_monitor() {
+
+      while(eth_swap_contract_address.empty() && return_chain_id.empty()) {
+        //uint32_t i = 0;
+        try {
+          chain_apis::read_only::get_table_rows_params params = {};
+          params.json = true;
+          params.code = N(rem.swap);
+          params.scope = std::string("rem.swap");
+          params.table = N(swapparams);
+
+          chain_apis::read_only::get_table_rows_result result = app().get_plugin<chain_plugin>().get_read_only_api().get_table_rows(params);
+          for( const auto& item : result.rows ) {
+            eth_swap_contract_address = item["eth_swap_contract_address"].as<std::string>();
+            return_chain_id = item["eth_return_chainid"].as<std::string>();
+            //try {ilog("in_swap_fee: ${i}", ("i", item["in_swap_fee"]));} FC_LOG_AND_DROP()
+            //try {ilog("out_swap_min_amount: ${i}", ("i", item["out_swap_min_amount"]));} FC_LOG_AND_DROP()
+            //try {ilog("chain_id: ${i}", ("i", item["chain_id"]));} FC_LOG_AND_DROP()
+            //ilog("counter: ${i}", ("i", i++));
+          }
+        } FC_LOG_AND_DROP()
+        if( eth_swap_contract_address.empty() && return_chain_id.empty() )
+          sleep(wait_for_swapparams);
+      }
+      ilog("eth swap contract address: ${i}", ("i", eth_swap_contract_address));
+      ilog("eth return chain id: ${i}", ("i", return_chain_id));
+
+
       while (true) {
           try {
               ilog("Establishing connection with ${address}...", ("address", this->_eth_wss_provider));
@@ -250,15 +277,15 @@ eth_swap_plugin::~eth_swap_plugin(){}
 void eth_swap_plugin::set_program_options(options_description&, options_description& cfg) {
   cfg.add_options()
         ("eth-wss-provider", bpo::value<std::string>(),
-         "Ethereum websocket provider. For example wss://ropsten.infura.io/ws/v3/<infura_id>")
+         "Ethereum websocket provider. For example wss://mainnet.infura.io/ws/v3/<infura_id>")
         ("swap-authority", bpo::value<std::vector<std::string>>(),
          "Account name and permission to authorize init swap actions. For example blockproducer1@active")
         ("swap-signing-key", bpo::value<std::vector<std::string>>(),
          "A private key to sign init swap actions")
 
-         ("eth_swap_contract_address", bpo::value<std::string>()->default_value(eth_swap_contract_address), "")
+         //("eth_swap_contract_address", bpo::value<std::string>(), "")
          ("eth_swap_request_event", bpo::value<std::string>()->default_value(eth_swap_request_event), "")
-         ("return_chain_id", bpo::value<std::string>()->default_value(return_chain_id), "")
+         //("return_chain_id", bpo::value<std::string>(), "")
 
          ("eth_events_window_length", bpo::value<uint32_t>()->default_value(eth_events_window_length), "")
          ("blocks_per_filter", bpo::value<uint32_t>()->default_value(blocks_per_filter), "")
@@ -295,9 +322,9 @@ void eth_swap_plugin::plugin_initialize(const variables_map& options) {
       //if(my->_eth_wss_provider.substr(0, prefix.size()) != prefix)
         //throw InvalidWssLinkException("Invalid ethereum node connection link. Should start with " + prefix);
 
-      eth_swap_contract_address = options.at( "eth_swap_contract_address" ).as<std::string>();
+      //eth_swap_contract_address = options.at( "eth_swap_contract_address" ).as<std::string>();
       eth_swap_request_event    = options.at( "eth_swap_request_event" ).as<std::string>();
-      return_chain_id           = options.at( "return_chain_id" ).as<std::string>();
+      //return_chain_id           = options.at( "return_chain_id" ).as<std::string>();
 
       eth_events_window_length = options.at( "eth_events_window_length" ).as<uint32_t>();
       blocks_per_filter = options.at( "blocks_per_filter" ).as<uint32_t>();
@@ -313,7 +340,31 @@ void eth_swap_plugin::plugin_initialize(const variables_map& options) {
 }
 
 void eth_swap_plugin::plugin_startup() {
-  ilog("Ethropsten swap plugin started");
+  ilog("Ethereum swap plugin started");
+  // struct get_table_rows_params {
+  //    bool        json = false;
+  //    name        code;
+  //    string      scope;
+  //    name        table;
+  //    string      table_key;
+  //    string      lower_bound;
+  //    string      upper_bound;
+  //    uint32_t    limit = 10;
+  //    string      key_type;  // type of key specified by index_position
+  //    string      index_position; // 1 - primary (first), 2 - secondary index (in order defined by multi_index), 3 - third index, etc
+  //    string      encode_type{"dec"}; //dec, hex , default=dec
+  //    optional<bool>  reverse;
+  //    optional<bool>  show_payer; // show RAM pyer
+  //  };
+  //
+  // struct get_table_rows_result {
+  //    vector<fc::variant> rows; ///< one row per item, either encoded as hex String or JSON object
+  //    bool                more = false; ///< true if last element in data is not the end and sizeof data() < limit
+  //    string              next_key; ///< fill lower_bound with this value to fetch more rows
+  // };
+  //
+  // get_table_rows_result get_table_rows( const get_table_rows_params& params )const;
+
   try {
     my_web3 my_w3(my->_eth_wss_provider);
     ilog("last eth block: " + to_string(my_w3.get_last_block_num()));

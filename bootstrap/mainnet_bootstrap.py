@@ -48,13 +48,13 @@ max_auth_token_supply = 1_000_000_000_000_0000
 rem_symbol = 'REM'
 auth_symbol = 'AUTH'
 
-producer_reward_per_swap = 10_0000  # torewards 10.0000 REM per swap
-min_swap_out_amount = 100_0000
-
 swap_chains = [
-    # (chain_id, input, output)
-    ('ethropsten', '1', '1')
+    # (chain_id, input, output, producer_reward_per_swap, min_swap_out_amount)
+    ('ethropsten', '1', '1', 1000_0000, 1000_0000)
 ]
+
+eth_swap_contract_address = '0x39882AB5105b1D627E6AED3FF39c1B004a18E207'
+eth_chain_id = 'ethropsten'
 
 
 def get_chain_id():
@@ -101,7 +101,7 @@ def create_system_accounts():
 
 
 def create_tech_accounts():
-    for account_name, public_key in tech_accounts.items():
+    for account_name, pk in tech_accounts.items():
         run(remcli + 'create account rem ' + account_name + ' ' + public_key)
 
 
@@ -148,14 +148,20 @@ def bootstrap_system_contracts():
     run(remcli + 'push action rem.oracle addpair \'["rem.btc"]\' -p rem.oracle -p rem')
     run(remcli + 'push action rem.oracle addpair \'["rem.eth"]\' -p rem.oracle -p rem')
 
-    run(remcli + f'push action rem.swap setswapfee \'["{producer_reward_per_swap}"]\' \
+    # run(remcli + f'push action rem.swap setswapfee \'["{producer_reward_per_swap}"]\' \
+    # -p rem.swap -p rem')
+    # run(remcli + f'push action rem.swap setchainid \'["{get_chain_id()}"]\' \
+    # -p rem.swap -p rem')
+
+    run(remcli + f'push action rem.swap setswapparam \'["{get_chain_id()}", \
+    "{eth_swap_contract_address}", "{eth_chain_id}"]\' \
     -p rem.swap -p rem')
-    run(remcli + f'push action rem.swap setminswpout \'["{min_swap_out_amount}"]\' \
-    -p rem.swap -p rem')
-    run(remcli + f'push action rem.swap setchainid \'["{get_chain_id()}"]\' \
-    -p rem.swap -p rem')
-    for chain_id, input, output, in swap_chains:
-        run(remcli + f'push action rem.swap addchain \'["{chain_id}", "{input}", "{output}"]\' \
+
+    # run(remcli + f'push action rem.swap setminswpout \'["{eth_chain_id}", "{min_swap_out_amount}"]\' \
+    # -p rem.swap -p rem')
+    for chain_id, input, output, producer_reward_per_swap, min_swap_out_amount in swap_chains:
+        run(remcli + f'push action rem.swap addchain \'["{chain_id}", "{input}", "{output}",\
+        "{producer_reward_per_swap}", "{min_swap_out_amount}"]\' \
         -p rem.swap -p rem')
 
 
@@ -195,6 +201,7 @@ def set_system_contract():
         remcli + 'push action rem activate \'["1a99a59d87e06e09ec5b028a9cbb7749b4a5ad8819004365d02dc4379a8b7241"]\' -p rem')
     run(
         remcli + 'push action rem activate \'["4e7bf348da00a945489b2a681749eb56f5de00b900014e137ddae39f48f69d67"]\' -p rem')
+    sleep(1)
     run(remcli + 'set contract rem ' + contracts_dir + '/rem.bios/ -p rem')
     retry(remcli + 'set contract rem ' + contracts_dir + '/rem.system/')
     sleep(1)
