@@ -232,6 +232,16 @@ def create_default_attributes():
         remcli + 'push action rem.attr create \'["displayname", "5", "0"]\' -p rem.attr')
 
 
+def create_default_attributes():
+    # name - accgifter, data_type - Int, privacy_type - PrivatePointer
+    run(
+        remcli + 'push action rem.attr create \'["accgifter", "1", "3"]\' -p rem.attr')
+
+    # name - displayname, data_type - UTFString, privacy_type - SelfAssigned
+    run(
+        remcli + 'push action rem.attr create \'["displayname", "5", "0"]\' -p rem.attr')
+
+
 if __name__ == '__main__':
     activate_protocol_features()
     create_system_accounts()

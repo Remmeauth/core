@@ -3,7 +3,6 @@
 #include <eosio/eosio.hpp>
 
 namespace eosio {
-
    struct [[eosio::table, eosio::contract("rem.auth")]] attribute_info {
       name    attribute_name;
       int32_t type;
@@ -84,6 +83,7 @@ namespace eosio {
       enum class data_type : int32_t { Boolean = 0, Int, LargeInt, Double, ChainAccount, UTFString, DateTimeUTC, CID, OID, Binary, Set, MaxVal };
       enum class privacy_type : int32_t { SelfAssigned = 0, PublicPointer, PublicConfirmedPointer, PrivatePointer, PrivateConfirmedPointer, MaxVal };
 
+      void check_attribute_data(const std::vector<char>& data, int32_t type) const;
       void check_permission(const name& issuer, const name& receiver, int32_t ptype) const;
       bool need_confirm(int32_t ptype) const;
    };
