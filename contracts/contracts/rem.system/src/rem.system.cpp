@@ -310,7 +310,11 @@ namespace eosiosystem {
 
 
       int64_t free_stake_amount = 0;
-      int64_t free_gift_bytes   = 0;
+
+      const int64_t account_price = 50'0000LL;
+      const int64_t account_min_ram = 3800; // bytes
+      const int64_t token_supply = eosio::token::get_supply(token_account, core_symbol().code() ).amount;
+      int64_t free_gift_bytes  = std::max( 0, account_min_ram - account_price * _gstate.max_ram_size / token_supply );
 
       if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name ) ) {
          const auto discount = eosio::attribute::get_attribute< int64_t >( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name );
