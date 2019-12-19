@@ -75,6 +75,10 @@ namespace eosiosystem {
    static constexpr int64_t  default_inflation_pay_factor  = 50000;   // producers pay share = 10000 / 50000 = 20% of the inflation
    static constexpr int64_t  default_votepay_factor        = 40000;   // per-block pay share = 10000 / 40000 = 25% of the producer pay
 
+   // 3742 bytes - is size of the new user account for current version
+   static constexpr int64_t  min_account_ram = 3800;
+   
+
    /**
     *
     * @defgroup eosiosystem rem.system
@@ -148,7 +152,7 @@ namespace eosiosystem {
       symbol               core_symbol;
 
       uint64_t             max_ram_size = 64ll*1024 * 1024 * 1024;
-      uint64_t             min_account_stake = 100'0000; //minimum stake for new created account 100'0000 REM
+      uint64_t             min_account_stake = 1000000; //minimum stake for new created account 100'0000 REM
       uint64_t             total_ram_bytes_reserved = 0;
       int64_t              total_ram_stake = 0;
       //producer name and pervote factor
@@ -262,26 +266,6 @@ namespace eosiosystem {
     * Global state singleton added in version 1.0
     */
    typedef eosio::singleton< "rotations"_n, rotation_state >   rotation_state_singleton;
-
-
-   /**
-    * Defines new global state parameters for account price management
-    */
-   struct [[eosio::table("accprice"), eosio::contract("rem.system")]] account_price_state {
-      int64_t account_price;
-      int64_t min_ram_for_account;
-      
-      int64_t ram_gift_bytes( const double bytes_per_token ) {
-         return std::max( int64_t{0}, min_ram_for_account - static_cast< int64_t >(bytes_per_token * account_price) );
-      }
-
-      EOSLIB_SERIALIZE( account_price_state, (account_price)(min_ram_for_account) )
-   };
-   /**
-    * Global state singleton added in version 1.0
-    */
-   typedef eosio::singleton< "accprice"_n, account_price_state > account_price_state_singleton;
-
 
    /**
     * Defines `producer_info` structure to be stored in `producer_info` table, added after version 1.0
@@ -663,9 +647,6 @@ namespace eosiosystem {
 
          rotation_state_singleton _rotation;
          rotation_state           _grotation;
-
-         account_price_state_singleton  _accprice;
-         account_price_state            _gaccprice;
 
       public:
          static constexpr eosio::name active_permission{"active"_n};
@@ -1423,24 +1404,6 @@ namespace eosiosystem {
          [[eosio::action]]
          void setinflation( int64_t annual_rate, int64_t inflation_pay_factor, int64_t votepay_factor );
 
-         /**
-          * Set min acount price action.
-          *
-          * @details Set price for new account creation.
-          * @param account_price_state - the minimum account price.
-          */
-         [[eosio::action]]
-         void setaccprice( int64_t account_price_state );
-         
-         /**
-          * Set min acount ram.
-          *
-          * @details Set min acount ram. Depends on account field sizes.
-          * @param min_ram - the minimum amount of ram for new account.
-          */
-         [[eosio::action]]
-         void setminram( int64_t min_ram );
-
          using init_action = eosio::action_wrapper<"init"_n, &system_contract::init>;
          using newaccount_action = eosio::action_wrapper<"newaccount"_n, &system_contract::newaccount>;
          using activate_action = eosio::action_wrapper<"activate"_n, &system_contract::activate>;
@@ -1492,10 +1455,7 @@ namespace eosiosystem {
          using setgiftcontra_action = eosio::action_wrapper<"setgiftcontra"_n, &system_contract::setgiftcontra>;
          using setgiftiss_action    = eosio::action_wrapper<"setgiftiss"_n,    &system_contract::setgiftiss>;
          using setgiftattr_action   = eosio::action_wrapper<"setgiftattr"_n,   &system_contract::setgiftattr>;
-         using setinflation_action  = eosio::action_wrapper<"setinflation"_n,  &system_contract::setinflation>;
-
-         using setaccprice_action = eosio::action_wrapper<"setaccprice"_n, &system_contract::setaccprice>;
-         using setminram_action   = eosio::action_wrapper<"setminram"_n, &system_contract::setminram>;
+         using setinflation_action = eosio::action_wrapper<"setinflation"_n, &system_contract::setinflation>;
 
       private:
          // Implementation details:
@@ -1569,6 +1529,9 @@ namespace eosiosystem {
          // defined in rem.system.cpp
          // to keep Guardian status, account should reassert its vote every eosio_global_rem_state::reassertion_period
          bool vote_is_reasserted( eosio::time_point last_reassertion_time ) const;
+
+         // calculates amount of free bytes for current stake
+         int64_t ram_gift_bytes( int64_t stake ) const;
 
          //defined in rotation.cpp
          std::vector<eosio::producer_authority> get_rotated_schedule();
