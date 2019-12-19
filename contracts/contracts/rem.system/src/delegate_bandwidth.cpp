@@ -145,6 +145,14 @@ namespace eosiosystem {
                const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
                const double bytes_per_token = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
                int64_t bytes_for_stake = bytes_per_token * (tot_itr->own_stake_amount + tot_itr->free_stake_amount);
+               if ( bytes_for_stake < _gaccprice.min_ram_for_account ) {
+                bytes_for_stake += _gaccprice.ram_gift_bytes( bytes_per_token );
+               }
+               eosio::print(
+                  "bytes from stake: ", static_cast< int64_t >( bytes_per_token * (tot_itr->own_stake_amount + tot_itr->free_stake_amount) ),
+                  "\nfree bytes: ", _gaccprice.ram_gift_bytes( bytes_per_token )
+               );
+
                set_resource_limits( receiver,
                                     ram_managed ? ram_bytes : bytes_for_stake,
                                     net_managed ? net : tot_itr->net_weight.amount + tot_itr->free_stake_amount,

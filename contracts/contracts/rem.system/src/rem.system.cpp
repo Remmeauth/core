@@ -28,6 +28,7 @@ namespace eosiosystem {
     _global4(get_self(), get_self().value),
     _globalrem(get_self(), get_self().value),
     _rotation(get_self(), get_self().value),
+    _accprice(get_self(), get_self().value),
     _rexpool(get_self(), get_self().value),
     _rexfunds(get_self(), get_self().value),
     _rexbalance(get_self(), get_self().value),
@@ -44,6 +45,11 @@ namespace eosiosystem {
          .last_rotation_time      = time_point{},
          .rotation_period         = eosio::hours(4),
          .standby_prods_to_rotate = 4
+      });
+
+      _gaccprice = _accprice.get_or_create(_self, account_price_state{
+         .account_price       = 50'0000,
+         .min_ram_for_account = 3800
       });
    }
 
@@ -95,6 +101,7 @@ namespace eosiosystem {
       _global4.set( _gstate4, get_self() );
       _globalrem.set( _gremstate, get_self() );
       _rotation.set( _grotation, get_self() );
+      _accprice.set( _gaccprice, get_self() );
    }
 
    void system_contract::setrwrdratio( double stake_share, double vote_share ) {
@@ -271,6 +278,24 @@ namespace eosiosystem {
       _global4.set( _gstate4, get_self() );
    }
 
+   void system_contract::setaccprice( int64_t account_price ) {
+      require_auth(get_self());
+
+      check( account_price > 0, "account price should be greater than 0" );
+
+      _gaccprice.account_price = account_price;
+   }
+
+   void system_contract::setminram( int64_t min_ram ) {
+      require_auth(get_self());
+
+      // 3742 - is size of the new user account for current version
+      check( min_ram > 3742, "minimum ram cannot be less than 3742 bytes" );
+
+      _gaccprice.min_ram_for_account = min_ram;
+   }
+
+
    /**
     *  Called after a new account is created. This code enforces resource-limits rules
     *  for new accounts as well as new account naming conventions.
@@ -308,13 +333,8 @@ namespace eosiosystem {
          }
       }
 
-
       int64_t free_stake_amount = 0;
-
-      const int64_t account_price = 50'0000LL;
-      const int64_t account_min_ram = 3800; // bytes
-      const int64_t token_supply = eosio::token::get_supply(token_account, core_symbol().code() ).amount;
-      int64_t free_gift_bytes  = std::max( 0, account_min_ram - account_price * _gstate.max_ram_size / token_supply );
+      int64_t free_gift_bytes   = 0;
 
       if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name ) ) {
          const auto discount = eosio::attribute::get_attribute< int64_t >( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, creator, _gremstate.gifter_attr_name );
