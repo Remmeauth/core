@@ -223,3 +223,23 @@ std::string my_web3::get_filter_logs(const std::string& filter_id) {
     mutex.unlock();
     return this->filter_logs;
 }
+
+void my_web3::uninstall_filter(const std::string& filter_id) {
+    boost::mutex response_mutex;
+    mutex.lock();
+    response_mutex.lock();
+    std::string request = "{\"id\": "+std::to_string(id)+"," \
+      "\"method\": \"eth_uninstallFilter\"," \
+      "\"params\": [\""+filter_id+"\"]}";
+
+    auto on_uninstall_filter = [&response_mutex](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
+        response_mutex.unlock();
+    };
+    register_callback(on_uninstall_filter);
+    send_request(request);
+
+    response_mutex.lock();
+    response_mutex.unlock();
+
+    mutex.unlock();
+}

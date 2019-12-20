@@ -78,63 +78,35 @@ class eth_swap_plugin_impl {
       ilog("eth swap contract address: ${i}", ("i", eth_swap_contract_address));
       ilog("eth return chain id: ${i}", ("i", return_chain_id));
 
+      std::thread t([=](){
+          init_prev_swap_requests();
+      });
+      t.detach();
 
-      while (true) {
-          try {
-              ilog("Establishing connection with ${address}...", ("address", this->_eth_wss_provider));
-              uint64_t from_block = this->_last_processed_block;
+      while(true) {
+        try {
+            my_web3 my_w3(this->_eth_wss_provider);
+            uint64_t last_block_dec = my_w3.get_last_block_num();
+            uint64_t from_block_dec = last_block_dec - long_polling_blocks_per_filter;
 
-              client m_client;
-              websocketpp::connection_hdl m_hdl;
-              websocketpp::lib::mutex m_lock;
-              m_client.clear_access_channels(websocketpp::log::alevel::all);
-              m_client.set_access_channels(websocketpp::log::alevel::connect);
-              m_client.set_access_channels(websocketpp::log::alevel::disconnect);
-              m_client.set_access_channels(websocketpp::log::alevel::app);
-              m_client.init_asio();
-              using websocketpp::lib::placeholders::_1;
-              using websocketpp::lib::placeholders::_2;
-              using websocketpp::lib::bind;
-              m_client.set_message_handler(bind(&eth_swap_plugin_impl::on_swap_request,this,&m_client,_1,_2));
-              m_client.set_tls_init_handler([](websocketpp::connection_hdl){
-                  return websocketpp::lib::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::sslv23);
-              });
-              websocketpp::lib::error_code ec;
-              client::connection_ptr con = m_client.get_connection(this->_eth_wss_provider, ec);
-              if (ec) {
-                  m_client.get_alog().write(websocketpp::log::alevel::app,
-                          "Get Connection Error: "+ec.message());
-                  throw ec.message();
-              }
+            std::stringstream stream;
+            stream << std::hex << from_block_dec;
+            std::string from_block( "0x" + stream.str() );
+            stream.str("");
+            stream.clear();
 
-              m_hdl = con->get_handle();
-              m_client.connect(con);
+            std::string to_block = "latest";
 
-              websocketpp::lib::thread asio_thread(&client::run, &m_client);
-              sleep(wait_for_wss_connection_time);
+            std::string request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
+            std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+            my_w3.uninstall_filter(request_swap_filter_id);
+            std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-              string infura_request = "{\"id\": 1," \
-                                      "\"method\": \"eth_subscribe\"," \
-                                      "\"params\": [\"logs\", {\"address\": \""+string(eth_swap_contract_address)+"\"," \
-                                                                "\"topics\": [\""+string(eth_swap_request_event)+"\"]}]}";
-              m_client.get_alog().write(websocketpp::log::alevel::app, infura_request);
-              m_client.send(m_hdl,infura_request,websocketpp::frame::opcode::text,ec);
-              if (ec) {
-                  m_client.get_alog().write(websocketpp::log::alevel::app,
-                      "Send Error: "+ec.message());
-                  throw ec.message();
-              }
-              std::thread t([=](){
-                  try {
-                    init_prev_swap_requests();
-                  } FC_LOG_AND_RETHROW()
-              });
-              t.detach();
+            wait_for_tx_confirmation_and_push(prev_swap_requests);
 
-              asio_thread.join();
-              throw ConnectionClosedException("Connection with " + _eth_wss_provider + " closed");
-          } FC_LOG_WAIT_AND_CONTINUE()
-        }
+            sleep(long_polling_period);
+        } FC_LOG_WAIT_AND_CONTINUE()
+      }
     }
 
     void on_swap_request(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
@@ -173,38 +145,43 @@ class eth_swap_plugin_impl {
         } FC_LOG_AND_RETHROW()
     }
 
-    void init_prev_swap_requests(uint64_t from_block_dec = 0) {
-        try {
-          my_web3 my_w3(this->_eth_wss_provider);
-          uint64_t last_block_num = my_w3.get_last_block_num();
-          if(from_block_dec == 0) {
-            from_block_dec = last_block_num - eth_events_window_length;
-          }
+    void init_prev_swap_requests() {
+        uint64_t last_block_num = 0, min_block_dec, to_block_dec;
+        while(last_block_num == 0) {
+          try {
+            my_web3 my_w3(this->_eth_wss_provider);
+            last_block_num = my_w3.get_last_block_num();
+            min_block_dec = last_block_num - eth_events_window_length;
+            to_block_dec = last_block_num;
+          } FC_LOG_WAIT_AND_CONTINUE()
+        }
 
-          while (from_block_dec < last_block_num) {
-            std::stringstream stream;
-            stream << std::hex << from_block_dec;
-            std::string from_block( "0x" + stream.str() );
-            stream.str("");
-            stream.clear();
+        while(to_block_dec > min_block_dec) {
+          try {
+            my_web3 my_w3(this->_eth_wss_provider);
 
-            uint64_t to_block_dec = from_block_dec + blocks_per_filter;
-            std::string to_block;
-            if(to_block_dec >= last_block_num)
-              to_block = "latest";
-            else {
+            while (to_block_dec > min_block_dec) {
+
+              std::stringstream stream;
+              stream << std::hex << min(min_block_dec, to_block_dec - blocks_per_filter);
+              std::string from_block( "0x" + stream.str() );
+              stream.str("");
+              stream.clear();
+
               stream << std::hex << to_block_dec;
-              to_block = "0x" + stream.str();
+              std::string to_block = "0x" + stream.str();
+
+              std::string request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
+              std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+              my_w3.uninstall_filter(request_swap_filter_id);
+              std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
+
+              wait_for_tx_confirmation_and_push(prev_swap_requests);
+              to_block_dec -= (blocks_per_filter-1);
             }
 
-            std::string request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
-            std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
-            std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
-
-            wait_for_tx_confirmation_and_push(prev_swap_requests);
-            from_block_dec += blocks_per_filter;
-          }
-        } FC_LOG_AND_RETHROW()
+          } FC_LOG_WAIT_AND_CONTINUE()
+        }
     }
 
     void push_init_swap_transaction(const swap_event_data& data) {
@@ -254,9 +231,11 @@ class eth_swap_plugin_impl {
                        [&is_tx_sent, data, slot](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                          is_tx_sent = true;
                          if (result.contains<fc::exception_ptr>()) {
-                            elog("Failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
-                            ( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
-                            ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
+                            std::string err_str = result.get<fc::exception_ptr>()->to_string();
+                            if ( err_str != "swap already canceled" && err_str != "swap already finished" && err_str != "approval already exists" )
+                                elog("Failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
+                                ( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                                ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
                          } else {
                             if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
                                 auto trx_id = result.get<transaction_trace_ptr>()->id;
@@ -300,6 +279,9 @@ void eth_swap_plugin::set_program_options(options_description&, options_descript
          ("check_tx_confirmations_times", bpo::value<uint32_t>()->default_value(check_tx_confirmations_times), "")
          ("min_tx_confirmations", bpo::value<uint32_t>()->default_value(min_tx_confirmations), "")
 
+         ("long_polling_blocks_per_filter", bpo::value<uint32_t>()->default_value(long_polling_blocks_per_filter), "")
+         ("long_polling_period", bpo::value<uint32_t>()->default_value(long_polling_period), "")
+
          ("init_swap_expiration_time", bpo::value<uint32_t>()->default_value(init_swap_expiration_time), "")
          ("retry_push_tx_time", bpo::value<uint32_t>()->default_value(retry_push_tx_time), "")
          ("start_monitor_delay", bpo::value<uint32_t>()->default_value(start_monitor_delay), "")
@@ -339,6 +321,9 @@ void eth_swap_plugin::plugin_initialize(const variables_map& options) {
 
       check_tx_confirmations_times = options.at( "check_tx_confirmations_times" ).as<uint32_t>();
       min_tx_confirmations = options.at( "min_tx_confirmations" ).as<uint32_t>();
+
+      long_polling_blocks_per_filter = options.at( "long_polling_blocks_per_filter" ).as<uint32_t>();
+      long_polling_period = options.at( "long_polling_period" ).as<uint32_t>();
 
       init_swap_expiration_time = options.at( "init_swap_expiration_time" ).as<uint32_t>();
       retry_push_tx_time = options.at( "retry_push_tx_time" ).as<uint32_t>();

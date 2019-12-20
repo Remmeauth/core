@@ -32,6 +32,7 @@ class my_web3 {
         uint64_t get_transaction_confirmations(const std::string& txid);
         std::string new_filter(const std::string& contract_address, const std::string& fromBlock, const std::string& toBlock, const std::string& topics);
         std::string get_filter_logs(const std::string& filter_id);
+        void uninstall_filter(const std::string& filter_id);
     private:
         client m_client;
         websocketpp::connection_hdl m_hdl;
