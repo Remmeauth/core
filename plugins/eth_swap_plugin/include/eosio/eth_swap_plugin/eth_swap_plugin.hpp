@@ -99,7 +99,7 @@ uint32_t   wait_for_tx_confirmation = 30;  // check if request swap transaction 
   if transaction doesn't have min_tx_confirmations
 */
 uint32_t   check_tx_confirmations_times = 5;
-uint32_t min_tx_confirmations = 3;  // minimum required request swap transaction confirmations on ethereum to init swap on remprotocol
+uint32_t min_tx_confirmations = 10;  // minimum required request swap transaction confirmations on ethereum to init swap on remprotocol
 
 uint32_t init_swap_expiration_time = 300;  // init swap transaction expiration time
 /*
