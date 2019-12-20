@@ -95,14 +95,17 @@ class eth_swap_plugin_impl {
             stream.str("");
             stream.clear();
 
-            std::string to_block = "latest";
+            stream << std::hex << (last_block_dec - min_tx_confirmations);
+            std::string to_block( "0x" + stream.str() );
+            stream.str("");
+            stream.clear();
 
             std::string request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
             std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
             my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-            wait_for_tx_confirmation_and_push(prev_swap_requests);
+            push_txs(prev_swap_requests);
 
             sleep(long_polling_period);
         } FC_LOG_WAIT_AND_CONTINUE()
@@ -124,23 +127,15 @@ class eth_swap_plugin_impl {
         } FC_LOG_AND_RETURN()
         std::vector<swap_event_data> swap_requests;
         swap_requests.push_back(data);
-        wait_for_tx_confirmation_and_push(swap_requests);
+        push_txs(swap_requests);
     }
 
-    void wait_for_tx_confirmation_and_push(const std::vector<swap_event_data>& swap_requests) {
+    void push_txs(const std::vector<swap_event_data>& swap_requests) {
         try {
-          my_web3 my_w3(this->_eth_wss_provider);
           for (std::vector<swap_event_data>::const_iterator it = swap_requests.begin() ; it != swap_requests.end(); ++it) {
               swap_event_data data = *it;
               std::string txid = data.txid;
-              for(int i = 0; i < check_tx_confirmations_times; i++)
-                  if(my_w3.get_transaction_confirmations("0x"+data.txid) >= min_tx_confirmations) {
-                    push_init_swap_transaction(data);
-                    this->_last_processed_block = data.block_number;
-                    break;
-                  }
-                  else
-                    sleep(wait_for_tx_confirmation);
+              push_init_swap_transaction(data);
           }
         } FC_LOG_AND_RETHROW()
     }
@@ -152,7 +147,7 @@ class eth_swap_plugin_impl {
             my_web3 my_w3(this->_eth_wss_provider);
             last_block_num = my_w3.get_last_block_num();
             min_block_dec = last_block_num - eth_events_window_length;
-            to_block_dec = last_block_num;
+            to_block_dec = last_block_num - min_tx_confirmations;
           } FC_LOG_WAIT_AND_CONTINUE()
         }
 
@@ -176,7 +171,7 @@ class eth_swap_plugin_impl {
               my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-              wait_for_tx_confirmation_and_push(prev_swap_requests);
+              push_txs(prev_swap_requests);
               to_block_dec -= (blocks_per_filter-1);
             }
 
