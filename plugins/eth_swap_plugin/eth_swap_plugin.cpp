@@ -220,22 +220,23 @@ class eth_swap_plugin_impl {
               trxs.emplace_back(std::move(trx));
               try {
                  auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-                 app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot]() {
+                 name account = this->_swap_signing_account[i];
+                 app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot, account]() {
                    for (size_t i = 0; i < trxs_copy->size(); ++i) {
                        app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                       [&is_tx_sent, data, slot](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                       [&is_tx_sent, data, slot, account](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                          is_tx_sent = true;
                          if (result.contains<fc::exception_ptr>()) {
                             std::string err_str = result.get<fc::exception_ptr>()->to_string();
                             if ( err_str != "swap already canceled" && err_str != "swap already finished" && err_str != "approval already exists" )
-                                elog("Failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
-                                ( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                                elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
+                                ("prod", account)( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                                 ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
                          } else {
                             if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
                                 auto trx_id = result.get<transaction_trace_ptr>()->id;
-                                ilog("Pushed init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${id}",
-                                ( "id", trx_id )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                                ilog("${prod} pushed init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${id}",
+                                ("prod", account)( "id", trx_id )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                                 ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
                             }
                          }
