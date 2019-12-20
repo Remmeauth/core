@@ -212,8 +212,12 @@ class eth_swap_plugin_impl {
           bool is_tx_sent = false;
           uint32_t push_tx_attempt = 0;
           while(!is_tx_sent) {
-              if(push_tx_attempt)
-                wlog("Retrying to push init swap transaction: ${id}", ( "id", data.txid ));
+              uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
+              if(push_tx_attempt) {
+                wlog("Retrying to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
+                ("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
+              }
               std::vector<signed_transaction> trxs;
               trxs.reserve(2);
 
@@ -221,12 +225,12 @@ class eth_swap_plugin_impl {
               auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
 
               if( data.chain_id != std::string(chainid) ) {
-                  elog("Invalid chain identifier ${c}", ("c", data.chain_id));
+                  elog("Invalid chain identifier in init swap transaction(${chain_id}, ${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
+                  ("chain_id", data.chain_id)("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                  ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
                   return;
               }
               signed_transaction trx;
-
-              uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
 
               trx.actions.emplace_back(vector<chain::permission_level>{{this->_swap_signing_account[i],name(this->_swap_signing_permission[i])}},
                 init{this->_swap_signing_account[i],
@@ -244,17 +248,21 @@ class eth_swap_plugin_impl {
               trxs.emplace_back(std::move(trx));
               try {
                  auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-                 app().post(priority::low, [trxs_copy, &is_tx_sent]() {
+                 app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot]() {
                    for (size_t i = 0; i < trxs_copy->size(); ++i) {
                        app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                       [&is_tx_sent](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                       [&is_tx_sent, data, slot](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                          is_tx_sent = true;
                          if (result.contains<fc::exception_ptr>()) {
-                            elog("Failed to push init swap transaction: ${res}", ( "res", result.get<fc::exception_ptr>()->to_string() ));
+                            elog("Failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
+                            ( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                            ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
                          } else {
                             if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
                                 auto trx_id = result.get<transaction_trace_ptr>()->id;
-                                ilog("Pushed init swap transaction: ${id}", ( "id", trx_id ));
+                                ilog("Pushed init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${id}",
+                                ( "id", trx_id )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                                ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
                             }
                          }
                       });
