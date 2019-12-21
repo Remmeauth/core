@@ -82,12 +82,15 @@ class eth_swap_plugin_impl {
       });
       t.detach();
 
-      uint64_t last_processed_block = 0;
+      uint64_t from_block_dec = 0;
       while(true) {
         try {
             my_web3 my_w3(this->_eth_wss_provider);
             uint64_t last_block_dec = my_w3.get_last_block_num();
-            uint64_t from_block_dec = std::max(last_block_dec - long_polling_blocks_per_filter, last_processed_block);
+            if( from_block_dec == 0 ) {
+                from_block_dec = last_block_dec - long_polling_blocks_per_filter - min_tx_confirmations;
+            }
+            uint64_t to_block_dec = std::min(last_block_dec - min_tx_confirmations, from_block_dec + long_polling_blocks_per_filter);
 
             std::stringstream stream;
             stream << std::hex << from_block_dec;
@@ -95,7 +98,7 @@ class eth_swap_plugin_impl {
             stream.str("");
             stream.clear();
 
-            stream << std::hex << (last_block_dec - min_tx_confirmations);
+            stream << std::hex << to_block_dec;
             std::string to_block( "0x" + stream.str() );
             stream.str("");
             stream.clear();
@@ -105,7 +108,7 @@ class eth_swap_plugin_impl {
             my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-            push_txs(prev_swap_requests, &last_processed_block);
+            push_txs(prev_swap_requests, &from_block_dec);
 
             sleep(long_polling_period);
         } FC_LOG_WAIT_AND_CONTINUE()
@@ -117,7 +120,10 @@ class eth_swap_plugin_impl {
           for (std::vector<swap_event_data>::const_iterator it = swap_requests.begin() ; it != swap_requests.end(); ++it) {
               swap_event_data data = *it;
               std::string txid = data.txid;
-              push_init_swap_transaction(data, eth_block_number_ptr);
+              bool is_out_of_resources = false;
+              push_init_swap_transaction(data, eth_block_number_ptr, is_out_of_resources);
+              if(is_out_of_resources)
+                break;
           }
         } FC_LOG_AND_RETHROW()
     }
@@ -161,8 +167,9 @@ class eth_swap_plugin_impl {
         }
     }
 
-    void push_init_swap_transaction(const swap_event_data& data, uint64_t* eth_block_number_ptr) {
+    void push_init_swap_transaction(const swap_event_data& data, uint64_t* eth_block_number_ptr, bool& is_out_of_resources) {
         bool is_tx_sent = false;
+        is_out_of_resources = false;
         uint32_t push_tx_attempt = 0;
         while(!is_tx_sent) {
             uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
@@ -202,16 +209,18 @@ class eth_swap_plugin_impl {
             }
             try {
                auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-               app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot, eth_block_number_ptr]() {
+               app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot, eth_block_number_ptr, &is_out_of_resources]() {
                  for (size_t i = 0; i < trxs_copy->size(); ++i) {
                      name account = trxs_copy->at(i).first_authorizer();
                      app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                     [&is_tx_sent, data, slot, account, eth_block_number_ptr](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                     [&is_tx_sent, data, slot, account, eth_block_number_ptr, &is_out_of_resources](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                        is_tx_sent = true;
                        if (result.contains<fc::exception_ptr>()) {
                           std::string err_str = result.get<fc::exception_ptr>()->to_string();
-                          //if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
-                            //   err_str.find("approval already exists") == string::npos )
+                          if( err_str.find("CPU") != string::npos || err_str.find("NET") != string::npos || err_str.find("RAM") != string::npos  )
+                            is_out_of_resources = true;
+                          if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
+                               err_str.find("approval already exists") == string::npos )
                               elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                               ("prod", account)( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                               ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
