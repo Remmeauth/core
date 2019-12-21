@@ -108,24 +108,25 @@ class eth_swap_plugin_impl {
             my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-            push_txs(prev_swap_requests, &from_block_dec);
-
+            try {
+              push_txs(prev_swap_requests, &from_block_dec);
+            } catch (OutOfResourcesException& e) {
+              sleep(wait_for_resources);
+            }
             sleep(long_polling_period);
         } FC_LOG_WAIT_AND_CONTINUE()
       }
     }
 
     void push_txs(const std::vector<swap_event_data>& swap_requests, uint64_t* eth_block_number_ptr) {
-        try {
-          for (std::vector<swap_event_data>::const_iterator it = swap_requests.begin() ; it != swap_requests.end(); ++it) {
-              swap_event_data data = *it;
-              std::string txid = data.txid;
-              bool is_out_of_resources = false;
-              push_init_swap_transaction(data, eth_block_number_ptr, is_out_of_resources);
-              if(is_out_of_resources)
-                break;
-          }
-        } FC_LOG_AND_RETHROW()
+        for (std::vector<swap_event_data>::const_iterator it = swap_requests.begin() ; it != swap_requests.end(); ++it) {
+            swap_event_data data = *it;
+            std::string txid = data.txid;
+            bool is_out_of_resources = false;
+            push_init_swap_transaction(data, eth_block_number_ptr, is_out_of_resources);
+            if(is_out_of_resources)
+              throw OutOfResourcesException("Out of resources");
+        }
     }
 
     void init_prev_swap_requests() {
@@ -159,8 +160,12 @@ class eth_swap_plugin_impl {
               my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
               uint64_t eth_block_number;
-              push_txs(prev_swap_requests, &eth_block_number);
-              to_block_dec -= (blocks_per_filter-1);
+              try {
+                push_txs(prev_swap_requests, &eth_block_number);
+              } catch(OutOfResourcesException& e) {
+                sleep(wait_for_resources);
+              } FC_LOG_AND_RETHROW()
+              to_block_dec = eth_block_number;
             }
 
           } FC_LOG_WAIT_AND_CONTINUE()
@@ -270,6 +275,8 @@ void eth_swap_plugin::set_program_options(options_description&, options_descript
          ("long_polling_blocks_per_filter", bpo::value<uint32_t>()->default_value(long_polling_blocks_per_filter), "")
          ("long_polling_period", bpo::value<uint32_t>()->default_value(long_polling_period), "")
 
+         ("wait_for_resources", bpo::value<uint32_t>()->default_value(wait_for_resources), "")
+
          ("init_swap_expiration_time", bpo::value<uint32_t>()->default_value(init_swap_expiration_time), "")
          ("retry_push_tx_time", bpo::value<uint32_t>()->default_value(retry_push_tx_time), "")
          ("start_monitor_delay", bpo::value<uint32_t>()->default_value(start_monitor_delay), "")
@@ -310,6 +317,8 @@ void eth_swap_plugin::plugin_initialize(const variables_map& options) {
 
       long_polling_blocks_per_filter = options.at( "long_polling_blocks_per_filter" ).as<uint32_t>();
       long_polling_period = options.at( "long_polling_period" ).as<uint32_t>();
+
+      wait_for_resources = options.at( "wait_for_resources" ).as<uint32_t>();
 
       init_swap_expiration_time = options.at( "init_swap_expiration_time" ).as<uint32_t>();
       retry_push_tx_time = options.at( "retry_push_tx_time" ).as<uint32_t>();

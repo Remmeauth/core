@@ -101,6 +101,7 @@ uint32_t long_polling_period = 180;
 uint32_t check_tx_confirmations_times = 5;
 uint32_t min_tx_confirmations = 10;  // minimum required request swap transaction confirmations on ethereum to init swap on remprotocol
 uint32_t wait_for_tx_confirmation = min_tx_confirmations*30;  // check if request swap transaction on ethereum is confirmed every wait_for_tx_confirmation seconds
+uint32_t wait_for_resources = 30*60; // amount of seconds to wait after CPU NET RAM exception
 
 uint32_t init_swap_expiration_time = 300;  // init swap transaction expiration time
 /*
@@ -147,6 +148,18 @@ class ConnectionClosedException : public std::exception
 {
   public:
     explicit ConnectionClosedException(const std::string& message) : message_(message) {}
+  	const char * what () const throw ()
+      {
+      	return message_.c_str();
+      }
+  private:
+    std::string message_;
+};
+
+class OutOfResourcesException : public std::exception
+{
+  public:
+    explicit OutOfResourcesException(const std::string& message) : message_(message) {}
   	const char * what () const throw ()
       {
       	return message_.c_str();
