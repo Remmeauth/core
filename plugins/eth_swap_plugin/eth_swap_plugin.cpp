@@ -140,7 +140,7 @@ class eth_swap_plugin_impl {
             while (to_block_dec > min_block_dec) {
 
               std::stringstream stream;
-              stream << std::hex << min(min_block_dec, to_block_dec - blocks_per_filter);
+              stream << std::hex << std::max(min_block_dec, to_block_dec - blocks_per_filter);
               std::string from_block( "0x" + stream.str() );
               stream.str("");
               stream.clear();
@@ -208,7 +208,6 @@ class eth_swap_plugin_impl {
                      app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
                      [&is_tx_sent, data, slot, account, eth_block_number_ptr](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                        is_tx_sent = true;
-                       *eth_block_number_ptr = data.block_number;
                        if (result.contains<fc::exception_ptr>()) {
                           std::string err_str = result.get<fc::exception_ptr>()->to_string();
                           //if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
@@ -219,6 +218,7 @@ class eth_swap_plugin_impl {
                        } else {
                           if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
                               auto trx_id = result.get<transaction_trace_ptr>()->id;
+                              *eth_block_number_ptr = data.block_number;
                               ilog("${prod} pushed init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${id}",
                               ("prod", account)( "id", trx_id )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                               ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));

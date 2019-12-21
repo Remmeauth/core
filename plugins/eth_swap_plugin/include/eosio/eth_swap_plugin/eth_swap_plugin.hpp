@@ -91,7 +91,7 @@ uint32_t eth_events_window_length = 1000000;
   amount of blocks per one filter
   infura doesn't support long filters so need to split to several filters
 */
-uint32_t blocks_per_filter = 20000;
+uint32_t blocks_per_filter = 500;
 uint32_t long_polling_blocks_per_filter = 500;
 uint32_t long_polling_period = 180;
 /*
