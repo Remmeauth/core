@@ -228,7 +228,8 @@ class eth_swap_plugin_impl {
                          is_tx_sent = true;
                          if (result.contains<fc::exception_ptr>()) {
                             std::string err_str = result.get<fc::exception_ptr>()->to_string();
-                            if ( err_str != "swap already canceled" && err_str != "swap already finished" && err_str != "approval already exists" )
+                            if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
+                                 err_str.find("approval already exists") == string::npos )
                                 elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                                 ("prod", account)( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                                 ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
