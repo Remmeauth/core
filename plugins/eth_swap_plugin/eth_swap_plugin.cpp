@@ -49,7 +49,6 @@ class eth_swap_plugin_impl {
     std::vector<name>                       _swap_signing_account;
     std::vector<std::string>                _swap_signing_permission;
     std::string                _eth_wss_provider;
-    uint64_t                   _last_processed_block;
 
     void start_monitor() {
 
@@ -83,11 +82,12 @@ class eth_swap_plugin_impl {
       });
       t.detach();
 
+      uint64_t last_processed_block = 0;
       while(true) {
         try {
             my_web3 my_w3(this->_eth_wss_provider);
             uint64_t last_block_dec = my_w3.get_last_block_num();
-            uint64_t from_block_dec = last_block_dec - long_polling_blocks_per_filter;
+            uint64_t from_block_dec = std::max(last_block_dec - long_polling_blocks_per_filter, last_processed_block);
 
             std::stringstream stream;
             stream << std::hex << from_block_dec;
@@ -105,37 +105,19 @@ class eth_swap_plugin_impl {
             my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-            push_txs(prev_swap_requests);
+            push_txs(prev_swap_requests, &last_processed_block);
 
             sleep(long_polling_period);
         } FC_LOG_WAIT_AND_CONTINUE()
       }
     }
 
-    void on_swap_request(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
-        std::string payload = msg->get_payload();
-        //payload = "{\"jsonrpc\":\"2.0\",\"method\":\"eth_subscription\",\"params\":{\"subscription\":\"0x1feed3403f747b73a04d4cacd4221281\",\"result\":{\"removed\":false,\"logIndex\":\"0x3\",\"transactionIndex\":\"0x1\",\"transactionHash\":\"0xd9f4f600e0556e0d2fa284db40fc01d7e44c3f3c58c9966f5691e2ab6694806d\",\"blockHash\":\"0xa595c247384dab461d1ab2b9739acb58d9acb23b1149deb7bdd13d8b71037e18\",\"blockNumber\":\"0x606bf8\",\"address\":\"0x9fB8A18fF402680b47387AE0F4e38229EC64f098\",\"data\":\"0x93ece941df27a5787a405383a66a7c26d04e80182adf504365710331ac0625a700000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000026e8f00000000000000000000000009f21f19180c8692ebaa061fd231cd1b029ff2326000000000000000000000000000000000000000000000000000000005d71540f0000000000000000000000000000000000000000000000000000000000000035454f53376f4e6d6d786f38796838676d594c55474e43774e4146664c6d724d78746d727a6d46504732394370476d354271344647430000000000000000000000\",\"topics\":[\"0x0e918020302bf93eb479360905c1535ba1dbc8aeb6d20eff433206bf4c514e13\"]}}}";
-
-        ilog("Received swap request ${p}", ("p", payload));
-
-        swap_event_data data;
-        try {
-            if( !get_swap_event_data(payload, &data, "params.result.data", "params.result.transactionHash", "params.result.blockNumber") ) {
-                elog("Invalid swap request payload ${p}", ("p", payload));
-                return;
-            }
-        } FC_LOG_AND_RETURN()
-        std::vector<swap_event_data> swap_requests;
-        swap_requests.push_back(data);
-        push_txs(swap_requests);
-    }
-
-    void push_txs(const std::vector<swap_event_data>& swap_requests) {
+    void push_txs(const std::vector<swap_event_data>& swap_requests, uint64_t* eth_block_number_ptr) {
         try {
           for (std::vector<swap_event_data>::const_iterator it = swap_requests.begin() ; it != swap_requests.end(); ++it) {
               swap_event_data data = *it;
               std::string txid = data.txid;
-              push_init_swap_transaction(data);
+              push_init_swap_transaction(data, eth_block_number_ptr);
           }
         } FC_LOG_AND_RETHROW()
     }
@@ -170,8 +152,8 @@ class eth_swap_plugin_impl {
               std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
               my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
-
-              push_txs(prev_swap_requests);
+              uint64_t eth_block_number;
+              push_txs(prev_swap_requests, &eth_block_number);
               to_block_dec -= (blocks_per_filter-1);
             }
 
@@ -179,7 +161,7 @@ class eth_swap_plugin_impl {
         }
     }
 
-    void push_init_swap_transaction(const swap_event_data& data) {
+    void push_init_swap_transaction(const swap_event_data& data, uint64_t* eth_block_number_ptr) {
         for(size_t i = 0; i < this->_swap_signing_key.size(); i++) {
           bool is_tx_sent = false;
           uint32_t push_tx_attempt = 0;
@@ -221,15 +203,16 @@ class eth_swap_plugin_impl {
               try {
                  auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
                  name account = this->_swap_signing_account[i];
-                 app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot, account]() {
+                 app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot, account, eth_block_number_ptr]() {
                    for (size_t i = 0; i < trxs_copy->size(); ++i) {
                        app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                       [&is_tx_sent, data, slot, account](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                       [&is_tx_sent, data, slot, account, eth_block_number_ptr](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                          is_tx_sent = true;
+                         *eth_block_number_ptr = data.block_number;
                          if (result.contains<fc::exception_ptr>()) {
                             std::string err_str = result.get<fc::exception_ptr>()->to_string();
-                            if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
-                                 err_str.find("approval already exists") == string::npos )
+                            //if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
+                              //   err_str.find("approval already exists") == string::npos )
                                 elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                                 ("prod", account)( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                                 ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
@@ -301,8 +284,6 @@ void eth_swap_plugin::plugin_initialize(const variables_map& options) {
         my->_swap_signing_permission.push_back(permission);
         my->_swap_signing_key.push_back(fc::crypto::private_key( swap_signing_key[std::min(i, swap_signing_key.size()-1)] ));
       }
-
-      my->_last_processed_block = 0;
 
       //std::string prefix = "wss://";
       my->_eth_wss_provider = options.at( "eth-wss-provider" ).as<std::string>();
