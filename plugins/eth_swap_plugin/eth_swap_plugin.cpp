@@ -77,19 +77,27 @@ class eth_swap_plugin_impl {
       ilog("eth swap contract address: ${i}", ("i", eth_swap_contract_address));
       ilog("eth return chain id: ${i}", ("i", return_chain_id));
 
-      std::thread t([=](){
-          init_prev_swap_requests();
+      uint64_t last_block_dec = 0;
+      while(last_block_dec == 0) {
+        try {
+          my_web3 my_w3(this->_eth_wss_provider);
+          last_block_dec = my_w3.get_last_block_num();
+        } FC_LOG_WAIT_AND_CONTINUE()
+      }
+
+      std::thread t([this, last_block_dec](){
+          uint64_t to_block_dec = last_block_dec - min_tx_confirmations - long_polling_blocks_per_filter;
+          uint64_t from_block_dec = to_block_dec - eth_events_window_length;
+          this->init_prev_swap_requests(from_block_dec, to_block_dec);
       });
       t.detach();
 
-      uint64_t from_block_dec = 0;
+      uint64_t from_block_dec = last_block_dec - long_polling_blocks_per_filter - min_tx_confirmations;;
       while(true) {
         try {
             my_web3 my_w3(this->_eth_wss_provider);
-            uint64_t last_block_dec = my_w3.get_last_block_num();
-            if( from_block_dec == 0 ) {
-                from_block_dec = last_block_dec - long_polling_blocks_per_filter - min_tx_confirmations;
-            }
+            last_block_dec = my_w3.get_last_block_num();
+
             uint64_t to_block_dec = std::min(last_block_dec - min_tx_confirmations, from_block_dec + long_polling_blocks_per_filter);
 
             std::stringstream stream;
@@ -129,17 +137,7 @@ class eth_swap_plugin_impl {
         }
     }
 
-    void init_prev_swap_requests() {
-        uint64_t last_block_num = 0, min_block_dec, to_block_dec;
-        while(last_block_num == 0) {
-          try {
-            my_web3 my_w3(this->_eth_wss_provider);
-            last_block_num = my_w3.get_last_block_num();
-            min_block_dec = last_block_num - eth_events_window_length;
-            to_block_dec = last_block_num - min_tx_confirmations;
-          } FC_LOG_WAIT_AND_CONTINUE()
-        }
-
+    void init_prev_swap_requests(uint64_t min_block_dec, uint64_t to_block_dec) {
         while(to_block_dec > min_block_dec) {
           try {
             my_web3 my_w3(this->_eth_wss_provider);
@@ -159,13 +157,11 @@ class eth_swap_plugin_impl {
               std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
               my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
-              uint64_t eth_block_number;
               try {
-                push_txs(prev_swap_requests, &eth_block_number);
+                push_txs(prev_swap_requests, &to_block_dec);
               } catch(OutOfResourcesException& e) {
                 sleep(wait_for_resources);
               } FC_LOG_AND_RETHROW()
-              to_block_dec = eth_block_number;
             }
 
           } FC_LOG_WAIT_AND_CONTINUE()
