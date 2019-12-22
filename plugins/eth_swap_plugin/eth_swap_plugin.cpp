@@ -116,11 +116,17 @@ class eth_swap_plugin_impl {
             my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-            try {
-              push_txs(prev_swap_requests, &from_block_dec);
-            } catch (OutOfResourcesException& e) {
-              sleep(wait_for_resources);
+            if( prev_swap_requests.size() == 0 ) {
+              from_block_dec += long_polling_blocks_per_filter;
             }
+            else {
+              try {
+                push_txs(prev_swap_requests, &from_block_dec);
+              } catch (OutOfResourcesException& e) {
+                sleep(wait_for_resources);
+              }
+            }
+
             sleep(long_polling_period);
         } FC_LOG_WAIT_AND_CONTINUE()
       }
@@ -157,11 +163,17 @@ class eth_swap_plugin_impl {
               std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
               my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
-              try {
-                push_txs(prev_swap_requests, &to_block_dec);
-              } catch(OutOfResourcesException& e) {
-                sleep(wait_for_resources);
-              } FC_LOG_AND_RETHROW()
+
+              if( prev_swap_requests.size() == 0 ) {
+                to_block_dec -= blocks_per_filter;
+              }
+              else {
+                  try {
+                    push_txs(prev_swap_requests, &to_block_dec);
+                  } catch(OutOfResourcesException& e) {
+                    sleep(wait_for_resources);
+                  } FC_LOG_AND_RETHROW()
+              }
             }
 
           } FC_LOG_WAIT_AND_CONTINUE()
