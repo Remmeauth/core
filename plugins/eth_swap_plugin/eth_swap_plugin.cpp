@@ -122,6 +122,7 @@ class eth_swap_plugin_impl {
             else {
               try {
                 push_txs(prev_swap_requests, &from_block_dec);
+                from_block_dec++;
               } catch (OutOfResourcesException& e) {
                 sleep(wait_for_resources);
               }
@@ -170,6 +171,7 @@ class eth_swap_plugin_impl {
               else {
                   try {
                     push_txs(prev_swap_requests, &to_block_dec);
+                    to_block_dec--;
                   } catch(OutOfResourcesException& e) {
                     sleep(wait_for_resources);
                   } FC_LOG_AND_RETHROW()
