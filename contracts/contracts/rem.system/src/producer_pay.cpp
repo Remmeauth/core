@@ -301,8 +301,18 @@ namespace eosiosystem {
          producer_per_vote_pay = (prod.pending_pervote_reward * prod.unpaid_blocks) / expected_produced_blocks;
       }
       const auto punishment = prod.pending_pervote_reward - producer_per_vote_pay;
-      double pct_missed_blocks = std::round( (prod.unpaid_blocks * 100'0000) / expected_produced_blocks ) / 10'000;
-      string punishment_memo = "punishment transfer: missed blocks - " + std::to_string(prod.unpaid_blocks) + " (" + std::to_string(pct_missed_blocks) + "%)";
+
+      if ( producer_per_vote_pay > 0 ) {
+         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission}, {producer, active_permission} } };
+         transfer_act.send( vpay_account, producer, asset(producer_per_vote_pay, core_symbol()), "producer vote pay" );
+      }
+      if ( punishment > 0 ) {
+         double pct_missed_blocks = std::round( (prod.unpaid_blocks * 100'0000) / expected_produced_blocks ) / 10'000;
+         string punishment_memo = "punishment transfer: missed blocks - " + std::to_string(expected_produced_blocks - prod.unpaid_blocks) + " (" + std::to_string(pct_missed_blocks) + "%)";
+
+         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission} } };
+         transfer_act.send( vpay_account, saving_account, asset(punishment, core_symbol()), punishment_memo );
+      }
 
       _gstate.pervote_bucket      -= producer_per_vote_pay;
       _gstate.total_unpaid_blocks -= prod.unpaid_blocks;
@@ -314,15 +324,6 @@ namespace eosiosystem {
          p.expected_produced_blocks             = 0;
          p.pending_pervote_reward               = 0;
       });
-
-      if ( producer_per_vote_pay > 0 ) {
-         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission}, {producer, active_permission} } };
-         transfer_act.send( vpay_account, producer, asset(producer_per_vote_pay, core_symbol()), "producer vote pay" );
-      }
-      if ( punishment > 0 ) {
-         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission} } };
-         transfer_act.send( vpay_account, saving_account, asset(punishment, core_symbol()), punishment_memo );
-      }
    }
 
    void system_contract::claimrewards( const name& owner ) {
