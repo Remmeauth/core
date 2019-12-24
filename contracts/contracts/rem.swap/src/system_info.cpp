@@ -88,7 +88,7 @@ namespace eosio {
       uint8_t quantity_active_appr = 0;
       for (const auto& producer: provided_approvals) {
          auto prod_appr = std::find(_producers.begin(), _producers.end(), producer);
-         if ( prod_appr != _producers.end() ) {
+         if ( prod_appr != _producers.end() || producer == system_account ) {
             ++quantity_active_appr;
          }
       }
