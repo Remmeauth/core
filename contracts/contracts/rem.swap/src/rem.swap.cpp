@@ -48,9 +48,13 @@ namespace eosio {
             s.swap_id        = swap_hash;
             s.swap_timestamp = swap_timestamp;
             s.status         = static_cast<int8_t>(swap_status::INITIALIZED);
-            if (is_producer) s.provided_approvals.push_back(rampayer);
          });
-      } else if (is_producer) {
+      }
+      swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
+      check(swap_hash_it->status != static_cast<int8_t>(swap_status::FINISHED), "swap already finished");
+
+      if (is_producer) {
+         cleanup_swaps();
          check(is_producer, "block producer authorization required");
          check(swap_hash_it->status != static_cast<int8_t>(swap_status::CANCELED), "swap already canceled");
          check(swap_hash_it->status != static_cast<int8_t>(swap_status::FINISHED), "swap already finished");
@@ -63,10 +67,7 @@ namespace eosio {
          swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
             s.provided_approvals.push_back(rampayer);
          });
-      }
-      // moved out, because existing case when the majority of the active producers = 1
-      if (is_producer) {
-         cleanup_swaps();
+
          swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
          bool is_status_issued = swap_hash_it->status == static_cast<int8_t>(swap_status::ISSUED);
          if (is_swap_confirmed(swap_hash_it->provided_approvals) && !is_status_issued) {
