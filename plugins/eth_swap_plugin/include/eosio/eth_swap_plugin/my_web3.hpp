@@ -23,6 +23,18 @@ class NoConnectionException : public std::exception
     std::string message_;
 };
 
+class TimeoutException : public std::exception
+{
+  public:
+    explicit TimeoutException(const std::string& message) : message_(message) {}
+  	const char * what () const throw ()
+      {
+      	return message_.c_str();
+      }
+  private:
+    std::string message_;
+};
+
 class my_web3 {
     public:
         my_web3(const std::string& eth_address);
@@ -33,6 +45,8 @@ class my_web3 {
         std::string new_filter(const std::string& contract_address, const std::string& fromBlock, const std::string& toBlock, const std::string& topics);
         std::string get_filter_logs(const std::string& filter_id);
         void uninstall_filter(const std::string& filter_id);
+
+        void check_connection();
     private:
         client m_client;
         websocketpp::connection_hdl m_hdl;
@@ -43,11 +57,15 @@ class my_web3 {
         std::string filter_logs;
         std::string tx;
 
+        bool locked;
         bool is_connection_closed;
         std::string _eth_address;
         std::thread wss_thread;
 
-        boost::mutex mutex;
+        const int max_response_time = 10000;
+        const int check_response_time = 500;
+
+        void wait_for_response();
 
         void wss_connect();
         void send_request(const std::string& request);
