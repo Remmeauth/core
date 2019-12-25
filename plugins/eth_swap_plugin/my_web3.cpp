@@ -224,7 +224,7 @@ void my_web3::uninstall_filter(const std::string& filter_id) {
 void my_web3::wait_for_response() {
     uint i = 0;
     while(locked) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(check_response_time))
+      std::this_thread::sleep_for(std::chrono::milliseconds(check_response_time));
       i++;
       if(i >= max_response_time/check_response_time && locked) {
         throw TimeoutException("Timeout exception");

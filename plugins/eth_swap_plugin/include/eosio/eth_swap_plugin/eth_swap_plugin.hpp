@@ -156,18 +156,6 @@ class ConnectionClosedException : public std::exception
     std::string message_;
 };
 
-class OutOfResourcesException : public std::exception
-{
-  public:
-    explicit OutOfResourcesException(const std::string& message) : message_(message) {}
-  	const char * what () const throw ()
-      {
-      	return message_.c_str();
-      }
-  private:
-    std::string message_;
-};
-
 
 /**
  *  This is a template plugin, intended to serve as a starting point for making new plugins

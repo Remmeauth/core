@@ -120,12 +120,8 @@ class eth_swap_plugin_impl {
               from_block_dec += long_polling_blocks_per_filter;
             }
             else {
-              try {
-                push_txs(prev_swap_requests, &from_block_dec);
-                from_block_dec++;
-              } catch (OutOfResourcesException& e) {
-                sleep(wait_for_resources);
-              }
+              push_txs(prev_swap_requests, &from_block_dec);
+              from_block_dec++;
             }
 
             sleep(long_polling_period);
@@ -137,10 +133,7 @@ class eth_swap_plugin_impl {
         for (std::vector<swap_event_data>::const_iterator it = swap_requests.begin() ; it != swap_requests.end(); ++it) {
             swap_event_data data = *it;
             std::string txid = data.txid;
-            bool is_out_of_resources = false;
-            push_init_swap_transaction(data, eth_block_number_ptr, is_out_of_resources);
-            if(is_out_of_resources)
-              throw OutOfResourcesException("Out of resources");
+            push_init_swap_transaction(data, eth_block_number_ptr);
         }
     }
 
@@ -169,12 +162,8 @@ class eth_swap_plugin_impl {
                 to_block_dec -= blocks_per_filter;
               }
               else {
-                  try {
-                    push_txs(prev_swap_requests, &to_block_dec);
-                    to_block_dec--;
-                  } catch(OutOfResourcesException& e) {
-                    sleep(wait_for_resources);
-                  } FC_LOG_AND_RETHROW()
+                push_txs(prev_swap_requests, &to_block_dec);
+                to_block_dec--;
               }
             }
 
@@ -182,31 +171,31 @@ class eth_swap_plugin_impl {
         }
     }
 
-    void push_init_swap_transaction(const swap_event_data& data, uint64_t* eth_block_number_ptr, bool& is_out_of_resources) {
-        bool is_tx_sent = false;
-        is_out_of_resources = false;
-        uint32_t push_tx_attempt = 0;
-        while(!is_tx_sent) {
-            uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
-            if(push_tx_attempt) {
-              wlog("Retrying to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
-              ("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
-              ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
-            }
-            std::vector<signed_transaction> trxs;
-            trxs.reserve(2);
-
-            controller& cc = app().get_plugin<chain_plugin>().chain();
-            auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
-
-            if( data.chain_id != std::string(chainid) ) {
-                elog("Invalid chain identifier in init swap transaction(${chain_id}, ${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
-                ("chain_id", data.chain_id)("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+    void push_init_swap_transaction(const swap_event_data& data, uint64_t* eth_block_number_ptr) {
+        enum TxStatus {NoStatus, Success, Failed, OutOfResources};
+        for(size_t i = 0; i < this->_swap_signing_key.size(); i++) {
+          TxStatus status = NoStatus;
+          uint32_t push_tx_attempt = 0;
+          while(status != Success && status != Failed) {
+              uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
+              if(push_tx_attempt) {
+                wlog("Retrying to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
+                ("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                 ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
-                return;
-            }
-            signed_transaction trx;
-            for(size_t i = 0; i < this->_swap_signing_key.size(); i++) {
+              }
+              std::vector<signed_transaction> trxs;
+              trxs.reserve(2);
+
+              controller& cc = app().get_plugin<chain_plugin>().chain();
+              auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
+
+              if( data.chain_id != std::string(chainid) ) {
+                  elog("Invalid chain identifier in init swap transaction(${chain_id}, ${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
+                  ("chain_id", data.chain_id)("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                  ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
+                  return;
+              }
+              signed_transaction trx;
               trx.actions.emplace_back(vector<chain::permission_level>{{this->_swap_signing_account[i],name(this->_swap_signing_permission[i])}},
                 init{this->_swap_signing_account[i],
                   data.txid,
@@ -221,44 +210,46 @@ class eth_swap_plugin_impl {
               trx.max_net_usage_words = 5000;
               trx.sign(this->_swap_signing_key[i], chainid);
               trxs.emplace_back(std::move(trx));
-            }
-            try {
-               auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-               app().post(priority::low, [trxs_copy, &is_tx_sent, data, slot, eth_block_number_ptr, &is_out_of_resources]() {
-                 for (size_t i = 0; i < trxs_copy->size(); ++i) {
-                     name account = trxs_copy->at(i).first_authorizer();
-                     app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                     [&is_tx_sent, data, slot, account, eth_block_number_ptr, &is_out_of_resources](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
-                       is_tx_sent = true;
-                       if (result.contains<fc::exception_ptr>()) {
-                          std::string err_str = result.get<fc::exception_ptr>()->to_string();
-                          if( err_str.find("CPU") != string::npos || err_str.find("NET") != string::npos || err_str.find("RAM") != string::npos  )
-                            is_out_of_resources = true;
-                          if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
-                               err_str.find("approval already exists") == string::npos )
-                              elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
-                              ("prod", account)( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
-                              ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
-                       } else {
-                          if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
-                              auto trx_id = result.get<transaction_trace_ptr>()->id;
-                              *eth_block_number_ptr = data.block_number;
-                              ilog("${prod} pushed init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${id}",
-                              ("prod", account)( "id", trx_id )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
-                              ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
-                          }
-                       }
-                    });
-                 }
-               });
-            } FC_LOG_AND_DROP()
-            sleep(wait_for_accept_tx);
-            if(!is_tx_sent) {
-              sleep(retry_push_tx_time);
-            }
-            push_tx_attempt++;
+              try {
+                 auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
+                 app().post(priority::low, [trxs_copy, &status, data, slot, eth_block_number_ptr]() {
+                   for (size_t i = 0; i < trxs_copy->size(); ++i) {
+                       name account = trxs_copy->at(i).first_authorizer();
+                       app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
+                       [&status, data, slot, account, eth_block_number_ptr](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                         if (result.contains<fc::exception_ptr>()) {
+                            std::string err_str = result.get<fc::exception_ptr>()->to_string();
+                            if( err_str.find("CPU") != string::npos || err_str.find("NET") != string::npos || err_str.find("RAM") != string::npos  )
+                              status = OutOfResources;
+                            else
+                              status = Failed;
+                            if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
+                                 err_str.find("approval already exists") == string::npos )
+                                elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
+                                ("prod", account)( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                                ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
+                         } else {
+                            if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
+                                status = Success;
+                                auto trx_id = result.get<transaction_trace_ptr>()->id;
+                                *eth_block_number_ptr = data.block_number;
+                                ilog("${prod} pushed init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${id}",
+                                ("prod", account)( "id", trx_id )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
+                                ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
+                            }
+                         }
+                      });
+                   }
+                 });
+              } FC_LOG_AND_DROP()
+              for(uint i = 0; i < retry_push_tx_time/wait_for_accept_tx && status == NoStatus; i++)
+                  sleep(wait_for_accept_tx);
+              if(status == OutOfResources)
+                sleep(wait_for_resources);
+              push_tx_attempt++;
+          }
         }
-    }
+      }
 };
 
 eth_swap_plugin::eth_swap_plugin():my(new eth_swap_plugin_impl()){}
