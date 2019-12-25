@@ -118,24 +118,18 @@ class eth_swap_plugin_impl {
             my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
-            if( prev_swap_requests.size() == 0 ) {
-              from_block_dec += long_polling_blocks_per_filter;
-            }
-            else {
-              push_txs(prev_swap_requests, &from_block_dec);
-              from_block_dec++;
-            }
+            push_txs(prev_swap_requests);
+            from_block_dec = to_block_dec;
 
             sleep(long_polling_period);
         } FC_LOG_WAIT_AND_CONTINUE()
       }
     }
 
-    void push_txs(const std::vector<swap_event_data>& swap_requests, uint64_t* eth_block_number_ptr) {
+    void push_txs(const std::vector<swap_event_data>& swap_requests) {
         for (std::vector<swap_event_data>::const_iterator it = swap_requests.begin() ; it != swap_requests.end(); ++it) {
             swap_event_data data = *it;
-            std::string txid = data.txid;
-            push_init_swap_transaction(data, eth_block_number_ptr);
+            push_init_swap_transaction(data);
         }
     }
 
@@ -161,20 +155,15 @@ class eth_swap_plugin_impl {
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
               std::reverse(prev_swap_requests.begin(), prev_swap_requests.end());
 
-              if( prev_swap_requests.size() == 0 ) {
-                to_block_dec -= blocks_per_filter;
-              }
-              else {
-                push_txs(prev_swap_requests, &to_block_dec);
-                to_block_dec--;
-              }
+              push_txs(prev_swap_requests);
+              to_block_dec -= blocks_per_filter;
             }
 
           } FC_LOG_WAIT_AND_CONTINUE()
         }
     }
 
-    void push_init_swap_transaction(const swap_event_data& data, uint64_t* eth_block_number_ptr) {
+    void push_init_swap_transaction(const swap_event_data& data) {
         enum TxStatus {NoStatus, Success, Failed, OutOfResources};
         for(size_t i = 0; i < this->_swap_signing_key.size(); i++) {
           uint32_t push_tx_attempt = 0;
@@ -216,11 +205,11 @@ class eth_swap_plugin_impl {
               trxs.emplace_back(std::move(trx));
               try {
                  auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-                 app().post(priority::low, [trxs_copy, &status, data, slot, eth_block_number_ptr]() {
+                 app().post(priority::low, [trxs_copy, &status, data, slot]() {
                    for (size_t i = 0; i < trxs_copy->size(); ++i) {
                        name account = trxs_copy->at(i).first_authorizer();
                        app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
-                       [&status, data, slot, account, eth_block_number_ptr](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                       [&status, data, slot, account](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                          if (result.contains<fc::exception_ptr>()) {
                             std::string err_str = result.get<fc::exception_ptr>()->to_string();
                             if( err_str.find("CPU") != string::npos || err_str.find("NET") != string::npos || err_str.find("RAM") != string::npos  )
@@ -236,7 +225,6 @@ class eth_swap_plugin_impl {
                             if (result.contains<transaction_trace_ptr>() && result.get<transaction_trace_ptr>()->receipt) {
                                 status = Success;
                                 auto trx_id = result.get<transaction_trace_ptr>()->id;
-                                *eth_block_number_ptr = data.block_number;
                                 ilog("${prod} pushed init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${id}",
                                 ("prod", account)( "id", trx_id )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                                 ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
