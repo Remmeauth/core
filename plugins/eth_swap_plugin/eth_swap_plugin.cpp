@@ -37,6 +37,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <algorithm>
+
 
 namespace eosio {
    static appbase::abstract_plugin& _eth_swap_plugin = app().register_plugin<eth_swap_plugin>();
@@ -157,6 +159,7 @@ class eth_swap_plugin_impl {
               std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
               my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
+              std::reverse(prev_swap_requests.begin(), prev_swap_requests.end());
 
               if( prev_swap_requests.size() == 0 ) {
                 to_block_dec -= blocks_per_filter;
