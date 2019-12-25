@@ -57,7 +57,7 @@ swap_chains = [
     ('ethropsten', '1', '1', 1000_0000, 1000_0000)
 ]
 
-eth_swap_contract_address = '0x39882AB5105b1D627E6AED3FF39c1B004a18E207'
+eth_swap_contract_address = '0x48b9139b2212a73d7a035b3dECA435d5f8e7Fb3E'
 eth_chain_id = 'ethropsten'
 
 
