@@ -100,21 +100,34 @@ class eth_swap_plugin_impl {
             my_web3 my_w3(this->_eth_wss_provider);
             last_block_dec = my_w3.get_last_block_num();
 
-            uint64_t to_block_dec = std::min(last_block_dec - min_tx_confirmations, from_block_dec + long_polling_blocks_per_filter);
-
             std::stringstream stream;
             stream << std::hex << from_block_dec;
             std::string from_block( "0x" + stream.str() );
             stream.str("");
             stream.clear();
 
-            stream << std::hex << to_block_dec;
-            std::string to_block( "0x" + stream.str() );
-            stream.str("");
-            stream.clear();
+            std::string request_swap_filter_id, filter_logs, to_block;
+            uint64_t current_blocks_per_filter = long_polling_blocks_per_filter;
+            uint64_t to_block_dec;
 
-            std::string request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
-            std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+            bool logs_received = false;
+            while( !logs_received ) {
+              to_block_dec = std::min(last_block_dec - min_tx_confirmations, from_block_dec + current_blocks_per_filter);
+              stream << std::hex << to_block_dec;
+              std::string to_block( "0x" + stream.str() );
+              stream.str("");
+              stream.clear();
+              try {
+                request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
+                filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+              }
+              catch(TimeoutException e) {
+                current_blocks_per_filter /= 2;
+                current_blocks_per_filter = std::max(uint64_t(1), current_blocks_per_filter);
+              }
+              logs_received = true;
+            }
+
             my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
@@ -141,22 +154,38 @@ class eth_swap_plugin_impl {
             while (to_block_dec > min_block_dec) {
 
               std::stringstream stream;
-              stream << std::hex << std::max(min_block_dec, to_block_dec - blocks_per_filter);
-              std::string from_block( "0x" + stream.str() );
-              stream.str("");
-              stream.clear();
 
               stream << std::hex << to_block_dec;
               std::string to_block = "0x" + stream.str();
+              stream.str("");
+              stream.clear();
 
-              std::string request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
-              std::string filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+              std::string request_swap_filter_id, filter_logs, from_block;
+
+              uint64_t current_blocks_per_filter = blocks_per_filter;
+              bool logs_received = false;
+              while(!logs_received) {
+                stream << std::hex << std::max(min_block_dec, to_block_dec - current_blocks_per_filter);
+                from_block = "0x" + stream.str();
+                stream.str("");
+                stream.clear();
+
+                try {
+                  request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
+                  filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+                }
+                catch(TimeoutException e) {
+                  current_blocks_per_filter /= 2;
+                  current_blocks_per_filter = std::max(uint64_t(1), current_blocks_per_filter);
+                }
+                logs_received = true;
+              }
               my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
               std::reverse(prev_swap_requests.begin(), prev_swap_requests.end());
 
               push_txs(prev_swap_requests);
-              to_block_dec -= blocks_per_filter;
+              to_block_dec -= current_blocks_per_filter;
             }
 
           } FC_LOG_WAIT_AND_CONTINUE()
