@@ -177,9 +177,10 @@ class eth_swap_plugin_impl {
     void push_init_swap_transaction(const swap_event_data& data, uint64_t* eth_block_number_ptr) {
         enum TxStatus {NoStatus, Success, Failed, OutOfResources};
         for(size_t i = 0; i < this->_swap_signing_key.size(); i++) {
-          TxStatus status = NoStatus;
           uint32_t push_tx_attempt = 0;
+          TxStatus status = NoStatus;
           while(status != Success && status != Failed) {
+              status = NoStatus;
               uint32_t slot = (data.timestamp * 1000 - block_timestamp_epoch) / block_interval_ms;
               if(push_tx_attempt) {
                 wlog("Retrying to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
