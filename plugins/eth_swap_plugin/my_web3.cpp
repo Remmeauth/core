@@ -27,10 +27,10 @@ void my_web3::wait_for_wss_connection() {
 void my_web3::wss_connect() {
   websocketpp::lib::mutex m_lock;
 
-  m_client.clear_access_channels(websocketpp::log::alevel::all);
-  m_client.set_access_channels(websocketpp::log::alevel::connect);
-  m_client.set_access_channels(websocketpp::log::alevel::disconnect);
-  m_client.set_access_channels(websocketpp::log::alevel::app);
+  //m_client.clear_access_channels(websocketpp::log::alevel::all);
+  //m_client.set_access_channels(websocketpp::log::alevel::connect);
+  //m_client.set_access_channels(websocketpp::log::alevel::disconnect);
+  //m_client.set_access_channels(websocketpp::log::alevel::app);
 
   m_client.init_asio();
 
@@ -77,7 +77,7 @@ void my_web3::subscribe(const std::string& contract_address, const std::string& 
 
 void my_web3::send_request(const std::string& request) {
     websocketpp::lib::error_code ec;
-    m_client.get_alog().write(websocketpp::log::alevel::app, request);
+    //m_client.get_alog().write(websocketpp::log::alevel::app, request);
     m_client.send(m_hdl,request,websocketpp::frame::opcode::text,ec);
 
     if (ec) {
