@@ -94,7 +94,8 @@ class eth_swap_plugin_impl {
       });
       t.detach();
 
-      uint64_t from_block_dec = last_block_dec - long_polling_blocks_per_filter - min_tx_confirmations;;
+      uint32_t current_long_polling_blocks_per_filter = long_polling_blocks_per_filter;
+      uint64_t from_block_dec = last_block_dec - current_long_polling_blocks_per_filter - min_tx_confirmations;
       while(true) {
         try {
             my_web3 my_w3(this->_eth_wss_provider);
@@ -106,36 +107,29 @@ class eth_swap_plugin_impl {
             stream.str("");
             stream.clear();
 
-            std::string request_swap_filter_id, filter_logs, to_block;
-            uint64_t current_blocks_per_filter = long_polling_blocks_per_filter;
+            std::string request_swap_filter_id, filter_logs;
             uint64_t to_block_dec;
 
-            bool logs_received = false;
-            while( !logs_received ) {
-              to_block_dec = std::min(last_block_dec - min_tx_confirmations, from_block_dec + current_blocks_per_filter);
-              stream << std::hex << to_block_dec;
-              std::string to_block( "0x" + stream.str() );
-              stream.str("");
-              stream.clear();
-              try {
-                request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
-                filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
-                my_w3.uninstall_filter(request_swap_filter_id);
-              }
-              catch(TimeoutException e) {
-                current_blocks_per_filter /= 2;
-                current_blocks_per_filter = std::max(uint64_t(1), current_blocks_per_filter);
-                continue;
-              }
-              logs_received = true;
-            }
+            to_block_dec = std::min(last_block_dec - min_tx_confirmations, from_block_dec + current_long_polling_blocks_per_filter);
+            stream << std::hex << to_block_dec;
+            std::string to_block( "0x" + stream.str() );
+            stream.str("");
+            stream.clear();
+
+            request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
+            filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+            my_w3.uninstall_filter(request_swap_filter_id);
 
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
             push_txs(prev_swap_requests);
             from_block_dec = to_block_dec;
+            current_long_polling_blocks_per_filter *= std::min(current_long_polling_blocks_per_filter*2, long_polling_blocks_per_filter);
 
             sleep(long_polling_period);
+        } catch (TimeoutException e) {
+          current_long_polling_blocks_per_filter /= 4;
+          current_long_polling_blocks_per_filter = std::max(1u, current_long_polling_blocks_per_filter);
         } FC_LOG_WAIT_AND_CONTINUE()
       }
     }
@@ -148,12 +142,10 @@ class eth_swap_plugin_impl {
     }
 
     void init_prev_swap_requests(uint64_t min_block_dec, uint64_t to_block_dec) {
+        uint32_t current_blocks_per_filter = blocks_per_filter;
         while(to_block_dec > min_block_dec) {
-          uint32_t current_blocks_per_filter = blocks_per_filter*2;
           try {
             my_web3 my_w3(this->_eth_wss_provider);
-            current_blocks_per_filter /= 2;
-            current_blocks_per_filter = std::max(1u, current_blocks_per_filter);
 
             while (to_block_dec > min_block_dec) {
 
@@ -184,7 +176,7 @@ class eth_swap_plugin_impl {
             }
 
           } catch (TimeoutException e) {
-            current_blocks_per_filter /= 2;
+            current_blocks_per_filter /= 4;
             current_blocks_per_filter = std::max(1u, current_blocks_per_filter);
           } FC_LOG_WAIT_AND_CONTINUE()
         }

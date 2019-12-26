@@ -91,9 +91,9 @@ uint32_t eth_events_window_length = 1000000;
   amount of blocks per one filter
   infura doesn't support long filters so need to split to several filters
 */
-uint32_t blocks_per_filter = 10;
-uint32_t long_polling_blocks_per_filter = 10;
-uint32_t long_polling_period = 45;
+uint32_t blocks_per_filter = 1000;
+uint32_t long_polling_blocks_per_filter = 1000;
+uint32_t long_polling_period = 60;
 /*
   maximum amount of checks for transaction confirmations of ethereum
   if transaction doesn't have min_tx_confirmations
