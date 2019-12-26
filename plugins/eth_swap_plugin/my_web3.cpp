@@ -27,7 +27,7 @@ void my_web3::wait_for_wss_connection() {
 void my_web3::wss_connect() {
   websocketpp::lib::mutex m_lock;
 
-  //m_client.clear_access_channels(websocketpp::log::alevel::all);
+  m_client.clear_access_channels(websocketpp::log::alevel::all);
   //m_client.set_access_channels(websocketpp::log::alevel::connect);
   //m_client.set_access_channels(websocketpp::log::alevel::disconnect);
   //m_client.set_access_channels(websocketpp::log::alevel::app);
