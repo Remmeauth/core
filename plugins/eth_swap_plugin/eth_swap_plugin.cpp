@@ -206,7 +206,7 @@ class eth_swap_plugin_impl {
               auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
 
               if( data.chain_id != std::string(chainid) ) {
-                  elog("Invalid chain identifier in init swap transaction(${chain_id}, ${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
+                  ilog("Invalid chain identifier in init swap transaction(${chain_id}, ${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp})",
                   ("chain_id", data.chain_id)("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                   ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
                   return;
@@ -240,7 +240,7 @@ class eth_swap_plugin_impl {
                             else
                               status = Failed;
                             if ( err_str.find("swap already canceled") == string::npos && err_str.find("swap already finished") == string::npos &&
-                                 err_str.find("approval already exists") == string::npos )
+                                 err_str.find("approval already exists") == string::npos && err_str.find("Duplicate transaction") == string::npos )
                                 elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                                 ("prod", account)( "res", result.get<fc::exception_ptr>()->to_string() )("txid", data.txid)("pubkey", data.swap_pubkey)("amount", data.amount)
                                 ("ret_addr", data.return_address)("ret_chainid", data.return_chain_id)("timestamp", epoch_block_timestamp(slot)));
