@@ -120,15 +120,16 @@ class eth_swap_plugin_impl {
               try {
                 request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
                 filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+                my_w3.uninstall_filter(request_swap_filter_id);
               }
               catch(TimeoutException e) {
                 current_blocks_per_filter /= 2;
                 current_blocks_per_filter = std::max(uint64_t(1), current_blocks_per_filter);
+                continue;
               }
               logs_received = true;
             }
 
-            my_w3.uninstall_filter(request_swap_filter_id);
             std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
 
             push_txs(prev_swap_requests);
@@ -173,14 +174,15 @@ class eth_swap_plugin_impl {
                 try {
                   request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block, "[\""+string(eth_swap_request_event)+"\"]");
                   filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
+                  my_w3.uninstall_filter(request_swap_filter_id);
                 }
                 catch(TimeoutException e) {
                   current_blocks_per_filter /= 2;
                   current_blocks_per_filter = std::max(uint64_t(1), current_blocks_per_filter);
+                  continue;
                 }
                 logs_received = true;
               }
-              my_w3.uninstall_filter(request_swap_filter_id);
               std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
               std::reverse(prev_swap_requests.begin(), prev_swap_requests.end());
 
