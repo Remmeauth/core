@@ -180,6 +180,10 @@ class eth_swap_plugin_impl {
             }
 
           } catch (TimeoutException e) {
+            if(current_blocks_per_filter == 1) {
+              elog("Eth node is not responding at block ${b}", ("b", from_block_dec));
+              sleep(wait_for_eth_node);
+            }
             current_blocks_per_filter /= 4;
             current_blocks_per_filter = std::max(1u, current_blocks_per_filter);
           } FC_LOG_WAIT_AND_CONTINUE()
