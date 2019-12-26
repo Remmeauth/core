@@ -124,10 +124,14 @@ class eth_swap_plugin_impl {
 
             push_txs(prev_swap_requests);
             from_block_dec = to_block_dec;
-            current_long_polling_blocks_per_filter *= std::min(current_long_polling_blocks_per_filter*2, long_polling_blocks_per_filter);
+            current_long_polling_blocks_per_filter = std::min(current_long_polling_blocks_per_filter*2, long_polling_blocks_per_filter);
 
             sleep(long_polling_period);
         } catch (TimeoutException e) {
+          if(current_long_polling_blocks_per_filter == 1) {
+            elog("Eth node is not responding at block ${b}", ("b", from_block_dec));
+            sleep(wait_for_eth_node);
+          }
           current_long_polling_blocks_per_filter /= 4;
           current_long_polling_blocks_per_filter = std::max(1u, current_long_polling_blocks_per_filter);
         } FC_LOG_WAIT_AND_CONTINUE()
