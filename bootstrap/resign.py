@@ -31,10 +31,16 @@ def resign(account, controller):
 
 
 def resign_system_accounts():
-    resign('rem', 'rem.prods')
+    resign('rem.saving', 'remme')
     for a in system_accounts:
-        resign(a, 'rem')
+        if a != 'rem.saving':
+            resign(a, 'rem')
+
+
+def resign_rem():
+    resign('rem', 'rem.prods')
 
 
 if __name__ == '__main__':
     resign_system_accounts()
+    # resign_rem()

@@ -1,7 +1,7 @@
 from testnet_bootstrap import producers
 from start_bootnode import start_node
 
-producers_quantity = 3
+producers_quantity = 21
 nodes_quantity = 0
 
 
