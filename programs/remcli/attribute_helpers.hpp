@@ -143,65 +143,63 @@ std::string decodeAttribute(const std::string& hex, int32_t type)
    fc::from_hex(hex, data.data(), data.size());
    fc::variant v;
 
-   switch (type)
-   {
-      case 0:
-         v = fc::raw::unpack<bool>(data);
-         break;
-      case 1:
-         v = fc::raw::unpack<int32_t>(data);
-         break;
-      case 2:
-         v = fc::raw::unpack<int64_t>(data);
-         break;
-      case 3:
-         v = fc::raw::unpack<std::pair<fc::sha256, eosio::name>>(data);
-         break;
-      case 4:
-         v = fc::raw::unpack<std::string>(data);
-         break;
-      case 5:
-         v = fc::time_point(fc::seconds(fc::raw::unpack<int64_t>(data)));
-         break;
-      case 6:
-         if (data.size() == 34 && data[0] == 18 && data[1] == 32) {
-            auto codec = multibase::base_58_btc{};
-            auto view = std::string_view(data.data(), data.size());
-            auto encoded = codec.encode(view, false);
-            v = encoded;
+   if (type == 0) {
+      v = fc::raw::unpack<bool>(data);
+   }
+   else if (type == 1) {
+      v = fc::raw::unpack<int32_t>(data);
+   }
+   else if (type == 2) {
+      v = fc::raw::unpack<int64_t>(data);
+   }
+   else if (type == 3) {
+      v = fc::raw::unpack<std::pair<fc::sha256, eosio::name>>(data);
+   }
+   else if (type == 4) {
+      v = fc::raw::unpack<std::string>(data);
+   }
+   else if (type == 5) {
+      v = fc::time_point(fc::seconds(fc::raw::unpack<int64_t>(data)));
+   }
+   else if (type == 6) {
+      if (data.size() == 34 && data[0] == 18 && data[1] == 32) {
+         auto codec = multibase::base_58_btc{};
+         auto view = std::string_view(data.data(), data.size());
+         auto encoded = codec.encode(view, false);
+         v = encoded;
+      }
+      else {
+         int64_t varint = 0;
+         if (static_cast<unsigned char>(data[0]) <= 252) {
+            varint = static_cast<unsigned char>(data[0]);
          }
          else {
-            int64_t varint = 0;
-            if (static_cast<unsigned char>(data[0]) <= 252) {
-               varint = static_cast<unsigned char>(data[0]);
+            size_t size = static_cast<unsigned char>(data[0]) - 252;
+            for (size_t i = 0; i < size; i++) {
+               varint <<= 8;
+               varint &= static_cast<unsigned char>(data[i + 1]);
             }
-            else {
-               size_t size = static_cast<unsigned char>(data[0]) - 252;
-               for (int i = 0; i < size; i++) {
-                  varint <<= 8;
-                  varint &= static_cast<unsigned char>(data[i + 1]);
-               }
 
-            }
-            if (varint == 1) {
-               auto codec = multibase::base_58_btc{};
-               auto view = std::string_view(data.data(), data.size());
-               auto encoded = codec.encode(view, true);
-               v = encoded;
-            }
          }
-         break;
-      case 7:
-         v = decodeOID(data);
-         break;
-      case 8:
-         v = data;
-         break;
-      case 9:
-         v = fc::raw::unpack<std::set<std::pair<eosio::name, std::string>>>(data);
-         break;
-      default:
-         EOS_ASSERT( false, eosio::chain::unknown_attribute_type, "Unknown attribute type" );
+         if (varint == 1) {
+            auto codec = multibase::base_58_btc{};
+            auto view = std::string_view(data.data(), data.size());
+            auto encoded = codec.encode(view, true);
+            v = encoded;
+         }
+      }
+   }
+   else if (type == 7) {
+      v = decodeOID(data);
+   }
+   else if (type == 8) {
+      v = data;
+   }
+   else if (type == 9) {
+      v = fc::raw::unpack<std::set<std::pair<eosio::name, std::string>>>(data);
+   }
+   else {
+      EOS_ASSERT( false, eosio::chain::unknown_attribute_type, "Unknown attribute type" );
    }
    return fc::json::to_pretty_string(v);
 }

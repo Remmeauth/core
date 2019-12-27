@@ -64,7 +64,6 @@ struct set_attr_expected_t : public set_attr_t {
    virtual bool isValueOk(std::string actualValue) const {
       bytes b(actualValue.size() / 2);
       const auto size = fc::from_hex(actualValue, b.data(), b.size());
-
       const auto v = fc::raw::unpack<T>(b);
       return v == expectedValue;
    }
@@ -313,6 +312,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
             { .attr_name=N(creator),     .type=0,  .privacy_type=3 },  // type: Bool,         privacy type: PrivatePointer
             { .attr_name=N(name),        .type=5,  .privacy_type=0 },  // type: UTFString,    privacy type: SelfAssigned
             { .attr_name=N(largeint),    .type=2,  .privacy_type=2 },  // type: LargeInt,     privacy type: PublicConfirmedPointer
+            { .attr_name=N(floating),    .type=3,  .privacy_type=1 },  // type: Double,       privacy type: PublicPointer
         };
         for (const auto& a: attributes) {
             create_attr(a.attr_name, a.type, a.privacy_type);
@@ -323,11 +323,11 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         }
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(create), N(b1), mvo()("attribute_name", name(N(fail)))("type", 0)("ptype", 0)),
             missing_auth_exception);
-        BOOST_REQUIRE_THROW(create_attr(N(fail), -1, 0), eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(create_attr(N(fail), 11, 0), eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(create_attr(N(fail), 0, -1), eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(create_attr(N(fail), 0, 5), eosio_assert_message_exception);
-        BOOST_REQUIRE_THROW(create_attr(N(tags), 0, 0), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(create_attr(N(fail), -1, 0), eosio_assert_message_exception); // type is out of range
+        BOOST_REQUIRE_THROW(create_attr(N(fail), 11, 0), eosio_assert_message_exception); // type is out of range
+        BOOST_REQUIRE_THROW(create_attr(N(fail), 0, -1), eosio_assert_message_exception); // privacy type is out of range
+        BOOST_REQUIRE_THROW(create_attr(N(fail), 0, 5),  eosio_assert_message_exception); // privacy type is out of range
+        BOOST_REQUIRE_THROW(create_attr(N(tags), 0, 0),  eosio_assert_message_exception); // attribute with this name already exists
 
         set_attr_expected_t<std::pair<fc::sha256, name>> attr1(N(prodb), N(proda), N(crosschain),
             // concatenated "00000000000000000000000000000000000000000000000000000000000000ff" and "rem" in hex
@@ -353,12 +353,15 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
             "06426c61697a65", // encoded string "Blaize"
             "Blaize");
         set_attr_expected_t<int64_t> attr8(N(proda), N(prodb), N(largeint),
-            "0000000000000080", // encoded number -9223372036854775808
+            "0000000000000080", // encoded number -9223372036854775808 (8000000000000000 reversed because of mechanics of pack/unpack)
             -9223372036854775808);
         set_attr_expected_t<int64_t> attr9(N(prodb), N(prodb), N(largeint),
            "ffffffffffffffff", // encoded number -1
            -1);
-        for (auto& attr: std::vector<std::reference_wrapper<set_attr_t>>{ attr1, attr2, attr3, attr4, attr5, attr6, attr7, attr8, attr9 }) {
+        set_attr_expected_t<double> attr10(N(prodb), N(prodb), N(floating),
+            "0000000000000040", // encoded number 2.0
+            2.0);
+        for (auto& attr: std::vector<std::reference_wrapper<set_attr_t>>{ attr1, attr2, attr3, attr4, attr5, attr6, attr7, attr8, attr9, attr10 }) {
             auto& attr_ref = attr.get();
             set_attr(attr_ref.issuer, attr_ref.receiver, attr_ref.attribute_name, attr_ref.value);
 
@@ -402,6 +405,8 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_TEST(get_account_attribute(    N(prodb),     N(proda),      N(largeint)) ["pending"].as_string() != ""); //not confirmed
         BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["data"].as_string()    == "");
         BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(largeint)) ["pending"].as_string() != ""); //not confirmed
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(floating)) ["data"].as_string()    != "");
+        BOOST_TEST(get_account_attribute(    N(prodb),     N(prodb),      N(floating)) ["pending"].as_string() == "");
 
         // only proda is allowed to confirm his attributes
         BOOST_REQUIRE_THROW(base_tester::push_action(N(rem.attr), N(confirm), N(rem.attr), mvo()("owner", "proda")("issuer", "prodb")("attribute_name", "tags")),
@@ -445,12 +450,16 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(proda),      N(creator)),      eosio_assert_message_exception); //only contract owner can unset
         BOOST_REQUIRE_THROW(unset_attr(N(rem.attr),   N(proda),      N(name)),         eosio_assert_message_exception); //only receiver can unset
         BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodb),      N(largeint)),     eosio_assert_message_exception); //only issuer or receiver can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(proda),      N(prodb),      N(floating)),     eosio_assert_message_exception); //only issuer can unset
+        BOOST_REQUIRE_THROW(unset_attr(N(prodc),      N(prodb),      N(floating)),     eosio_assert_message_exception); //only issuer can unset
 
+        // Attributes can`t be removed until they are marked as invalid and all attributes that have been set are deleted
         BOOST_REQUIRE_THROW(remove_attr(N(crosschain)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(tags)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(creator)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(name)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(largeint)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(floating)), eosio_assert_message_exception);
 
         unset_attr(N(prodb),      N(proda),      N(crosschain));
         unset_attr(N(rem.attr),   N(proda),      N(tags));
@@ -459,6 +468,7 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         unset_attr(N(rem.attr),   N(rem.attr),   N(creator));
         unset_attr(N(prodb),      N(prodb),      N(name));
         unset_attr(N(prodb),      N(prodb),      N(largeint));
+        unset_attr(N(prodb),      N(prodb),      N(floating));
         // receiver can unset PublicConfirmedPointer
         base_tester::push_action(N(rem.attr), N(unsetattr), N(prodb), mvo()("issuer", "proda")("receiver", "prodb")("attribute_name", "largeint"));
         produce_block();
@@ -470,24 +480,29 @@ BOOST_FIXTURE_TEST_CASE( attribute_test, attribute_tester ) {
         BOOST_TEST(get_account_attribute( N(prodb),        N(prodb),        N(name)).is_null());
         BOOST_TEST(get_account_attribute( N(prodb),        N(prodb),    N(largeint)).is_null());
         BOOST_TEST(get_account_attribute( N(prodb),        N(proda),    N(largeint)).is_null());
+        BOOST_TEST(get_account_attribute( N(prodb),        N(prodb),    N(floating)).is_null());
 
+        // Attributes can`t be removed until they are marked as invalid
         BOOST_REQUIRE_THROW(remove_attr(N(crosschain)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(tags)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(creator)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(name)), eosio_assert_message_exception);
         BOOST_REQUIRE_THROW(remove_attr(N(largeint)), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(remove_attr(N(floating)), eosio_assert_message_exception);
 
         invalidate_attr(N(crosschain));
         invalidate_attr(N(tags));
         invalidate_attr(N(creator));
         invalidate_attr(N(name));
         invalidate_attr(N(largeint));
+        invalidate_attr(N(floating));
 
         remove_attr(N(crosschain));
         remove_attr(N(tags));
         remove_attr(N(creator));
         remove_attr(N(name));
         remove_attr(N(largeint));
+        remove_attr(N(floating));
 
     } FC_LOG_AND_RETHROW()
 }

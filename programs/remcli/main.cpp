@@ -2575,6 +2575,8 @@ int main( int argc, char** argv ) {
    setAttribute->add_option("receiver", setAttrReceiver, localized("The name of the account who recieves an attribute"))->required();
    setAttribute->add_option("attribute_name", setAttrName, localized("The name of the attribute"))->required();
    setAttribute->add_option("value", attrValue, localized("Value of the attribute"))->required();
+   add_standard_transaction_options(setAttribute, "issuer@active");
+
    setAttribute->set_callback([&] {
       auto result = call(get_table_func, fc::mutable_variant_object("json", true)
          ("code", name(config::attribute_account_name))

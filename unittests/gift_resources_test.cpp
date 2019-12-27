@@ -314,9 +314,9 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          BOOST_REQUIRE(acc_gifter_attr.privacy_type == attr_info["ptype"].as_int64());
          
          // the length of hex string should be even number
-         // 100% = 1000000 in decimal = 40420f0000000000 in hex big-endian
-         set_attr(N(rem.attr), config::system_account_name, acc_gifter_attr_name, "40420f0000000000");
-         BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["data"].as_string() == "40420f0000000000");
+         // 100% = 1000000 in decimal = 40420f00 in hex big-endian
+         set_attr(N(rem.attr), config::system_account_name, acc_gifter_attr_name, "40420f00");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["data"].as_string() == "40420f00");
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["pending"].as_string().empty());
       }
 
@@ -344,8 +344,8 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
          transfer( config::system_account_name, N(testram11111), asset{ 10'000'0000 } );
          BOOST_REQUIRE( get_balance(N(testram11111)) == asset{ 10'000'0000 } );
 
-         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "40420f0000000000");
-         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "40420f0000000000");
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "40420f00");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "40420f00");
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
 
          create_account_with_resources(N(testram22222), N(testram11111), asset{min_account_stake}, false);
@@ -358,8 +358,8 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
 
       // set `accgifter` attribute to 50% for `testram11111` so now it should pay 50% of min stake
       {
-         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "20a1070000000000");
-         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "20a1070000000000");
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "20a10700");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "20a10700");
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
 
          BOOST_REQUIRE_EXCEPTION(
@@ -377,8 +377,8 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
 
       // set `accgifter` attribute to 20% for `testram11111` so now it should pay 80% of min stake
       {
-         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "400d030000000000");
-         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "400d030000000000");
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "400d0300");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "400d0300");
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
 
          BOOST_REQUIRE_EXCEPTION(

@@ -62,13 +62,13 @@ namespace eosio {
    {
       require_auth( issuer );
       require_recipient( receiver );
-      check( !value.empty(), "value is empty" );
 
       attribute_info_table attributes_info( _self, _self.value );
       const auto& attrinfo = attributes_info.get( attribute_name.value, "attribute does not exist" );
       check(attrinfo.next_id < std::numeric_limits<uint64_t>::max(), "attribute storage is full");
       check( attrinfo.is_valid(), "this attribute is beeing deleted" );
       check_permission(issuer, receiver, attrinfo.ptype);
+      check_attribute_data(value, attrinfo.type);
 
       const auto id = attrinfo.next_id;
 
@@ -135,6 +135,42 @@ namespace eosio {
       attributes_info.modify(attrinfo, same_payer, [&]( auto& a ) {
          a.next_id -= 1;
       });
+   }
+
+   void attribute::check_attribute_data(const std::vector<char>& data, int32_t type) const
+   {
+      check( !data.empty(), "value is empty" );
+      switch(static_cast<data_type>( type )) {
+         case data_type::Boolean:
+            check( data.size() == 1, "invalid Boolean value" );
+            break;
+         case data_type::Int:
+            check( data.size() == sizeof(int32_t), "invalid Int value" );
+            break;
+         case data_type::LargeInt:
+            check( data.size() == sizeof(int64_t), "invalid LargeInt value" );
+            break;
+         case data_type::ChainAccount:
+            check( data.size() == 40, "invalid ChainAccount value" );
+            break;
+         case data_type::UTFString:
+            check( data.size() == data.front() + 1, "invalid UTFString value" );
+            break;
+         case data_type::DateTimeUTC:
+            check( data.size() == sizeof(int64_t), "invalid DateTimeUTC value" );
+            break;
+         case data_type::Binary:
+            check( data.size() == data.front() + 1, "invalid Binary value" );
+            break;
+         case data_type::Double:
+            check( data.size() == sizeof(double), "invalid Double value" );
+            break;
+         case data_type::CID:
+         case data_type::OID:
+         case data_type::Set:
+         default:
+            break;
+      }
    }
 
    void attribute::check_permission(const name& issuer, const name& receiver, int32_t ptype) const

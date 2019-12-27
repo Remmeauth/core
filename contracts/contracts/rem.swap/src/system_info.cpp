@@ -84,7 +84,7 @@ namespace eosio {
 
    bool swap::is_swap_confirmed( const vector<name>& provided_approvals ) const
    {
-      vector<name> _producers = get_producers();
+      vector<name> _producers = eosio::get_active_producers();
       uint8_t quantity_active_appr = 0;
       for (const auto& producer: provided_approvals) {
          auto prod_appr = std::find(_producers.begin(), _producers.end(), producer);
