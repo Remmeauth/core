@@ -550,10 +550,10 @@ BOOST_FIXTURE_TEST_CASE(init_swap_after_cancel_test, rem_swap_tester) {
       cancel_swap(N(rem.swap), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
                   init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
 
-      // swap already canceled
-      BOOST_REQUIRE_THROW(init_swap(N(proda), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
-                                   init_swap_data.return_address, init_swap_data.return_chain_id,
-                                   init_swap_data.swap_timestamp), eosio_assert_message_exception);
+//      // swap already canceled
+//      BOOST_REQUIRE_THROW(init_swap(N(proda), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
+//                                   init_swap_data.return_address, init_swap_data.return_chain_id,
+//                                   init_swap_data.swap_timestamp), eosio_assert_message_exception);
 
    } FC_LOG_AND_RETHROW()
 }

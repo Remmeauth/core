@@ -40,6 +40,7 @@ namespace eosio {
       check(current_time_point() > swap_timepoint, "swap cannot be initialized "
                                                    "with a future timestamp");
 
+      const bool is_producer = is_block_producer(rampayer);
       if (swap_hash_it == swap_hash_idx.end()) {
          swap_table.emplace(rampayer, [&](auto &s) {
             s.key            = swap_table.available_primary_key();
@@ -47,22 +48,28 @@ namespace eosio {
             s.swap_id        = swap_hash;
             s.swap_timestamp = swap_timestamp;
             s.status         = static_cast<int8_t>(swap_status::INITIALIZED);
+            if (is_producer) s.provided_approvals.push_back(rampayer);
          });
-      }
-      swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
-      check(swap_hash_it->status != static_cast<int8_t>(swap_status::CANCELED), "swap already canceled");
-      check(swap_hash_it->status != static_cast<int8_t>(swap_status::FINISHED), "swap already finished");
+      } else {
+         check(is_producer, "block producer authorization required");
+         bool is_swap_init = swap_hash_it->status == static_cast<int8_t>(swap_status::INITIALIZED);
+         bool is_swap_issued = swap_hash_it->status == static_cast<int8_t>(swap_status::ISSUED);
 
-      if (is_block_producer(rampayer)) {
          const vector <name> &approvals = swap_hash_it->provided_approvals;
          bool is_already_approved = std::find(approvals.begin(), approvals.end(), rampayer) == approvals.end();
 
          check(is_already_approved, "approval already exists");
 
-         swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
-            s.provided_approvals.push_back(rampayer);
-         });
-
+         if (is_swap_init || is_swap_issued) {
+            swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
+               s.provided_approvals.push_back(rampayer);
+            });
+         }
+      }
+      // moved out, because existing case when the majority of the active producers = 1
+      if (is_producer) {
+         cleanup_swaps();
+         swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
          bool is_status_init = swap_hash_it->status == static_cast<int8_t>(swap_status::INITIALIZED);
          if (is_swap_confirmed(swap_hash_it->provided_approvals) && is_status_init) {
             issue_tokens(rampayer, quantity);
@@ -70,7 +77,6 @@ namespace eosio {
                s.status = static_cast<int8_t>(swap_status::ISSUED);
             });
          }
-         cleanup_swaps();
       }
    }
 
