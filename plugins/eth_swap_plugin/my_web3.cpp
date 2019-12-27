@@ -43,9 +43,7 @@ void my_web3::wss_connect() {
   websocketpp::lib::error_code ec;
   client::connection_ptr con = m_client.get_connection(_eth_address, ec);
   if (ec) {
-      /*m_client.get_alog().write(websocketpp::log::alevel::app,
-              "Get Connection Error: "+ec.message());*/
-      throw ec.message();
+    throw std::runtime_error("Couldn't send a request to Ethereum node");
   }
 
   m_hdl = con->get_handle();
@@ -79,9 +77,7 @@ void my_web3::send_request(const std::string& request) {
     m_client.send(m_hdl,request,websocketpp::frame::opcode::text,ec);
 
     if (ec) {
-      /*m_client.get_alog().write(websocketpp::log::alevel::app,
-          "Send Error: "+ec.message());*/
-    throw ec.message();
+      throw std::runtime_error("Couldn't send a request to Ethereum node");
     }
 }
 
