@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.8 )
 
-project( REMPROTOCOL )
+project( EOSIO )
 include(CTest) # suppresses DartConfiguration.tcl error
 enable_testing()
 
