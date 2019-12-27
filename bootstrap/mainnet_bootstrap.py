@@ -43,6 +43,8 @@ remnode_port = 8888
 wallet_port = 6666
 remcli = f'remcli --url http://127.0.0.1:{remnode_port} --wallet-url http://127.0.0.1:{wallet_port} '
 
+min_account_stake = 50_0000
+
 public_key = 'EOS8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr'
 
 contracts_dir = '../build/contracts/contracts'
@@ -216,6 +218,19 @@ def set_system_contract():
     sleep(1)
     run(remcli + 'push action rem setpriv' + jsonArg(['rem.msig', 1]) + '-p rem@active')
 
+def set_min_account_stake():
+    run(
+        remcli + f'push action rem setminstake \'["{min_account_stake}"]\' -p rem')
+
+def create_default_attributes():
+    # name - accgifter, data_type - Int, privacy_type - PrivatePointer
+    run(
+        remcli + 'push action rem.attr create \'["accgifter", "1", "3"]\' -p rem.attr')
+
+    # name - displayname, data_type - UTFString, privacy_type - SelfAssigned
+    run(
+        remcli + 'push action rem.attr create \'["displayname", "5", "0"]\' -p rem.attr')
+
 
 def create_default_attributes():
     # name - accgifter, data_type - Int, privacy_type - PrivatePointer
@@ -237,5 +252,6 @@ if __name__ == '__main__':
     create_rem_token()
     create_auth_token()
     set_system_contract()
+    set_min_account_stake()
     bootstrap_system_contracts()
     create_default_attributes()
