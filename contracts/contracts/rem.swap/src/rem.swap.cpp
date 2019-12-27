@@ -22,7 +22,7 @@ namespace eosio {
       swap_params_data = swap_params_table.get();
 
       check_pubkey_prefix(swap_pubkey);
-      check(is_block_producer(rampayer), "top25 block producer authorization required");
+      check(is_block_producer(rampayer), "only top25 block producers approval is recorded");
       check(quantity.is_valid(), "invalid quantity");
       check(quantity.symbol == min_account_stake.symbol, "symbol precision mismatch");
       check(quantity.amount >= min_account_stake.amount + producers_reward.amount, "the quantity must be greater "
