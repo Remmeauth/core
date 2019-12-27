@@ -307,9 +307,7 @@ namespace eosiosystem {
          transfer_act.send( vpay_account, producer, asset(producer_per_vote_pay, core_symbol()), "producer vote pay" );
       }
       if ( punishment > 0 ) {
-         double pct_missed_blocks = 100 - (prod.unpaid_blocks / double(expected_produced_blocks)) * 100;
-         string punishment_memo = "punishment transfer: missed blocks - " + std::to_string(expected_produced_blocks - prod.unpaid_blocks) + " (" + std::to_string(pct_missed_blocks) + "%)";
-
+         string punishment_memo = "punishment transfer: missed " + std::to_string(expected_produced_blocks - prod.unpaid_blocks) + " blocks out of " + std::to_string(expected_produced_blocks);
          token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission} } };
          transfer_act.send( vpay_account, saving_account, asset(punishment, core_symbol()), punishment_memo );
       }
