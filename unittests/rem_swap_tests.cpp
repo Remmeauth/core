@@ -511,6 +511,11 @@ BOOST_FIXTURE_TEST_CASE(init_swap_test, rem_swap_tester) {
                                     init_swap_data.quantity,
                                     init_swap_data.return_address, init_swap_data.return_chain_id,
                                     init_swap_data.swap_timestamp), eosio_assert_message_exception);
+      // block producer authorization required
+      BOOST_REQUIRE_THROW(init_swap(N(whale1), init_swap_data.txid, init_swap_data.swap_pubkey,
+                                    init_swap_data.quantity,
+                                    init_swap_data.return_address, init_swap_data.return_chain_id,
+                                    init_swap_data.swap_timestamp), eosio_assert_message_exception);
       // symbol precision mismatch
       BOOST_REQUIRE_THROW(init_swap(init_swap_data.rampayer, init_swap_data.txid, init_swap_data.swap_pubkey,
                                     asset::from_string("201.0000 SYS"), init_swap_data.return_address,
@@ -543,18 +548,37 @@ BOOST_FIXTURE_TEST_CASE(init_swap_after_cancel_test, rem_swap_tester) {
          // swap can be canceled after expiration (1 week)
          .swap_timestamp = time_point_sec::from_iso_string("2019-12-05T00:00:43.000")
       };
-      for (const auto &producer : _producer_candidates) {
-         init_swap(producer, init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
+      vector<name> producers(_producer_candidates.begin(), _producer_candidates.end());
+      asset before_init_balance = get_balance(N(rem.swap));
+
+      uint32_t majority_prod =  (producers.size() * 2 / 3) + 2;
+      for (size_t i = 0; i < majority_prod; ++i) {
+         init_swap(producers[i], init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
                    init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
       }
+
+      asset after_init_balance = get_balance(N(rem.swap));
+      // after issue tokens, balance rem.swap should be a before issue balance + amount of tokens to be a swapped
+      BOOST_REQUIRE_EQUAL(before_init_balance + init_swap_data.quantity, after_init_balance);
+
       cancel_swap(N(rem.swap), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
                   init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
 
-//      // swap already canceled
-//      BOOST_REQUIRE_THROW(init_swap(N(proda), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
-//                                   init_swap_data.return_address, init_swap_data.return_chain_id,
-//                                   init_swap_data.swap_timestamp), eosio_assert_message_exception);
+      for (size_t i = majority_prod; i < producers.size(); ++i) {
+         init_swap(producers[i], init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
+                   init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
+      }
 
+      auto data = get_singtable(N(rem.swap), N(swaps), "swap_data");
+      auto after_cancel_balance = get_balance(N(rem.swap));
+      auto core_stats_after = get_stats(symbol(CORE_SYMBOL));
+
+      // after cancel, balance rem.swap should be equal a before init balance
+      BOOST_REQUIRE_EQUAL(before_init_balance, after_cancel_balance);
+      // -1 if a swap status cancel
+      BOOST_REQUIRE_EQUAL("-1", data["status"].as_string());
+      BOOST_REQUIRE_EQUAL(init_swap_data.txid, data["txid"].as_string());
+      BOOST_REQUIRE_EQUAL(core_stats_after["supply"].as_string(), "100000100.0000 " + string(CORE_SYMBOL_NAME));
    } FC_LOG_AND_RETHROW()
 }
 
@@ -566,6 +590,9 @@ BOOST_FIXTURE_TEST_CASE(finish_swap_test, rem_swap_tester) {
          .swap_pubkey = get_pubkey_str(swap_key_priv),
          .swap_timestamp = time_point_sec(control->head_block_time())
       };
+      vector<name> producers(_producer_candidates.begin(), _producer_candidates.end());
+      // amount of provided approvals must be a 2/3 + 1 of active producers
+      uint32_t majority_prod =  (producers.size() * 2 / 3) + 1;
       time_point swap_timepoint = init_swap_data.swap_timestamp.to_time_point();
       string swap_payload = join({init_swap_data.swap_pubkey.substr(3), init_swap_data.txid, control->get_chain_id(),
                                   init_swap_data.quantity.to_string(), init_swap_data.return_address,
@@ -573,8 +600,8 @@ BOOST_FIXTURE_TEST_CASE(finish_swap_test, rem_swap_tester) {
 
       string swap_id = sha256::hash(swap_payload);
 
-      for (const auto &producer : _producer_candidates) {
-         init_swap(producer, init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
+      for (size_t i = 0; i <= majority_prod; ++i) {
+         init_swap(producers[i], init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
                    init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
       }
 
@@ -607,9 +634,7 @@ BOOST_FIXTURE_TEST_CASE(finish_swap_test, rem_swap_tester) {
       // 2 if swap status finish
       BOOST_REQUIRE_EQUAL("2", data["status"].as_string());
       BOOST_REQUIRE_EQUAL(string(swap_timepoint), data["swap_timestamp"].as_string());
-      // amount of provided approvals must be a 2/3 + 1 of active producers
-      uint32_t majority = (_producer_candidates.size() * 2 / 3) + 1;
-      BOOST_TEST(majority <= data["provided_approvals"].get_array().size());
+      BOOST_TEST(majority_prod <= data["provided_approvals"].get_array().size());
       // balance equal : receiver balance += swapped quantity - producers_reward
       BOOST_REQUIRE_EQUAL(receiver_before_balance + init_swap_data.quantity - producers_reward,
                           receiver_after_balance);
@@ -628,6 +653,22 @@ BOOST_FIXTURE_TEST_CASE(finish_swap_test, rem_swap_tester) {
                      core_from_string("500.0000"), init_swap_data.return_address,
                      init_swap_data.return_chain_id, init_swap_data.swap_timestamp, sign),
                      eosio_assert_message_exception);
+      // init after finish swap
+      remswap_before_balance = get_balance(N(rem.swap));
+      auto core_stats_before = get_stats(symbol(CORE_SYMBOL));
+
+      for (size_t i = majority_prod + 1; i < _producer_candidates.size(); ++i) {
+         init_swap(producers[i], init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
+                   init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
+      }
+
+      data = get_singtable(N(rem.swap), N(swaps), "swap_data");
+      remswap_after_balance = get_balance(N(rem.swap));
+      auto core_stats_after = get_stats(symbol(CORE_SYMBOL));
+
+      BOOST_REQUIRE_EQUAL("2", data["status"].as_string());
+      BOOST_REQUIRE_EQUAL(remswap_before_balance, remswap_after_balance);
+      BOOST_REQUIRE_EQUAL(core_stats_before["supply"], core_stats_after["supply"]);
    } FC_LOG_AND_RETHROW()
 }
 
