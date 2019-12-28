@@ -122,6 +122,9 @@ std::vector<eosio::producer_authority> system_contract::get_rotated_schedule() {
       update_standby();
       update_pervote_shares();
    }
+   else {
+      _grotation.standby_rotation.swap(rotation);
+   }
 
    return top21_prods;
 }

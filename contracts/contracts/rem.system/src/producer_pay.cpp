@@ -214,6 +214,7 @@ namespace eosiosystem {
                p.last_expected_produced_blocks_update = timestamp;
             });
          }
+         get_rotated_schedule();
          update_standby();
          update_pervote_shares();
       }
