@@ -70,9 +70,8 @@ namespace eosio {
       vector<name> _producers;
       for(const auto &producer: _gstate.last_schedule)
          _producers.push_back(producer.first);
-      for(const auto &producer: _gstate.standby) {
+      for(const auto &producer: _gstate.standby)
          _producers.push_back(producer.first);
-      }
       return _producers;
    }
 

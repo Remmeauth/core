@@ -447,6 +447,7 @@ rem_swap_tester::rem_swap_tester() {
                                             permission_level{N(rem.swap), config::active_name}};
    addchain(N(ethropsten), true, true, 1000000, 5000000, auths_level);
    setswapparam(control->get_chain_id(), "0x81b7E08F65Bdf5648606c89998A9CC8164397647", "ethropsten");
+   produce_blocks();
 }
 
 BOOST_AUTO_TEST_SUITE(rem_swap_tests)
@@ -457,6 +458,7 @@ BOOST_FIXTURE_TEST_CASE(init_swap_test, rem_swap_tester) {
          .swap_pubkey = get_pubkey_str(crypto::private_key::generate()),
          .swap_timestamp = time_point_sec(control->head_block_time())
       };
+      vector<name> producers(_producer_candidates.begin(), _producer_candidates.end());
       /* swap id consist of swap_pubkey, txid, control->get_chain_id(), quantity, return_address,
        * return_chain_id, swap_timepoint_seconds and separated by '*'. */
       time_point swap_timepoint = init_swap_data.swap_timestamp.to_time_point();
@@ -467,7 +469,7 @@ BOOST_FIXTURE_TEST_CASE(init_swap_test, rem_swap_tester) {
       string swap_id = sha256::hash(swap_payload);
       asset before_init_balance = get_balance(N(rem.swap));
 
-      init_swap(N(rem.swap), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
+      init_swap(N(proda), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
                 init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
 
       // 0 if a swap status initialized
@@ -475,8 +477,8 @@ BOOST_FIXTURE_TEST_CASE(init_swap_test, rem_swap_tester) {
       BOOST_REQUIRE_EQUAL("0", data["status"].as_string());
 
       // 21 approvals, tokens will be issued after 2/3 + 1 approvals
-      for (const auto &producer : _producer_candidates) {
-         init_swap(producer, init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
+      for (size_t i = 1; i < producers.size(); ++i) {
+         init_swap(producers.at(i), init_swap_data.txid, init_swap_data.swap_pubkey, init_swap_data.quantity,
                    init_swap_data.return_address, init_swap_data.return_chain_id, init_swap_data.swap_timestamp);
       }
 
@@ -511,7 +513,7 @@ BOOST_FIXTURE_TEST_CASE(init_swap_test, rem_swap_tester) {
                                     init_swap_data.quantity,
                                     init_swap_data.return_address, init_swap_data.return_chain_id,
                                     init_swap_data.swap_timestamp), eosio_assert_message_exception);
-      // block producer authorization required
+      // only top25 block producers approval is recorded
       BOOST_REQUIRE_THROW(init_swap(N(whale1), init_swap_data.txid, init_swap_data.swap_pubkey,
                                     init_swap_data.quantity,
                                     init_swap_data.return_address, init_swap_data.return_chain_id,
