@@ -1,6 +1,7 @@
 #include <rem.system/rem.system.hpp>
 #include <rem.token/rem.token.hpp>
 #include <rem.attr/rem.attr.hpp>
+#include <rem.oracle/rem.oracle.hpp>
 
 #include <eosio/crypto.hpp>
 #include <eosio/dispatcher.hpp>
@@ -319,9 +320,13 @@ namespace eosiosystem {
          check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
          const auto discount_rate = discount / 100'0000.0;
 
+         eosio::remprice_idx remprice_table(oracle_account, oracle_account.value);
+         auto remusd_it = remprice_table.find("rem.usd"_n.value);
+         uint64_t min_account_stake = remusd_it != remprice_table.end() ? _gstate.min_account_price / remusd_it->price : _gstate.min_account_stake;
+
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-         free_stake_amount                  = discount_rate * _gstate.min_account_stake;
+         free_stake_amount                  = discount_rate * min_account_stake;
          free_gift_bytes                    = bytes_per_token * free_stake_amount;
       }
 
