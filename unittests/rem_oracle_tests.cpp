@@ -142,6 +142,30 @@ public:
       produce_blocks();
    };
 
+   transaction_trace_ptr create_account_with_resources(account_name new_acc, account_name creator, asset stake, bool transfer = true) {
+      signed_transaction trx;
+      set_transaction_headers(trx);
+
+      authority owner_auth = authority(get_public_key(new_acc, "owner"));
+
+      trx.actions.emplace_back(vector<permission_level>{{creator, config::active_name}},
+                               newaccount{
+                                  .creator = creator,
+                                  .name = new_acc,
+                                  .owner = owner_auth,
+                                  .active = authority(get_public_key(new_acc, "active"))});
+
+      trx.actions.emplace_back(
+         get_action(config::system_account_name, N(delegatebw), vector<permission_level>{{creator, config::active_name}},
+                    mvo()("from", creator)("receiver", new_acc)("stake_quantity", stake)("transfer", transfer)
+         )
+      );
+
+      set_transaction_headers(trx);
+      trx.sign(get_private_key(creator, "active"), control->get_chain_id());
+      return push_transaction(trx);
+   }
+
    variant get_remprice_tbl( const name& pair ) {
       vector<char> data = get_row_by_account( N(rem.oracle), N(rem.oracle), N(remprice), pair );
       return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "remprice", data, abi_serializer_max_time );
@@ -387,19 +411,39 @@ BOOST_FIXTURE_TEST_CASE( setprice_test, oracle_tester ) {
             BOOST_TEST_REQUIRE(pair_data["price_points"].get_array() == pair_points);
             BOOST_TEST_REQUIRE(pair_data["last_update"].as_string() == string(ct));
          }
-      }
 
-      // block producer authorization required
-      BOOST_REQUIRE_THROW(setprice(N(runnerup3), pair_price), eosio_assert_message_exception );
-      // the frequency of price changes should not exceed 1 time per hour
-      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
-      // incorrect pairs
-      pair_price = { {N(rem.usd), 0.003210},
-                     {N(rem.btc), 0.0000003957} };
-      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
-      // unsupported pairs
-      pair_price[N(remxrp)] = 0.0000003957;
-      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
+         // block producer authorization required
+         BOOST_REQUIRE_THROW(setprice(N(runnerup3), pair_price), eosio_assert_message_exception );
+         // the frequency of price changes should not exceed 1 time per hour
+         BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
+         // incorrect pairs
+         pair_price = { {N(rem.usd), 0.003210},
+                        {N(rem.btc), 0.0000003957} };
+         BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
+         // unsupported pairs
+         pair_price[N(remxrp)] = 0.0000003957;
+         BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
+
+         // create account by oracle price, should be deduct 0.5 / 0.003210 = 155.7632 REM for 1 account
+         {
+            auto system_acc_before_balance = get_balance(config::system_account_name);
+            create_account_with_resources(N(test1), config::system_account_name,core_from_string("155.7632"));
+            auto system_acc_before_after = get_balance(config::system_account_name);
+
+            BOOST_TEST_REQUIRE(system_acc_before_balance - core_from_string("155.7632") == system_acc_before_after);
+
+            // insufficient minimal account stake for test2
+            BOOST_REQUIRE_THROW(create_account_with_resources(N(test2), config::system_account_name,core_from_string("155.7631")), eosio_assert_message_exception );
+            // if last_update > 1 hour 10 m than min_account_stake = 100.0000 REM
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::minutes(71));
+
+            system_acc_before_balance = system_acc_before_after;
+            create_account_with_resources(N(test3), config::system_account_name,core_from_string("100.0000"));
+            system_acc_before_after = get_balance(config::system_account_name);
+
+            BOOST_TEST_REQUIRE(system_acc_before_balance - core_from_string("100.0000") == system_acc_before_after);
+         }
+      }
 
    } FC_LOG_AND_RETHROW()
 }
@@ -441,7 +485,7 @@ BOOST_FIXTURE_TEST_CASE( setprice_median_test, oracle_tester ) {
       // shift median remusd on nth position
       // the range of points remusd is a [ 1 .. 21 ], to shift median need to reduce delta of the current subset
       for(size_t i = 0; i < (_producers.size() - majority_amount); ++i) {
-         produce_blocks_for_n_rounds(29); // +1 hour
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
 
          // increase the prev delta for the current subset
          pair_price[N(rem.usd)] = i + 1;
@@ -480,7 +524,7 @@ BOOST_FIXTURE_TEST_CASE( addpair_test, oracle_tester ) {
       supported_pairs.emplace_back(N(rem.bnb));
       addpair(N(rem.bnb), { {N(rem.oracle), config::active_name} });
 
-      produce_blocks_for_n_rounds(29); // +1 hour
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
       pair_price[N(rem.bnb)] = 1;
       setprice(N(proda), pair_price);
 
@@ -504,7 +548,7 @@ BOOST_FIXTURE_TEST_CASE( addpair_test, oracle_tester ) {
       BOOST_TEST_REQUIRE(remeth_data["pair"] == remeth_data_after["pair"]);
       BOOST_TEST_REQUIRE(remeth_data["last_update"] == remeth_data_after["last_update"]);
 
-      produce_blocks_for_n_rounds(29); // +1 hour
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
       // add new pair data (rembnb)
       for (const auto &producer : _producers) {
          setprice(producer.producer_name, pair_price);

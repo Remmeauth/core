@@ -321,8 +321,9 @@ namespace eosiosystem {
          const auto discount_rate = discount / 100'0000.0;
 
          eosio::remprice_idx remprice_table(oracle_account, oracle_account.value);
-         auto remusd_it = remprice_table.find("rem.usd"_n.value);
-         uint64_t min_account_stake = remusd_it != remprice_table.end() ? _gstate.min_account_price / remusd_it->price : _gstate.min_account_stake;
+         auto it = remprice_table.find(rem_usd_pair.value);
+         bool is_valid_price = (it != remprice_table.end()) && ((current_time_point() - it->last_update.to_time_point()) <= eosio::minutes(70));
+         uint64_t min_account_stake = is_valid_price ? _gstate.min_account_price / it->price : _gstate.min_account_stake;
 
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;

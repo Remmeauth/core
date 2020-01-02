@@ -149,8 +149,8 @@ namespace eosiosystem {
       symbol               core_symbol;
 
       uint64_t             max_ram_size = 64ll*1024 * 1024 * 1024;
-      uint64_t             min_account_stake = 1000000; // minimum stake for new created account 100'0000 REM
-      uint64_t             min_account_price = 5000; // minimum price for created new account 0.5 $
+      uint64_t             min_account_stake = 1000000; // the minimum stake for new created account 100'0000 REM
+      uint64_t             min_account_price = 5000; // the minimum price for creating a new account 0.5 $
       uint64_t             total_ram_bytes_reserved = 0;
       int64_t              total_ram_stake = 0;
       //producer name and pervote factor
@@ -662,6 +662,7 @@ namespace eosiosystem {
          static constexpr eosio::name saving_account{"rem.saving"_n};
          static constexpr eosio::name rex_account{"rem.rex"_n};
          static constexpr eosio::name null_account{"rem.null"_n};
+         static constexpr eosio::name rem_usd_pair{"rem.usd"_n};
          static constexpr symbol rex_symbol = symbol(symbol_code("REX"), 4);
 
          static constexpr uint8_t max_block_producers      = 21;
