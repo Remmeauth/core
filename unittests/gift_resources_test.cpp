@@ -203,6 +203,68 @@ public:
       return get_currency_balance(N(rem.token), symbol(CORE_SYMBOL), act);
    }
 
+   variant get_remprice_tbl( const name& pair )
+   {
+      vector<char> data = get_row_by_account( N(rem.oracle), N(rem.oracle), N(remprice), pair );
+      return data.empty() ? fc::variant() : rem_oracle_abi_ser.binary_to_variant( "remprice", data, abi_serializer_max_time );
+   }
+
+   auto register_producer(name producer)
+   {
+      auto r = base_tester::push_action(config::system_account_name, N(regproducer), producer, mvo()
+         ("producer",  name(producer))
+         ("producer_key", get_public_key( producer, "active" ) )
+         ("url", "" )
+         ("location", 0 )
+      );
+      produce_block();
+      return r;
+   }
+
+   void votepro(account_name voter, vector<account_name> producers)
+   {
+      std::sort( producers.begin(), producers.end() );
+      base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
+         ("voter", name(voter))
+         ("proxy", name(0) )
+         ("producers", producers)
+      );
+      produce_blocks();
+   };
+
+   auto updateauth(const name &account, const name& code_account)
+   {
+      auto auth = authority(get_public_key(account, "active"));
+      auth.accounts.push_back(permission_level_weight{{code_account, config::rem_code_name}, 1});
+
+      auto r = base_tester::push_action(N(rem), N(updateauth), account, mvo()
+         ("account", account.to_string())
+         ("permission", "active")
+         ("parent", "owner")
+         ("auth", auth)
+      );
+      produce_blocks();
+      return r;
+   }
+
+   auto addpair(const name& pair, const vector<permission_level>& level)
+   {
+      auto r = base_tester::push_action(N(rem.oracle), N(addpair), level, mvo()
+         ("pair", pair )
+      );
+      produce_block();
+      return r;
+   }
+
+   auto setprice(const name& producer, std::map<name, double> &pairs_data) {
+      auto r = base_tester::push_action(N(rem.oracle), N(setprice), producer, mvo()
+         ("producer",  name(producer))
+         ("pairs_data", pairs_data )
+      );
+      produce_block();
+      return r;
+   }
+
    void set_code_abi(const account_name &account, const vector<uint8_t> &wasm, const char *abi, const private_key_type *signer = nullptr)
    {
       wdump((account));
@@ -214,6 +276,13 @@ public:
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
          rem_attr_abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+      }
+      else if (account == N(rem.oracle))
+      {
+         const auto &accnt = control->db().get<account_object, by_name>(account);
+         abi_def abi_definition;
+         BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
+         rem_oracle_abi_ser.set_abi(abi_definition, abi_serializer_max_time);
       }
       produce_blocks();
    }
@@ -238,14 +307,58 @@ public:
 
    abi_serializer rem_attr_abi_ser;
    abi_serializer rem_sys_abi_ser;
+   abi_serializer rem_oracle_abi_ser;
 };
 
 
 gift_resources_tester::gift_resources_tester()
 {
    create_accounts({N(rem.msig), N(rem.token), N(rem.rex), N(rem.ram),
-                    N(rem.ramfee), N(rem.stake), N(rem.bpay),
+                    N(rem.ramfee), N(rem.stake), N(rem.bpay), N(rem.oracle),
                     N(rem.spay), N(rem.vpay), N(rem.saving), N(rem.attr)});
+
+   // Register producers
+   const auto producer_candidates = {
+      N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+      N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+      N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)
+   };
+
+   struct rem_genesis_account {
+      account_name name;
+      uint64_t     initial_balance;
+   };
+
+   std::vector<rem_genesis_account> genesis_test( {
+     {N(b1),        100'000'000'0000ll},
+     {N(whale1),     40'000'000'0000ll},
+     {N(whale2),     30'000'000'0000ll},
+     {N(whale3),     20'000'000'0000ll},
+     {N(proda),         500'000'0000ll},
+     {N(prodb),         500'000'0000ll},
+     {N(prodc),         500'000'0000ll},
+     {N(prodd),         500'000'0000ll},
+     {N(prode),         500'000'0000ll},
+     {N(prodf),         500'000'0000ll},
+     {N(prodg),         500'000'0000ll},
+     {N(prodh),         500'000'0000ll},
+     {N(prodi),         500'000'0000ll},
+     {N(prodj),         500'000'0000ll},
+     {N(prodk),         500'000'0000ll},
+     {N(prodl),         500'000'0000ll},
+     {N(prodm),         500'000'0000ll},
+     {N(prodn),         500'000'0000ll},
+     {N(prodo),         500'000'0000ll},
+     {N(prodp),         500'000'0000ll},
+     {N(prodq),         500'000'0000ll},
+     {N(prodr),         500'000'0000ll},
+     {N(prods),         500'000'0000ll},
+     {N(prodt),         500'000'0000ll},
+     {N(produ),         500'000'0000ll},
+     {N(runnerup1),     200'000'0000ll},
+     {N(runnerup2),     150'000'0000ll},
+     {N(runnerup3),     100'000'0000ll},
+   });
 
    set_code_abi(N(rem.msig),
                 contracts::rem_msig_wasm(),
@@ -256,6 +369,9 @@ gift_resources_tester::gift_resources_tester()
    set_code_abi(N(rem.attr),
                   contracts::rem_attr_wasm(),
                   contracts::rem_attr_abi().data()); //, &rem_active_pk);
+   set_code_abi(N(rem.oracle),
+                contracts::rem_oracle_wasm(),
+                contracts::rem_oracle_abi().data()); //, &rem_active_pk);
 
    // Set privileged for rem.msig and rem.token
    set_privileged(N(rem.msig));
@@ -277,7 +393,45 @@ gift_resources_tester::gift_resources_tester()
    auto actual = get_balance(config::system_account_name);
    BOOST_REQUIRE_EQUAL(initial_supply, actual);
 
+   // Create genesis accounts
+   for( const auto& account : genesis_test ) {
+      create_account( account.name, config::system_account_name );
+   }
+
    deploy_contract();
+
+   // Buy ram and stake cpu and net for each genesis accounts
+   for( const auto& account : genesis_test ) {
+      const auto stake_quantity = account.initial_balance - 1000;
+
+      const auto r = delegate_bandwidth(N(rem.stake), account.name, asset(stake_quantity));
+      BOOST_REQUIRE( !r->except_ptr );
+   }
+
+   for( const auto& producer : producer_candidates ) {
+      register_producer(producer);
+   }
+
+   const auto whales_as_producers = { N(b1), N(whale1), N(whale2) };
+   for( const auto& producer : whales_as_producers ) {
+      register_producer(producer);
+   }
+
+   votepro(N(whale1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                        N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                        N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ) });
+   votepro( N(whale2), { N(proda), N(prodb), N(prodc), N(prodd), N(prode) } );
+   votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode) } );
+   // set permission @rem.code to rem.oracle
+   updateauth(N(rem.oracle), N(rem.oracle));
+
+   // add new supported pairs to the rem.oracle
+   vector<name> supported_pairs = {
+      N(rem.usd), N(rem.eth), N(rem.btc),
+   };
+   for (const auto &pair : supported_pairs) {
+      addpair(pair, { {N(rem.oracle), config::active_name} });
+   }
 }
 
 BOOST_AUTO_TEST_SUITE(rem_gift_resources_tests)
@@ -296,10 +450,10 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
       // creating without transfer, should throw as `accgifter` attribute is not set for `rem`
       {
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name).is_null());
-         
+
          BOOST_REQUIRE_EXCEPTION(
-               create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake}, false),
-               eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+            create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake}, false),
+            eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
          );
       }
 
@@ -307,12 +461,12 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
       {
          const auto acc_gifter_attr = create_attribute_t{.attr_name = acc_gifter_attr_name, .type = 1, .privacy_type = 3};
          create_attr(acc_gifter_attr.attr_name, acc_gifter_attr.type, acc_gifter_attr.privacy_type);
-         
+
          const auto attr_info = get_attribute_info(acc_gifter_attr.attr_name);
          BOOST_REQUIRE(acc_gifter_attr.attr_name.to_string() == attr_info["attribute_name"].as_string());
          BOOST_REQUIRE(acc_gifter_attr.type == attr_info["type"].as_int64());
          BOOST_REQUIRE(acc_gifter_attr.privacy_type == attr_info["ptype"].as_int64());
-         
+
          // the length of hex string should be even number
          // 100% = 1000000 in decimal = 40420f00 in hex big-endian
          set_attr(N(rem.attr), config::system_account_name, acc_gifter_attr_name, "40420f00");
@@ -402,6 +556,174 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set, gift_resources_tester)
             const auto total_stake = get_total_stake(N(testram55555));
             BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 85'0000);
             BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 15'0000);
+         }
+         {
+            create_account_with_resources(N(testram12121), N(testram11111), asset{165'0000}, true);
+
+            const auto total_stake = get_total_stake(N(testram12121));
+            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 165'0000);
+            BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 0);
+         }
+      }
+
+      // unset `accgifter` attribute to `testram11111`
+      {
+         unset_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name);
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name).is_null());
+
+         BOOST_REQUIRE_EXCEPTION(
+            create_account_with_resources(N(invalid55555), N(testram11111), asset{min_account_stake}, false),
+            eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+         );
+      }
+   }
+   FC_LOG_AND_RETHROW()
+}
+
+BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resources_tester)
+{
+   try
+   {
+      map<name, double> pair_rate {
+         {N(rem.usd), 0.003210},
+         {N(rem.btc), 0.0000003957},
+         {N(rem.eth), 0.0000176688}
+      };
+      for( const auto& producer : control->head_block_state()->active_schedule.producers )
+         setprice(producer.producer_name, pair_rate);
+
+      auto min_account_stake = get_global_state()["min_account_stake"].as<int64_t>();
+      const auto min_account_price = get_global_state()["min_account_price"].as<int64_t>();
+      BOOST_REQUIRE_EQUAL(min_account_stake, 1000000u);
+      BOOST_REQUIRE_EQUAL(min_account_price, 5000u);
+      auto pair_data = get_remprice_tbl(N(rem.usd));
+      print_usage(N(rem));
+      print_usage(N(rem.stake));
+
+      const auto acc_gifter_attr_name = N(accgifter);
+
+      // creating without transfer, should throw as `accgifter` attribute is not set for `rem`
+      {
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name).is_null());
+         
+         BOOST_REQUIRE_EXCEPTION(
+               create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake}, false),
+               eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+         );
+      }
+
+      // create and set `accgifter` attribute to 100% for `rem`
+      {
+         const auto acc_gifter_attr = create_attribute_t{.attr_name = acc_gifter_attr_name, .type = 1, .privacy_type = 3};
+         create_attr(acc_gifter_attr.attr_name, acc_gifter_attr.type, acc_gifter_attr.privacy_type);
+         
+         const auto attr_info = get_attribute_info(acc_gifter_attr.attr_name);
+         BOOST_REQUIRE(acc_gifter_attr.attr_name.to_string() == attr_info["attribute_name"].as_string());
+         BOOST_REQUIRE(acc_gifter_attr.type == attr_info["type"].as_int64());
+         BOOST_REQUIRE(acc_gifter_attr.privacy_type == attr_info["ptype"].as_int64());
+         
+         // the length of hex string should be even number
+         // 100% = 1000000 in decimal = 40420f00 in hex big-endian
+         set_attr(N(rem.attr), config::system_account_name, acc_gifter_attr_name, "40420f00");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["data"].as_string() == "40420f00");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name)["pending"].as_string().empty());
+      }
+
+      // create account by oracle price, min_account_stake = 0.5 / 0.003210 = 155.7632 REM for 1 account
+      min_account_stake = min_account_price / pair_data["price"].as_double();
+
+      // now `accgifter` attribute is set for `rem` so it can create acc with gifted resources
+      {
+         create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake}, false);
+
+         const auto total_stake = get_total_stake(N(testram11111));
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 0);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake);
+      }
+
+      // transfer resources to testram11111 so free_stake_amount is half covered
+      {
+         delegate_bandwidth(N(rem.stake), N(testram11111), asset(min_account_stake / 2));
+
+         const auto total_stake = get_total_stake(N(testram11111));
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == min_account_stake / 2);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() ==  min_account_stake / 2);
+      }
+
+      // set `accgifter` attribute to 100% for `testram11111` so it can create account with gifted resources
+      {
+         // fixes `no balance object found`
+         transfer( config::system_account_name, N(testram11111), asset{ 10'000'0000 } );
+         BOOST_REQUIRE( get_balance(N(testram11111)) == asset{ 10'000'0000 } );
+
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "40420f00");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "40420f00");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
+
+         create_account_with_resources(N(testram22222), N(testram11111), asset{min_account_stake}, false);
+
+         const auto total_stake = get_total_stake(N(testram22222));
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 0);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake);
+         BOOST_TEST( get_balance(N(testram11111)) == asset{ 10'000'0000 } - asset(min_account_stake) );
+      }
+
+      // set `accgifter` attribute to 50% for `testram11111` so now it should pay 50% of min stake
+      {
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "20a10700");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "20a10700");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
+
+         BOOST_REQUIRE_EXCEPTION(
+            create_account_with_resources(N(testram33333), N(testram11111), asset{min_account_stake}, false),
+            eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+         );
+
+         auto balance_before = get_balance(N(testram11111));
+         // min_account_stake / 2 = 50 % min_account_stake
+         create_account_with_resources(N(testram33333), N(testram11111), asset(min_account_stake / 2), true);
+         auto balance_after = get_balance(N(testram11111));
+
+         BOOST_TEST( balance_before - asset(min_account_stake / 2) == balance_after );
+
+         const auto total_stake = get_total_stake(N(testram33333));
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == min_account_stake / 2);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake / 2);
+      }
+
+      // set `accgifter` attribute to 20% for `testram11111` so now it should pay 80% of min stake
+      {
+         set_attr(N(rem.attr), N(testram11111), acc_gifter_attr_name, "400d0300");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["data"].as_string() == "400d0300");
+         BOOST_REQUIRE(get_account_attribute(N(rem.attr), N(testram11111), acc_gifter_attr_name)["pending"].as_string().empty());
+
+         BOOST_REQUIRE_EXCEPTION(
+            create_account_with_resources(N(testram44444), N(testram11111), asset{50'0000}, true),
+            eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
+         );
+
+         auto balance_before = get_balance(N(testram11111));
+         // min_account_stake * 8 / 10 = 80 % min_account_stake + 0.0001 REM accuracy
+         create_account_with_resources(N(testram44444), N(testram11111), asset((min_account_stake * 8 / 10) + 1), true);
+         auto balance_after = get_balance(N(testram11111));
+         BOOST_TEST( balance_before - asset((min_account_stake * 8 / 10) + 1) == balance_after );
+
+         const auto total_stake = get_total_stake(N(testram44444));
+         BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == (min_account_stake * 8 / 10) + 1);
+         // min_account_stake / 5 = 20 % min_account_stake
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake / 5);
+      }
+
+      // create account with more than min_account_stake * 8 / 10 own resources
+      {
+         {
+            // min_account_stake * 8 / 10 = 80 % min_account_stake + 5.0000 REM + 0.0001 REM accuracy
+            create_account_with_resources(N(testram55555), N(testram11111), asset((min_account_stake * 8 / 10) + 5'0001), true);
+
+            const auto total_stake = get_total_stake(N(testram55555));
+            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == (min_account_stake * 8 / 10) + 5'0001);
+            // min_account_stake / 5 = 20 % min_account_stake - 5.0000 REM
+            BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == (min_account_stake / 5) - 5'0000);
          }
          {
             create_account_with_resources(N(testram12121), N(testram11111), asset{165'0000}, true);
