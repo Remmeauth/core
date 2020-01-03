@@ -2,6 +2,7 @@
 
 
 my_web3::my_web3(const std::string& eth_address) :
+    locked(false),
     is_connection_closed(false),
     _eth_address(eth_address),
     wss_thread(websocketpp::lib::bind(&my_web3::wss_connect,this))
@@ -24,12 +25,10 @@ void my_web3::wait_for_wss_connection() {
 }
 
 void my_web3::wss_connect() {
-  websocketpp::lib::mutex m_lock;
-
   m_client.clear_access_channels(websocketpp::log::alevel::all);
-  m_client.set_access_channels(websocketpp::log::alevel::connect);
-  m_client.set_access_channels(websocketpp::log::alevel::disconnect);
-  m_client.set_access_channels(websocketpp::log::alevel::app);
+  //m_client.set_access_channels(websocketpp::log::alevel::connect);
+  //m_client.set_access_channels(websocketpp::log::alevel::disconnect);
+  //m_client.set_access_channels(websocketpp::log::alevel::app);
 
   m_client.init_asio();
 
@@ -44,9 +43,7 @@ void my_web3::wss_connect() {
   websocketpp::lib::error_code ec;
   client::connection_ptr con = m_client.get_connection(_eth_address, ec);
   if (ec) {
-      m_client.get_alog().write(websocketpp::log::alevel::app,
-              "Get Connection Error: "+ec.message());
-      throw ec.message();
+    throw std::runtime_error("Couldn't send a request to Ethereum node");
   }
 
   m_hdl = con->get_handle();
@@ -66,25 +63,21 @@ void my_web3::message_handler(client* c, websocketpp::connection_hdl hdl, messag
         callbacks.at(id_opt.get())(c, hdl, msg);
 }
 void my_web3::subscribe(const std::string& contract_address, const std::string& topic, std::function<void(client*,websocketpp::connection_hdl,message_ptr)> callback) {
-    mutex.lock();
     std::string request = "{\"id\": "+std::to_string(id)+"," \
       "\"method\": \"eth_subscribe\"," \
       "\"params\": [\"logs\", {\"address\": \""+contract_address+"\"," \
                               "\"topics\": [\""+topic+"\"]}]}";
     register_callback(callback);
     send_request(request);
-    mutex.unlock();
 }
 
 void my_web3::send_request(const std::string& request) {
     websocketpp::lib::error_code ec;
-    m_client.get_alog().write(websocketpp::log::alevel::app, request);
+    //m_client.get_alog().write(websocketpp::log::alevel::app, request);
     m_client.send(m_hdl,request,websocketpp::frame::opcode::text,ec);
 
     if (ec) {
-      m_client.get_alog().write(websocketpp::log::alevel::app,
-          "Send Error: "+ec.message());
-    throw ec.message();
+      throw std::runtime_error("Couldn't send a request to Ethereum node");
     }
 }
 
@@ -101,13 +94,12 @@ boost::optional<T> my_web3::get_json_optional(const std::string& payload, const 
 }
 
 uint64_t my_web3::get_last_block_num() {
-    mutex.lock();
-    boost::mutex response_mutex;
-    response_mutex.lock();
+    check_connection();
+    locked = true;
     std::string request = "{\"id\": "+std::to_string(id)+"," \
       "\"method\": \"eth_blockNumber\"," \
       "\"params\": []}";
-    auto on_last_block_num = [this, &response_mutex](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
+    auto on_last_block_num = [this](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
         boost::optional<std::string> block_num_hex = get_json_optional<std::string>(msg->get_payload(), "result");
 
         if(block_num_hex) {
@@ -118,28 +110,24 @@ uint64_t my_web3::get_last_block_num() {
         else {
             this->last_block_num = 0;
         }
-        response_mutex.unlock();
+        this->locked = false;
     };
     register_callback(on_last_block_num);
     send_request(request);
+    wait_for_response();
 
-    response_mutex.lock();
-    response_mutex.unlock();
-
-    mutex.unlock();
     return last_block_num;
 }
 
 uint64_t my_web3::get_transaction_confirmations(const std::string& txid) {
+    check_connection();
+    locked = true;
     last_block_num = get_last_block_num();
-    boost::mutex response_mutex;
-    mutex.lock();
-    response_mutex.lock();
     std::string request = "{\"id\": "+std::to_string(id)+"," \
       "\"method\": \"eth_getTransactionByHash\"," \
       "\"params\": [\""+txid+"\"]}";
 
-    auto on_get_transaction = [this, &response_mutex](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
+    auto on_get_transaction = [this](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
         boost::optional<std::string> tx_block_opt = get_json_optional<std::string>(msg->get_payload(), "result.blockNumber");
 
         if(tx_block_opt) {
@@ -150,16 +138,12 @@ uint64_t my_web3::get_transaction_confirmations(const std::string& txid) {
         else {
             this->tx_block_num = -1;
         }
-
-        response_mutex.unlock();
+        this->locked = false;
     };
     register_callback(on_get_transaction);
     send_request(request);
+    wait_for_response();
 
-    response_mutex.lock();
-    response_mutex.unlock();
-
-    mutex.unlock();
     if(this->tx_block_num != -1)
         return last_block_num - this->tx_block_num;
     else
@@ -167,9 +151,8 @@ uint64_t my_web3::get_transaction_confirmations(const std::string& txid) {
 }
 
 std::string my_web3::new_filter(const std::string& contract_address, const std::string& fromBlock, const std::string& toBlock, const std::string& topics) {
-    boost::mutex response_mutex;
-    mutex.lock();
-    response_mutex.lock();
+    check_connection();
+    locked = true;
     std::string request = "{\"id\": "+std::to_string(id)+"," \
       "\"method\": \"eth_newFilter\"," \
       "\"params\": [{\"address\": \""+contract_address+"\"," \
@@ -177,7 +160,7 @@ std::string my_web3::new_filter(const std::string& contract_address, const std::
                     "\"toBlock\": \""+toBlock+"\"," \
                     "\"topics\": "+topics+"}]}";
 
-    auto on_new_filter = [this, &response_mutex](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
+    auto on_new_filter = [this](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
         boost::optional<std::string> new_filter_opt = get_json_optional<std::string>(msg->get_payload(), "result");
 
         if(new_filter_opt) {
@@ -186,16 +169,12 @@ std::string my_web3::new_filter(const std::string& contract_address, const std::
         else {
             this->created_filter = "";
         }
-
-        response_mutex.unlock();
+        this->locked = false;
     };
     register_callback(on_new_filter);
     send_request(request);
+    wait_for_response();
 
-    response_mutex.lock();
-    response_mutex.unlock();
-
-    mutex.unlock();
     if(!this->created_filter.empty())
         return this->created_filter;
     else
@@ -203,23 +182,51 @@ std::string my_web3::new_filter(const std::string& contract_address, const std::
 }
 
 std::string my_web3::get_filter_logs(const std::string& filter_id) {
-    boost::mutex response_mutex;
-    mutex.lock();
-    response_mutex.lock();
+    check_connection();
+    locked = true;
     std::string request = "{\"id\": "+std::to_string(id)+"," \
       "\"method\": \"eth_getFilterLogs\"," \
       "\"params\": [\""+filter_id+"\"]}";
 
-    auto on_filter_logs = [this, &response_mutex](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
+    auto on_filter_logs = [this](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
         this->filter_logs = msg->get_payload();
-        response_mutex.unlock();
+        this->locked = false;
     };
     register_callback(on_filter_logs);
     send_request(request);
+    wait_for_response();
 
-    response_mutex.lock();
-    response_mutex.unlock();
-
-    mutex.unlock();
     return this->filter_logs;
+}
+
+void my_web3::uninstall_filter(const std::string& filter_id) {
+    check_connection();
+    locked = true;
+    std::string request = "{\"id\": "+std::to_string(id)+"," \
+      "\"method\": \"eth_uninstallFilter\"," \
+      "\"params\": [\""+filter_id+"\"]}";
+
+    auto on_uninstall_filter = [this](client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
+      this->locked = false;
+    };
+
+    register_callback(on_uninstall_filter);
+    send_request(request);
+    wait_for_response();
+}
+
+void my_web3::wait_for_response() {
+    uint i = 0;
+    while(locked) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(check_response_time));
+      i++;
+      if(i >= max_response_time/check_response_time && locked) {
+        throw TimeoutException("Timeout exception");
+      }
+    }
+}
+
+void my_web3::check_connection() {
+  if( is_connection_closed )
+    throw NoConnectionException("Connection aborted");
 }
