@@ -8,6 +8,7 @@ if [[ "$(uname)" == 'Darwin' ]]; then
     # You can't use chained commands in execute
     if [[ "$TRAVIS" == 'true' ]]; then
         export PINNED=false
+        brew reinstall openssl@1.1 # Fixes issue where builds in Travis cannot find libcrypto.
         ccache -s
         CMAKE_EXTRAS="$CMAKE_EXTRAS -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
     else
@@ -28,7 +29,7 @@ else # Linux
     [[ ! "$IMAGE_TAG" =~ 'unpinned' ]] && CMAKE_EXTRAS="$CMAKE_EXTRAS -DCMAKE_TOOLCHAIN_FILE=$MOUNTED_DIR/.cicd/helpers/clang.make -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
     if [[ "$IMAGE_TAG" == 'amazon_linux-2-pinned' ]]; then
         PRE_COMMANDS="$PRE_COMMANDS && export PATH=/usr/lib64/ccache:\\\$PATH"
-    elif [[ "$IMAGE_TAG" == 'centos-7.6-pinned' ]]; then
+    elif [[ "$IMAGE_TAG" == 'centos-7.7-pinned' ]]; then
         PRE_COMMANDS="$PRE_COMMANDS && export PATH=/usr/lib64/ccache:\\\$PATH"
     elif [[ "$IMAGE_TAG" == 'ubuntu-16.04-pinned' ]]; then
         PRE_COMMANDS="$PRE_COMMANDS && export PATH=/usr/lib/ccache:\\\$PATH"
@@ -37,12 +38,12 @@ else # Linux
     elif [[ "$IMAGE_TAG" == 'amazon_linux-2-unpinned' ]]; then
         PRE_COMMANDS="$PRE_COMMANDS && export PATH=/usr/lib64/ccache:\\\$PATH"
         CMAKE_EXTRAS="$CMAKE_EXTRAS -DCMAKE_CXX_COMPILER='clang++' -DCMAKE_C_COMPILER='clang'"
-    elif [[ "$IMAGE_TAG" == 'centos-7.6-unpinned' ]]; then
-        PRE_COMMANDS="$PRE_COMMANDS && yum install -y wget python3 && wget https://github.com/EOSIO/eosio.cdt/releases/download/v1.7.0-rc1/eosio.cdt-1.7.0-rc1.el7.x86_64.rpm && yum install -y eosio.cdt-1.7.0-rc1.el7.x86_64.rpm && source /opt/rh/devtoolset-8/enable && source /opt/rh/rh-python36/enable && export PATH=/usr/lib64/ccache:\\\$PATH"
+    elif [[ "$IMAGE_TAG" == 'centos-7.7-unpinned' ]]; then
+        PRE_COMMANDS="$PRE_COMMANDS && source /opt/rh/devtoolset-8/enable && source /opt/rh/rh-python36/enable && export PATH=/usr/lib64/ccache:\\\$PATH"
         CMAKE_EXTRAS="$CMAKE_EXTRAS -DLLVM_DIR='/opt/rh/llvm-toolset-7.0/root/usr/lib64/cmake/llvm'"
     elif [[ "$IMAGE_TAG" == 'ubuntu-18.04-unpinned' ]]; then
         PRE_COMMANDS="$PRE_COMMANDS && export PATH=/usr/lib/ccache:\\\$PATH"
-        CMAKE_EXTRAS="$CMAKE_EXTRAS -DCMAKE_CXX_COMPILER='clang++' -DCMAKE_C_COMPILER='clang' -DLLVM_DIR='/usr/lib/llvm-7/lib/cmake/llvm'"
+        CMAKE_EXTRAS="$CMAKE_EXTRAS -DCMAKE_CXX_COMPILER='clang++-7' -DCMAKE_C_COMPILER='clang-7' -DLLVM_DIR='/usr/lib/llvm-7/lib/cmake/llvm'"
     fi
     BUILD_COMMANDS="cmake $CMAKE_EXTRAS .. && make -j$JOBS"
     # Docker Commands

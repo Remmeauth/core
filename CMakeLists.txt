@@ -26,7 +26,7 @@ set( CXX_STANDARD_REQUIRED ON)
 set(VERSION_MAJOR 2)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
-set(VERSION_SUFFIX rc1)
+set(VERSION_SUFFIX rc3)
 
 if(VERSION_SUFFIX)
     set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}-${VERSION_SUFFIX}")
@@ -59,7 +59,7 @@ set(BUILD_MONGO_DB_PLUGIN FALSE CACHE BOOL "Build mongo database plugin")
 
 # add defaults for openssl
 if(APPLE AND UNIX AND "${OPENSSL_ROOT_DIR}" STREQUAL "")
-   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl@1.1")
 endif()
 
 # WASM runtimes to enable. Each runtime in this list will have:
