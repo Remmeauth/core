@@ -161,23 +161,24 @@ class rem_oracle_plugin_impl {
            std::vector<signed_transaction> trxs;
            trxs.reserve(2);
 
-           controller& cc = app().get_plugin<chain_plugin>().chain();
-           auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
-
            signed_transaction trx;
            trx.actions.emplace_back(vector<chain::permission_level>{{this->_oracle_signing_account[i],name(this->_oracle_signing_permission[i])}},
              setprice{this->_oracle_signing_account[i],
                pairs_data});
 
-           trx.expiration = cc.head_block_time() + fc::seconds(30);
-           trx.set_reference_block(cc.head_block_id());
            trx.max_net_usage_words = 5000;
-           trx.sign(this->_oracle_signing_key[i], chainid);
            trxs.emplace_back(std::move(trx));
            try {
               auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-              app().post(priority::low, [trxs_copy]() {
+              app().post(priority::low, [this, trxs_copy]() {
+                  controller& cc = app().get_plugin<chain_plugin>().chain();
+                  auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
                 for (size_t i = 0; i < trxs_copy->size(); ++i) {
+
+                    trxs_copy->at(i).expiration = cc.head_block_time() + fc::seconds(30);
+                    trxs_copy->at(i).set_reference_block(cc.head_block_id());
+                    trxs_copy->at(i).sign(this->_oracle_signing_key[i], chainid);
+
                     app().get_plugin<chain_plugin>().accept_transaction( std::make_shared<packed_transaction>(trxs_copy->at(i)),
                     [](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                       if (result.contains<fc::exception_ptr>()) {
