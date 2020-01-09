@@ -89,7 +89,7 @@ namespace eosio {
          return_address, return_chain_id, swap_timestamp
       );
 
-      validate_swap(swap_hash);
+      is_ready_to_finish(swap_hash);
       validate_pubkey( sign, digest, swap_pubkey_str );
 
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
@@ -127,7 +127,7 @@ namespace eosio {
          return_chain_id, swap_timestamp
       );
 
-      validate_swap(swap_hash);
+      is_ready_to_finish(swap_hash);
       validate_pubkey( sign, digest, swap_pubkey_str );
 
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
@@ -171,7 +171,7 @@ namespace eosio {
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
       auto swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
 
-      validate_swap(swap_hash);
+      is_ready_to_finish(swap_hash);
       check(time_point_sec(current_time_point()) > swap_timepoint + swap_active_lifetime,
             "swap has to be canceled after expiration");
 
@@ -268,7 +268,7 @@ namespace eosio {
       assert_recover_key(digest, sign, swap_pubkey);
    }
 
-   void swap::validate_swap(const checksum256 &swap_hash) const
+   void swap::is_ready_to_finish(const checksum256 &swap_hash) const
    {
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
       auto swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
@@ -281,7 +281,7 @@ namespace eosio {
       auto swap_expiration_delta = current_time_point().time_since_epoch() - swap_lifetime.time_since_epoch();
       check(time_point(swap_expiration_delta) < swap_timepoint, "swap lifetime expired");
 
-      check(is_swap_confirmed(swap_hash_it->provided_approvals), "not enough active producers approvals");
+      check(swap_hash_it->status == static_cast<int8_t>(swap_status::ISSUED), "not enough active producers approvals");
    }
 
    void swap::cleanup_swaps()
