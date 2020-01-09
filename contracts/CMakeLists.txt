@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 
-set(VERSION_MAJOR 1)
-set(VERSION_MINOR 9)
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 3)
 set(VERSION_PATCH 0)
-set(VERSION_SUFFIX rc1)
+unset(VERSION_SUFFIX)
 
 if (VERSION_SUFFIX)
    set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}-${VERSION_SUFFIX}")
@@ -75,18 +75,18 @@ string(REPLACE ";" "|" TEST_MODULE_PATH "${CMAKE_MODULE_PATH}")
 
 set(BUILD_TESTS FALSE CACHE BOOL "Build unit tests")
 
-#if(BUILD_TESTS)
-#   message(STATUS "Building unit tests.")
-#   ExternalProject_Add(
-#     contracts_unit_tests
-#     LIST_SEPARATOR | # Use the alternate list separator
-#     CMAKE_ARGS -DCMAKE_BUILD_TYPE=${TEST_BUILD_TYPE} -DCMAKE_PREFIX_PATH=${TEST_PREFIX_PATH} -DCMAKE_FRAMEWORK_PATH=${TEST_FRAMEWORK_PATH} -DCMAKE_MODULE_PATH=${TEST_MODULE_PATH} -DEOSIO_ROOT=${EOSIO_ROOT} -DLLVM_DIR=${LLVM_DIR} -DBOOST_ROOT=${BOOST_ROOT}
-#     SOURCE_DIR ${CMAKE_SOURCE_DIR}/rem.contracts/tests
-#     BINARY_DIR ${CMAKE_BINARY_DIR}/rem.contracts/tests
-#     BUILD_ALWAYS 1
-#     TEST_COMMAND   ""
-#     INSTALL_COMMAND ""
-#   )
-#else()
-#   message(STATUS "Unit tests will not be built. To build unit tests, set BUILD_TESTS to true.")
-#endif()
+if(BUILD_TESTS)
+  message(STATUS "Building unit tests.")
+  ExternalProject_Add(
+    contracts_unit_tests
+    LIST_SEPARATOR | # Use the alternate list separator
+    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${TEST_BUILD_TYPE} -DCMAKE_PREFIX_PATH=${TEST_PREFIX_PATH} -DCMAKE_FRAMEWORK_PATH=${TEST_FRAMEWORK_PATH} -DCMAKE_MODULE_PATH=${TEST_MODULE_PATH} -DEOSIO_ROOT=${EOSIO_ROOT} -DLLVM_DIR=${LLVM_DIR} -DBOOST_ROOT=${BOOST_ROOT}
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/contracts/tests
+    BINARY_DIR ${CMAKE_BINARY_DIR}/contracts/tests
+    BUILD_ALWAYS 1
+    TEST_COMMAND   ""
+    INSTALL_COMMAND ""
+  )
+else()
+  message(STATUS "Unit tests will not be built. To build unit tests, set BUILD_TESTS to true.")
+endif()

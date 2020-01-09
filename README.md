@@ -1,4 +1,5 @@
-# <a name="introduction"></a> Remme Protocol - Next-gen Public Key Infrastructure protocol
+# <a name="introduction"></a> Remme Protocol - Next-gen Public Key Infrastructure
+
 [Introduction](#introduction) | [Overview](#overview) | [Local Testnet](#localtest) | [Public Testnet](#publictest) | [Misc](#misc)
 
 
@@ -17,6 +18,7 @@ Some of the groundbreaking features include:
 1. Designed for Inter Blockchain Communication
 
 ## Resources
+
 1. [Website](https://remme.io)
 1. [Blog](https://remme.io/category/pki-d-protocol)
 1. [Developer Portal](https://docs.remme.io)
@@ -25,43 +27,49 @@ Some of the groundbreaking features include:
 1. [Tech Paper](https://github.com/Remmeauth/Documentation/blob/master/RemmeProtocolTechPaper.md)
 
 ## Supported Operating Systems
+
 Remme Protocol currently supports the following operating systems:
+
 1. Amazon Linux 2
 2. CentOS 7
 3. Ubuntu 16.04
 4. Ubuntu 18.04
 5. MacOS 10.14 (Mojave)
 
-# <a name="overview"></a> Get familiar with EOSIO architecture
-To get a general architecture overview and understanding of how the basic blockchain components interact, please refer to the [developer documentation](https://developers.eos.io/eosio-home/docs/10-big-picture).
+## <a name="overview"></a> Get familiar with EOSIO architecture
 
-# <a name="localtest"></a>Getting started with a Local Testnet
+To get a general architecture overview and understanding of how the basic blockchain components interact, please refer to the [developer documentation](https://developers.eos.io/eosio-home/docs/10-big-picture).
+Within the Remprotocol context: Nodeos is Remnode; Cleos is Remcli; Keosd is Remvault. Configuration, settings, options and usage patterns remain compatible with the original EOSIO approach.
+
+## <a name="localtest"></a> Getting started with a Local Testnet
+
 If you are a developer, depending on your context, you would probably need an independent local network to work on your dApp. Instructions detailing the process of getting the software, building it, running a simple local test network that produces blocks, account creation and uploading a sample contract to the blockchain can be found on the [Developer Portal](https://docs.remme.io/getting-started.html).
 
+## Build and Run your own Node and CLI
 
-# <a name="publictest"></a>Getting started with a Public Testnet
+Before you begin, install EOSIO.CDT v1.7+ from [the EOSIO.CDT repository](https://github.com/EOSIO/eosio.cdt).
+
+```sh
+git clone https://github.com/Remmeauth/remprotocol
+cd remprotocol/
+git submodule update --init --recursive
+./scripts/eosio_build.sh -s REM -y
+```
+
+Alternatively, you may install pre-built binaries from [the archive](https://github.com/Remmeauth/remprotocol/releases/latest).
+
+## <a name="publictest"></a>Getting started with the Public Testnet
+
+To spin up an independent node that is connected to the Public Testnet, refer to [this blog post](https://remme.io/blog/remchain-testnet-2-0-released).
 
 ## Testnet token faucet bot
+
 [The faucet bot](https://t.me/RemmeProtocolTestnetFaucetBot) helps you with getting set up and creating an account with some tokens on it. With the help of this bot you will get the following data about your testnet account:
 
 - Account name
 - Public and private keys to be able to create transactions
 
-## Run your own node
-To spin up an independent node that is connected to the Public Testnet, refer to [this blog post](https://remme.io/blog/remchain-testnet-is-live).
-
-## Testnet explorer
-All the transactions that occur on the testchain and the information about all the accounts on testnet are [visible at the portal](https://testchain.remme.io/).
-
-This portal also lets you perform:
-
-- Token transfers
-- Stake/unstake resources
-- Vote for producers
-- Token Swap between the testnets of ETH and REM
-
-
-# <a name="misc"></a>Important
+## <a name="misc"></a>Important
 
 ## Contributing
 
