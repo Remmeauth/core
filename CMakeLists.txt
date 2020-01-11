@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.8 )
 
-project( EOSIO )
+project( remprotocol )
 include(CTest) # suppresses DartConfiguration.tcl error
 enable_testing()
 
@@ -18,15 +18,15 @@ include( GNUInstallDirs )
 include( InstallDirectoryPermissions )
 include( MASSigning )
 
-set( BLOCKCHAIN_NAME "EOSIO" )
+set( BLOCKCHAIN_NAME "remprotocol" )
 set( CMAKE_CXX_STANDARD 17 )
 set( CMAKE_CXX_EXTENSIONS ON )
 set( CXX_STANDARD_REQUIRED ON)
 
-set(VERSION_MAJOR 2)
-set(VERSION_MINOR 0)
-set(VERSION_PATCH 0)
-set(VERSION_SUFFIX rc3)
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 3)
+set(VERSION_PATCH 1)
+unset(VERSION_SUFFIX)
 
 if(VERSION_SUFFIX)
     set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}-${VERSION_SUFFIX}")
@@ -158,6 +158,7 @@ endif()
 message( STATUS "Using '${EOSIO_ROOT_KEY}' as public key for 'rem' account" )
 
 add_subdirectory( libraries )
+add_subdirectory( contracts )
 add_subdirectory( plugins )
 add_subdirectory( programs )
 add_subdirectory( scripts )
@@ -226,5 +227,3 @@ file(WRITE "${CMAKE_BINARY_DIR}/CTestCustom.cmake" "SET(CTEST_CUSTOM_TESTS_IGNOR
 
 include(package)
 include(doxygen)
-
-add_subdirectory(contracts)
