@@ -53,6 +53,26 @@ namespace eosio {
         std::string                _eth_wss_provider;
 
         void start_monitor() {
+            while(eth_swap_contract_address.empty() && return_chain_id.empty()) {
+                try {
+                    chain_apis::read_only::get_table_rows_params params = {};
+                    params.json = true;
+                    params.code = N(rem.swap);
+                    params.scope = std::string("rem.swap");
+                    params.table = N(swapparams);
+
+                    chain_apis::read_only::get_table_rows_result result = app().get_plugin<chain_plugin>().get_read_only_api().get_table_rows(params);
+                    for( const auto& item : result.rows ) {
+                        eth_swap_contract_address = item["eth_swap_contract_address"].as<std::string>();
+                        return_chain_id = item["eth_return_chainid"].as<std::string>();
+                    }
+                } FC_LOG_AND_DROP()
+                if( eth_swap_contract_address.empty() && return_chain_id.empty() )
+                    sleep(wait_for_swapparams);
+            }
+            ilog("eth swap contract address: ${i}", ("i", eth_swap_contract_address));
+            ilog("eth return chain id: ${i}", ("i", return_chain_id));
+
             uint64_t last_block_dec = 0;
             while(last_block_dec == 0) {
                 try {
@@ -326,26 +346,7 @@ namespace eosio {
     }
 
     void eth_swap_plugin::plugin_startup() {
-        ilog("Ethereum swap plugin started");
-        while(eth_swap_contract_address.empty() && return_chain_id.empty()) {
-            try {
-                chain_apis::read_only::get_table_rows_params params = {};
-                params.json = true;
-                params.code = N(rem.swap);
-                params.scope = std::string("rem.swap");
-                params.table = N(swapparams);
-
-                chain_apis::read_only::get_table_rows_result result = app().get_plugin<chain_plugin>().get_read_only_api().get_table_rows(params);
-                for( const auto& item : result.rows ) {
-                    eth_swap_contract_address = item["eth_swap_contract_address"].as<std::string>();
-                    return_chain_id = item["eth_return_chainid"].as<std::string>();
-                }
-            } FC_LOG_AND_DROP()
-            if( eth_swap_contract_address.empty() && return_chain_id.empty() )
-                sleep(wait_for_swapparams);
-        }
-        ilog("eth swap contract address: ${i}", ("i", eth_swap_contract_address));
-        ilog("eth return chain id: ${i}", ("i", return_chain_id));
+        ilog("Ethereum swap plugin started. Threads fixed version.");
 
         try {
             my_web3 my_w3(my->_eth_wss_provider);
