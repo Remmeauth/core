@@ -158,6 +158,7 @@ endif()
 message( STATUS "Using '${EOSIO_ROOT_KEY}' as public key for 'rem' account" )
 
 add_subdirectory( libraries )
+add_subdirectory( contracts )
 add_subdirectory( plugins )
 add_subdirectory( programs )
 add_subdirectory( scripts )
@@ -226,5 +227,3 @@ file(WRITE "${CMAKE_BINARY_DIR}/CTestCustom.cmake" "SET(CTEST_CUSTOM_TESTS_IGNOR
 
 include(package)
 include(doxygen)
-
-add_subdirectory(contracts)
