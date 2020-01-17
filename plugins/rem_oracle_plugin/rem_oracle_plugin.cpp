@@ -98,7 +98,7 @@ class rem_oracle_plugin_impl {
          ctx.set_default_verify_paths();
 
          boost::asio::io_service io_service;
-         http_client c(io_service, ctx, host, endpoint);
+         http_client c(io_service, ctx, host, endpoint, "GET");
          io_service.run();
 
          std::string response = c.get_response_body();
