@@ -280,7 +280,9 @@ namespace eosio {
 
     void eth_swap_plugin::set_program_options(options_description&, options_description& cfg) {
         cfg.add_options()
-                ("eth-https-provider", bpo::value<std::string>(),
+                ("eth-wss-provider", bpo::value<std::string>()->default_value("wss://mainnet.infura.io/ws/v3/d2aa7f2d8dc74723abb3026251d28685"),
+                 "Ethereum wss provider. For example wss://mainnet.infura.io/ws/v3/<infura_id>")
+                ("eth-https-provider", bpo::value<std::string>()->default_value("https://mainnet.infura.io/v3/d2aa7f2d8dc74723abb3026251d28685"),
                  "Ethereum https provider. For example https://mainnet.infura.io/v3/<infura_id>")
                 ("swap-authority", bpo::value<std::vector<std::string>>(),
                  "Account name and permission to authorize init swap actions. For example blockproducer1@active")
@@ -324,7 +326,7 @@ namespace eosio {
                 my->_swap_signing_key.push_back(fc::crypto::private_key( swap_signing_key[std::min(i, swap_signing_key.size()-1)] ));
             }
 
-            std::string eth_https_provider = options.at( "eth-https-provider" ).as<std::string>();
+            std::string eth_https_provider = "https://ropsten.infura.io/v3/d2aa7f2d8dc74723abb3026251d28685";//options.at( "eth-https-provider" ).as<std::string>();
             if(eth_https_provider.rfind("https://", 0) == 0) {
                 eth_https_provider.erase(0, 8);
 
@@ -357,7 +359,7 @@ namespace eosio {
     }
 
     void eth_swap_plugin::plugin_startup() {
-        ilog("Ethereum swap plugin started. Https version");
+        ilog("Ethereum swap plugin started. Https config hardcoded version");
 
         try {
             ilog("last eth block: " + to_string(get_last_block_num(my->_eth_https_provider_host, my->_eth_https_provider_endpoint)));
