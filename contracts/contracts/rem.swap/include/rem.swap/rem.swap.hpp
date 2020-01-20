@@ -260,7 +260,7 @@ namespace eosio {
       void create_user(const name &user, const public_key &owner_key,
                        const public_key &active_key, const asset &min_account_stake);
 
-      void validate_swap(const checksum256 &swap_hash) const;
+      void is_ready_to_finish(const checksum256 &swap_hash) const;
       void validate_address(const name &chain_id, const string &address);
       void validate_pubkey(const signature &sign, const checksum256 &digest, const string &swap_pubkey_str) const;
       void cleanup_swaps();
