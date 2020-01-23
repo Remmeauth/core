@@ -296,7 +296,7 @@ namespace eosio {
                             }
                         });
                     } FC_LOG_AND_DROP()
-                    for (uint i = 0; i < retry_push_tx_time / wait_for_accept_tx && status == NoStatus; i++)
+                    for (uint j = 0; j < retry_push_tx_time / wait_for_accept_tx && status == NoStatus; j++)
                         sleep(wait_for_accept_tx);
                     if (status == OutOfResources)
                         sleep(wait_for_resources);
@@ -312,11 +312,7 @@ namespace eosio {
 
     void eth_swap_plugin::set_program_options(options_description &, options_description &cfg) {
         cfg.add_options()
-                ("eth-wss-provider", bpo::value<std::string>()->default_value(
-                        "wss://mainnet.infura.io/ws/v3/d2aa7f2d8dc74723abb3026251d28685"),
-                 "Ethereum wss provider. For example wss://mainnet.infura.io/ws/v3/<infura_id>")
-                ("eth-https-provider", bpo::value<std::string>()->default_value(
-                        "https://mainnet.infura.io/v3/d2aa7f2d8dc74723abb3026251d28685"),
+                ("eth-https-provider", bpo::value<std::string>(),
                  "Ethereum https provider. For example https://mainnet.infura.io/v3/<infura_id>")
                 ("swap-authority", bpo::value<std::vector<std::string>>(),
                  "Account name and permission to authorize init swap actions. For example blockproducer1@active")
@@ -362,14 +358,23 @@ namespace eosio {
                         fc::crypto::private_key(swap_signing_key[std::min(i, swap_signing_key.size() - 1)]));
             }
 
-            std::string eth_https_provider = "https://mainnet.infura.io/v3/d2aa7f2d8dc74723abb3026251d28685";//options.at( "eth-https-provider" ).as<std::string>();
-            if (eth_https_provider.rfind("https://", 0) == 0) {
-                eth_https_provider.erase(0, 8);
+            std::string eth_https_provider = options.at( "eth-https-provider" ).as<std::string>();
+            size_t protocol_len = 0;
+            if (eth_https_provider.rfind("https://", 0) == 0)
+                protocol_len = 8;
+            else if (eth_https_provider.rfind("http://", 0) == 0)
+                protocol_len = 7;
+
+            if (protocol_len != 0) {
+                eth_https_provider.erase(0, protocol_len);
 
                 string::size_type pos;
                 pos = eth_https_provider.find('/', 0);
                 my->_eth_https_provider_host = eth_https_provider.substr(0, pos);
                 my->_eth_https_provider_endpoint = eth_https_provider.substr(pos, eth_https_provider.length() - pos);
+            }
+            else {
+                throw InvalidEthLinkException("Invalid Ethereum https link. Should be https://mainnet.infura.io/v3/<infura_id>");
             }
 
             //eth_swap_contract_address = options.at( "eth_swap_contract_address" ).as<std::string>();
@@ -395,7 +400,7 @@ namespace eosio {
     }
 
     void eth_swap_plugin::plugin_startup() {
-        ilog("Ethereum swap plugin started. Https config hardcoded version2");
+        ilog("Ethereum swap plugin started. Version 2.0");
 
         try {
             ilog("last eth block: " +
