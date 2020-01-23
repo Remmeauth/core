@@ -8,34 +8,22 @@
 #include <eosio/chain/wast_to_wasm.hpp>
 
 #include <fc/variant.hpp>
-#include <fc/io/json.hpp>
 #include <fc/exception/exception.hpp>
 #include <fc/reflect/variant.hpp>
-#include <fc/io/json.hpp>
 
 #include <Inline/BasicTypes.h>
-#include <IR/Module.h>
-#include <IR/Validate.h>
-#include <WAST/WAST.h>
-#include <WASM/WASM.h>
-#include <Runtime/Runtime.h>
 
 #include <contracts.hpp>
 
-#include <sstream>
-#include <boost/asio/high_resolution_timer.hpp>
 #include <boost/algorithm/clamp.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <websocketpp/config/asio_client.hpp>
-#include <websocketpp/client.hpp>
 #include <websocketpp/common/thread.hpp>
 
 #include <iostream>
-#include <fstream>
 
 #include <algorithm>
 
@@ -358,7 +346,7 @@ namespace eosio {
                         fc::crypto::private_key(swap_signing_key[std::min(i, swap_signing_key.size() - 1)]));
             }
 
-            std::string eth_https_provider = options.at( "eth-https-provider" ).as<std::string>();
+            std::string eth_https_provider = options.at("eth-https-provider").as<std::string>();
             size_t protocol_len = 0;
             if (eth_https_provider.rfind("https://", 0) == 0)
                 protocol_len = 8;
@@ -372,9 +360,9 @@ namespace eosio {
                 pos = eth_https_provider.find('/', 0);
                 my->_eth_https_provider_host = eth_https_provider.substr(0, pos);
                 my->_eth_https_provider_endpoint = eth_https_provider.substr(pos, eth_https_provider.length() - pos);
-            }
-            else {
-                throw InvalidEthLinkException("Invalid Ethereum https link. Should be https://mainnet.infura.io/v3/<infura_id>");
+            } else {
+                throw InvalidEthLinkException(
+                        "Invalid Ethereum https link. Should be https://mainnet.infura.io/v3/<infura_id>");
             }
 
             //eth_swap_contract_address = options.at( "eth_swap_contract_address" ).as<std::string>();
