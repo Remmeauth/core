@@ -214,6 +214,7 @@ namespace eosiosystem {
                p.last_expected_produced_blocks_update = timestamp;
             });
          }
+         get_rotated_schedule();
          update_standby();
          update_pervote_shares();
       }
@@ -302,6 +303,16 @@ namespace eosiosystem {
       }
       const auto punishment = prod.pending_pervote_reward - producer_per_vote_pay;
 
+      if ( producer_per_vote_pay > 0 ) {
+         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission}, {producer, active_permission} } };
+         transfer_act.send( vpay_account, producer, asset(producer_per_vote_pay, core_symbol()), "producer vote pay" );
+      }
+      if ( punishment > 0 ) {
+         string punishment_memo = "punishment transfer: missed " + std::to_string(expected_produced_blocks - prod.unpaid_blocks) + " blocks out of " + std::to_string(expected_produced_blocks);
+         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission} } };
+         transfer_act.send( vpay_account, saving_account, asset(punishment, core_symbol()), punishment_memo );
+      }
+
       _gstate.pervote_bucket      -= producer_per_vote_pay;
       _gstate.total_unpaid_blocks -= prod.unpaid_blocks;
 
@@ -312,15 +323,6 @@ namespace eosiosystem {
          p.expected_produced_blocks             = 0;
          p.pending_pervote_reward               = 0;
       });
-
-      if ( producer_per_vote_pay > 0 ) {
-         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission}, {producer, active_permission} } };
-         transfer_act.send( vpay_account, producer, asset(producer_per_vote_pay, core_symbol()), "producer vote pay" );
-      }
-      if ( punishment > 0 ) {
-         token::transfer_action transfer_act{ token_account, { {vpay_account, active_permission} } };
-         transfer_act.send( vpay_account, saving_account, asset(punishment, core_symbol()), "punishment transfer" );
-      }
    }
 
    void system_contract::claimrewards( const name& owner ) {

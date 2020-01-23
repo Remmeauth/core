@@ -86,3 +86,8 @@ var/lib/node_*
 .idea/
 *.iws
 .DS_Store
+config/*
+replay.sh
+start.sh
+stop.sh
+wp
