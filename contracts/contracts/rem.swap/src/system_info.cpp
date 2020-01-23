@@ -70,9 +70,8 @@ namespace eosio {
       vector<name> _producers;
       for(const auto &producer: _gstate.last_schedule)
          _producers.push_back(producer.first);
-      for(const auto &producer: _gstate.standby) {
+      for(const auto &producer: _gstate.standby)
          _producers.push_back(producer.first);
-      }
       return _producers;
    }
 
@@ -88,7 +87,7 @@ namespace eosio {
       uint8_t quantity_active_appr = 0;
       for (const auto& producer: provided_approvals) {
          auto prod_appr = std::find(_producers.begin(), _producers.end(), producer);
-         if ( prod_appr != _producers.end() ) {
+         if ( prod_appr != _producers.end() || producer == system_account ) {
             ++quantity_active_appr;
          }
       }

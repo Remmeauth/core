@@ -117,10 +117,13 @@ std::vector<eosio::producer_authority> system_contract::get_rotated_schedule() {
    if (next_rotation_time <= ct) {
       std::rotate( std::begin(rotation), std::begin(rotation) + 1, std::end(rotation) );
       _grotation.last_rotation_time = ct;
-      _grotation.standby_rotation   = rotation;
+      _grotation.standby_rotation   = std::move(rotation);
 
       update_standby();
       update_pervote_shares();
+   }
+   else {
+      _grotation.standby_rotation = std::move(rotation);
    }
 
    return top21_prods;
