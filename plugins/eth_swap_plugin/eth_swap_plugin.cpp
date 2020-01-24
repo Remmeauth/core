@@ -110,9 +110,14 @@ namespace eosio {
                                                   from_block,
                                                   to_block,
                                                   "[\"" + string(eth_swap_request_event) + "\"]");
-
-                    std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
-
+                    std::vector<swap_event_data> prev_swap_requests;
+                    try {
+                        prev_swap_requests = get_prev_swap_events(filter_logs);
+                    } catch(...) {
+                        elog("Error parsing response from Infura: {$logs}", ("logs", filter_logs));
+                        sleep(wait_for_eth_node);
+                        continue;
+                    }
                     push_txs(prev_swap_requests);
                     from_block_dec = to_block_dec;
                     current_long_polling_blocks_per_filter = std::min(current_long_polling_blocks_per_filter * 2,
@@ -164,8 +169,15 @@ namespace eosio {
                                                       from_block,
                                                       to_block,
                                                       "[\"" + string(eth_swap_request_event) + "\"]");
+                        std::vector<swap_event_data> prev_swap_requests;
+                        try {
+                            prev_swap_requests = get_prev_swap_events(filter_logs);
+                        } catch(...) {
+                            elog("Error parsing response from Infura: {$logs}", ("logs", filter_logs));
+                            sleep(wait_for_eth_node);
+                            continue;
+                        }
 
-                        std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
                         std::reverse(prev_swap_requests.begin(), prev_swap_requests.end());
 
                         push_txs(prev_swap_requests);
