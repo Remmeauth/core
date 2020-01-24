@@ -430,7 +430,7 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
          // rem weight:      0.04;
          // staked:          399999999000;
          const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 17461719597502810 == prod["total_votes"].as_double() );
+         BOOST_TEST_REQUIRE( 12126194164932502 == prod["total_votes"].as_double() );
       }
 
       // Day 30
