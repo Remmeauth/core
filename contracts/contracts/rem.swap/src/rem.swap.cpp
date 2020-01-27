@@ -22,6 +22,7 @@ namespace eosio {
       swap_params_data = swap_params_table.get();
 
       check_pubkey_prefix(swap_pubkey);
+      check(is_block_producer(rampayer), "only top25 block producers approval is recorded");
       check(quantity.is_valid(), "invalid quantity");
       check(quantity.symbol == min_account_stake.symbol, "symbol precision mismatch");
       check(quantity.amount >= min_account_stake.amount + producers_reward.amount, "the quantity must be greater "
@@ -40,7 +41,6 @@ namespace eosio {
       check(current_time_point() > swap_timepoint, "swap cannot be initialized "
                                                    "with a future timestamp");
 
-      const bool is_producer = is_block_producer(rampayer);
       if (swap_hash_it == swap_hash_idx.end()) {
          swap_table.emplace(rampayer, [&](auto &s) {
             s.key            = swap_table.available_primary_key();
@@ -48,33 +48,28 @@ namespace eosio {
             s.swap_id        = swap_hash;
             s.swap_timestamp = swap_timestamp;
             s.status         = static_cast<int8_t>(swap_status::INITIALIZED);
-            if (is_producer) s.provided_approvals.push_back(rampayer);
+            s.provided_approvals.push_back(rampayer);
          });
-      } else if (is_producer) {
-         check(is_producer, "block producer authorization required");
-         check(swap_hash_it->status != static_cast<int8_t>(swap_status::CANCELED), "swap already canceled");
-         check(swap_hash_it->status != static_cast<int8_t>(swap_status::FINISHED), "swap already finished");
-
+      } else {
          const vector <name> &approvals = swap_hash_it->provided_approvals;
          bool is_already_approved = std::find(approvals.begin(), approvals.end(), rampayer) == approvals.end();
 
          check(is_already_approved, "approval already exists");
 
-         swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
-            s.provided_approvals.push_back(rampayer);
-         });
-      }
-      // moved out, because existing case when the majority of the active producers = 1
-      if (is_producer) {
-         cleanup_swaps();
-         swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
-         bool is_status_issued = swap_hash_it->status == static_cast<int8_t>(swap_status::ISSUED);
-         if (is_swap_confirmed(swap_hash_it->provided_approvals) && !is_status_issued) {
-            issue_tokens(rampayer, quantity);
+         if (swap_hash_it->status == static_cast<int8_t>(swap_status::INITIALIZED)) {
             swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
-               s.status = static_cast<int8_t>(swap_status::ISSUED);
+               s.provided_approvals.push_back(rampayer);
             });
          }
+      }
+      cleanup_swaps();
+      swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
+      bool is_status_init = swap_hash_it->status == static_cast<int8_t>(swap_status::INITIALIZED);
+      if (is_status_init && is_swap_confirmed(swap_hash_it->provided_approvals)) {
+         issue_tokens(rampayer, quantity);
+         swap_table.modify(*swap_hash_it, rampayer, [&](auto &s) {
+            s.status = static_cast<int8_t>(swap_status::ISSUED);
+         });
       }
    }
 
@@ -94,7 +89,7 @@ namespace eosio {
          return_address, return_chain_id, swap_timestamp
       );
 
-      validate_swap(swap_hash);
+      is_ready_to_finish(swap_hash);
       validate_pubkey( sign, digest, swap_pubkey_str );
 
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
@@ -132,7 +127,7 @@ namespace eosio {
          return_chain_id, swap_timestamp
       );
 
-      validate_swap(swap_hash);
+      is_ready_to_finish(swap_hash);
       validate_pubkey( sign, digest, swap_pubkey_str );
 
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
@@ -176,7 +171,7 @@ namespace eosio {
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
       auto swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
 
-      validate_swap(swap_hash);
+      is_ready_to_finish(swap_hash);
       check(time_point_sec(current_time_point()) > swap_timepoint + swap_active_lifetime,
             "swap has to be canceled after expiration");
 
@@ -273,7 +268,7 @@ namespace eosio {
       assert_recover_key(digest, sign, swap_pubkey);
    }
 
-   void swap::validate_swap(const checksum256 &swap_hash) const
+   void swap::is_ready_to_finish(const checksum256 &swap_hash) const
    {
       auto swap_hash_idx = swap_table.get_index<"byhash"_n>();
       auto swap_hash_it = swap_hash_idx.find(swap_data::get_swap_hash(swap_hash));
@@ -286,7 +281,7 @@ namespace eosio {
       auto swap_expiration_delta = current_time_point().time_since_epoch() - swap_lifetime.time_since_epoch();
       check(time_point(swap_expiration_delta) < swap_timepoint, "swap lifetime expired");
 
-      check(is_swap_confirmed(swap_hash_it->provided_approvals), "not enough active producers approvals");
+      check(swap_hash_it->status == static_cast<int8_t>(swap_status::ISSUED), "not enough active producers approvals");
    }
 
    void swap::cleanup_swaps()

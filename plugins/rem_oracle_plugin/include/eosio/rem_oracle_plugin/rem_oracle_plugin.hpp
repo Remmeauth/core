@@ -3,22 +3,23 @@
  *  @copyright defined in eos/LICENSE
  */
 #pragma once
+
 #include <appbase/application.hpp>
 
 namespace eosio {
 
-using namespace appbase;
+    using namespace appbase;
 
-const char* coingecko_host = "api.coingecko.com";
-const char* coingecko_endpoint = "/api/v3/coins/remme/tickers";
+    const char *coingecko_host = "api.coingecko.com";
+    const char *coingecko_endpoint = "/api/v3/coins/remme/tickers";
 
-const char* cryptocompare_host = "min-api.cryptocompare.com";
-const char* cryptocompare_endpoint = "/data/price";
-const char* cryptocompare_params = "?fsym=REM&tsyms=USD,BTC,ETH&apikey=";
+    const char *cryptocompare_host = "min-api.cryptocompare.com";
+    const char *cryptocompare_endpoint = "/data/price";
+    const char *cryptocompare_params = "?fsym=REM&tsyms=USD,BTC,ETH&apikey=";
 
-uint32_t setprice_minutes_from = 0; // push set price transaction if current minutes value >= setprice_minutes_from
-uint32_t setprice_minutes_to = 5;  // push set price transaction if current minutes value < setprice_minutes_to
-uint32_t update_price_period = (setprice_minutes_to - setprice_minutes_from)*60 - 10;  // seconds
+    uint32_t setprice_minutes_from = 0; // push set price transaction if current minutes value >= setprice_minutes_from
+    uint32_t setprice_minutes_to = 5;  // push set price transaction if current minutes value < setprice_minutes_to
+    uint32_t update_price_period = (setprice_minutes_to - setprice_minutes_from) * 60 - 10;  // seconds
 
 #define FC_LOG_WAIT_AND_CONTINUE(...)  \
     catch( const boost::interprocess::bad_alloc& ) {\
@@ -48,20 +49,24 @@ uint32_t update_price_period = (setprice_minutes_to - setprice_minutes_from)*60 
 /**
  *  This is a template plugin, intended to serve as a starting point for making new plugins
  */
-class rem_oracle_plugin : public appbase::plugin<rem_oracle_plugin> {
-public:
-   rem_oracle_plugin();
-   virtual ~rem_oracle_plugin();
+    class rem_oracle_plugin : public appbase::plugin<rem_oracle_plugin> {
+    public:
+        rem_oracle_plugin();
 
-   APPBASE_PLUGIN_REQUIRES()
-   virtual void set_program_options(options_description&, options_description& cfg) override;
+        virtual ~rem_oracle_plugin();
 
-   void plugin_initialize(const variables_map& options);
-   void plugin_startup();
-   void plugin_shutdown();
+        APPBASE_PLUGIN_REQUIRES()
 
-private:
-   std::unique_ptr<class rem_oracle_plugin_impl> my;
-};
+        virtual void set_program_options(options_description &, options_description &cfg) override;
+
+        void plugin_initialize(const variables_map &options);
+
+        void plugin_startup();
+
+        void plugin_shutdown();
+
+    private:
+        std::unique_ptr<class rem_oracle_plugin_impl> my;
+    };
 
 }

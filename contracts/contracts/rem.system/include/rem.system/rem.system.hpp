@@ -66,7 +66,6 @@ namespace eosiosystem {
    static constexpr uint32_t blocks_per_day        = 2 * seconds_per_day; // half seconds per day
 
    static constexpr int64_t  min_activated_stake   = 150'000'000'0000;
-   static constexpr int64_t  ram_gift_bytes        = 1400;
    static constexpr int64_t  min_pervote_daily_pay = 100'0000;
    static constexpr uint32_t refund_delay_sec      = 3 * seconds_per_day;
 
@@ -75,6 +74,10 @@ namespace eosiosystem {
    static constexpr int64_t  pay_factor_precision          = 10000;
    static constexpr int64_t  default_inflation_pay_factor  = 50000;   // producers pay share = 10000 / 50000 = 20% of the inflation
    static constexpr int64_t  default_votepay_factor        = 40000;   // per-block pay share = 10000 / 40000 = 25% of the producer pay
+
+   // 3742 bytes - is size of the new user account for current version
+   static constexpr int64_t  min_account_ram = 3800;
+   
 
    /**
     *
@@ -1528,6 +1531,9 @@ namespace eosiosystem {
          // defined in rem.system.cpp
          // to keep Guardian status, account should reassert its vote every eosio_global_rem_state::reassertion_period
          bool vote_is_reasserted( eosio::time_point last_reassertion_time ) const;
+
+         // calculates amount of free bytes for current stake
+         int64_t ram_gift_bytes( int64_t stake ) const;
 
          //defined in rotation.cpp
          std::vector<eosio::producer_authority> get_rotated_schedule();
