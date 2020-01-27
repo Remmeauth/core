@@ -469,7 +469,7 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             // 10'0000 * 0.6 perstake share
             BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 );
             // 10'0000 * 0.3 pervote share
-            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 );
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9981 );
 
             for (const auto& prod: producers) {
                 //producers who have already produced at least one block will get pervote reward
@@ -479,7 +479,7 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
                 else {
                     // proda-produ have the same total_votes and standby list hasn`t been created yet
                     // so their pervote shares are equal ~0.04762 * 2'9988
-                    BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() == 1428 );
+                    BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() == 1280 );
                 }
             }
             for (const auto& prod: standby) {
@@ -501,7 +501,7 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             // ~ 2 * 10'0000 * 0.6 perstake share
             BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 * 2 );
             // ~ 2 * 10'0000 * 0.3 pervote share
-            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2'9981 );
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9981 + 2'9981 );
 
             for (const auto& prod: producers) {
                 BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
@@ -525,7 +525,7 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             // ~ 3 * 10'0000 * 0.6 perstake share
             BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 * 3 );
             // ~ 3 * 10'0000 * 0.3 pervote share
-            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 2 * 2'9981 );
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 3 * 2'9981 );
 
             for (const auto& prod: producers) {
                 BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
@@ -549,7 +549,7 @@ BOOST_FIXTURE_TEST_CASE( pervote_rewards_test, rewards_tester ) {
             // ~ 4 * 10'0000 * 0.6 perstake share
             BOOST_TEST_REQUIRE( get_global_state()["perstake_bucket"].as_int64() == 5'9996 * 4 );
             // ~ 4 * 10'0000 * 0.3 pervote share
-            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 2'9988 + 3 * 2'9981 );
+            BOOST_TEST_REQUIRE( get_global_state()["pervote_bucket"].as_int64() == 4 * 2'9981 );
 
             for (const auto& prod: producers) {
                 BOOST_TEST_REQUIRE( get_producer_info( prod )["pending_pervote_reward"].as_int64() > 0 );
