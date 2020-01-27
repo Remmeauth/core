@@ -265,6 +265,14 @@ public:
       return r;
    }
 
+   auto setminstake(const uint64_t& min_account_stake) {
+      auto r = base_tester::push_action(config::system_account_name, N(setminstake), config::system_account_name, mvo()
+         ("min_account_stake",  min_account_stake)
+      );
+      produce_block();
+      return r;
+   }
+
    void set_code_abi(const account_name &account, const vector<uint8_t> &wasm, const char *abi, const private_key_type *signer = nullptr)
    {
       wdump((account));
@@ -432,6 +440,13 @@ gift_resources_tester::gift_resources_tester()
    for (const auto &pair : supported_pairs) {
       addpair(pair, { {N(rem.oracle), config::active_name} });
    }
+   map<name, double> pair_rate {
+      {N(rem.usd), 0.003210},
+      {N(rem.btc), 0.0000003957},
+      {N(rem.eth), 0.0000176688}
+   };
+   for( const auto& producer : control->head_block_state()->active_schedule.producers )
+      setprice(producer.producer_name, pair_rate);
 }
 
 BOOST_AUTO_TEST_SUITE(rem_gift_resources_tests)
@@ -584,17 +599,14 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
 {
    try
    {
-      map<name, double> pair_rate {
-         {N(rem.usd), 0.003210},
-         {N(rem.btc), 0.0000003957},
-         {N(rem.eth), 0.0000176688}
-      };
-      for( const auto& producer : control->head_block_state()->active_schedule.producers )
-         setprice(producer.producer_name, pair_rate);
+      // test account creation fee based on rem.oracle.
+      // account_creation_fee = min(min_account_stake, min_account_price / rem_usd_price);
+      // in this case min_account_stake > min_account_price / rem_usd_price
+      setminstake(200'0000);
 
       auto min_account_stake = get_global_state()["min_account_stake"].as<int64_t>();
-      const auto min_account_price = get_global_state()["min_account_price"].as<int64_t>();
-      BOOST_REQUIRE_EQUAL(min_account_stake, 1000000u);
+      const uint64_t min_account_price = 5000;
+      BOOST_REQUIRE_EQUAL(min_account_stake, 2000000u);
       BOOST_REQUIRE_EQUAL(min_account_price, 5000u);
       auto pair_data = get_remprice_tbl(N(rem.usd));
       print_usage(N(rem));

@@ -65,11 +65,7 @@ namespace eosiosystem {
    {
       require_auth( from );
       check( stake_delta.amount != 0, "should stake non-zero amount" );
-
-      eosio::remprice_idx remprice_table(oracle_account, oracle_account.value);
-      auto it = remprice_table.find(rem_usd_pair.value);
-      bool is_valid_price = (it != remprice_table.end()) && ((current_time_point() - it->last_update.to_time_point()) <= eosio::minutes(70));
-      uint64_t min_account_stake = is_valid_price ? _gstate.min_account_price / it->price : _gstate.min_account_stake;
+      uint64_t min_account_stake = get_min_account_stake();
 
       name source_stake_from = from;
       if ( transfer ) {

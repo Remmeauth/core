@@ -160,6 +160,14 @@ namespace eosiosystem {
       _gstate.min_account_stake = min_account_stake;
    }
 
+   uint64_t system_contract::get_min_account_stake() {
+      eosio::remprice_idx remprice_table(oracle_account, oracle_account.value);
+      auto it = remprice_table.find(rem_usd_pair.value);
+      bool is_valid_price = (it != remprice_table.end()) && ((current_time_point() - it->last_update.to_time_point()) <= eosio::minutes(70));
+
+      return is_valid_price ? std::min(uint64_t(min_account_price / it->price), _gstate.min_account_stake) : _gstate.min_account_stake;
+   }
+
    void system_contract::setram( uint64_t max_ram_size ) {
       require_auth( get_self() );
 
@@ -319,11 +327,7 @@ namespace eosiosystem {
          // 0 - 0.0000%, 100'0000 - 100.0000%
          check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
          const auto discount_rate = discount / 100'0000.0;
-
-         eosio::remprice_idx remprice_table(oracle_account, oracle_account.value);
-         auto it = remprice_table.find(rem_usd_pair.value);
-         bool is_valid_price = (it != remprice_table.end()) && ((current_time_point() - it->last_update.to_time_point()) <= eosio::minutes(70));
-         uint64_t min_account_stake = is_valid_price ? _gstate.min_account_price / it->price : _gstate.min_account_stake;
+         uint64_t min_account_stake = get_min_account_stake();
 
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;

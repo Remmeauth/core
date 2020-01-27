@@ -16,7 +16,6 @@ namespace eosio {
 
       uint64_t             max_ram_size = 64ll*1024 * 1024 * 1024;
       uint64_t             min_account_stake = 1000000; // minimum stake for new created account 100'0000 REM
-      uint64_t             min_account_price = 5000; // minimum price for created new account 0.5 $
       uint64_t             total_ram_bytes_reserved = 0;
       int64_t              total_ram_stake = 0;
       //producer name and pervote factor
@@ -41,7 +40,7 @@ namespace eosio {
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters, (core_symbol)(max_ram_size)(min_account_stake)
-                                (min_account_price)(total_ram_bytes_reserved)(total_ram_stake)(last_schedule)(standby)(last_schedule_version)
+                                (total_ram_bytes_reserved)(total_ram_stake)(last_schedule)(standby)(last_schedule_version)
                                 (current_round_start_time) (last_producer_schedule_update)(last_pervote_bucket_fill)
                                 (perstake_bucket)(pervote_bucket)(perblock_bucket)(total_unpaid_blocks)(total_guardians_stake)
                                 (total_activated_stake)(thresh_activated_stake_time)(last_producer_schedule_size)
