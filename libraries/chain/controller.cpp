@@ -32,6 +32,8 @@
 #include <fc/scoped_exit.hpp>
 #include <fc/variant_object.hpp>
 
+#include <new>
+
 namespace eosio { namespace chain {
 
 using resource_limits::resource_limits_manager;
@@ -121,6 +123,7 @@ struct building_block {
    vector<transaction_metadata_ptr>      _pending_trx_metas;
    vector<transaction_receipt>           _pending_trx_receipts;
    vector<action_receipt>                _actions;
+   optional<checksum256_type>            _transaction_mroot;
 };
 
 struct assembled_block {
@@ -213,6 +216,14 @@ struct pending_state {
 };
 
 struct controller_impl {
+
+   // LLVM sets the new handler, we need to reset this to throw a bad_alloc exception so we can possibly exit cleanly
+   // and not just abort.
+   struct reset_new_handler {
+      reset_new_handler() { std::set_new_handler([](){ throw std::bad_alloc(); }); }
+   };
+
+   reset_new_handler              rnh; // placed here to allow for this to be set before constructing the other fields
    controller&                    self;
    chainbase::database            db;
    chainbase::database            reversible_blocks; ///< a special database to persist blocks that have successfully been applied but are still reversible
@@ -286,7 +297,8 @@ struct controller_impl {
    }
 
    controller_impl( const controller::config& cfg, controller& s, protocol_feature_set&& pfs, const chain_id_type& chain_id )
-   :self(s),
+   :rnh(),
+    self(s),
     db( cfg.state_dir,
         cfg.read_only ? database::read_only : database::read_write,
         cfg.state_size, false, cfg.db_map_mode, cfg.db_hugepage_paths ),
@@ -355,16 +367,18 @@ struct controller_impl {
       try {
          s( std::forward<Arg>( a ));
       } catch (std::bad_alloc& e) {
-         wlog( "std::bad_alloc" );
+         wlog( "std::bad_alloc: ${w}", ("w", e.what()) );
          throw e;
       } catch (boost::interprocess::bad_alloc& e) {
-         wlog( "bad alloc" );
+         wlog( "boost::interprocess::bad alloc: ${w}", ("w", e.what()) );
          throw e;
       } catch ( controller_emit_signal_exception& e ) {
-         wlog( "${details}", ("details", e.to_detail_string()) );
+         wlog( "controller_emit_signal_exception: ${details}", ("details", e.to_detail_string()) );
          throw e;
       } catch ( fc::exception& e ) {
-         wlog( "${details}", ("details", e.to_detail_string()) );
+         wlog( "fc::exception: ${details}", ("details", e.to_detail_string()) );
+      } catch ( std::exception& e ) {
+         wlog( "std::exception: ${details}", ("details", e.what()) );
       } catch ( ... ) {
          wlog( "signal handler threw exception" );
       }
@@ -1295,7 +1309,7 @@ struct controller_impl {
 
       // Only subjective OR soft OR hard failure logic below:
 
-      if( gtrx.sender != account_name() && !failure_is_subjective(*trace->except)) {
+      if( gtrx.sender != account_name() && !(explicit_billed_cpu_time ? failure_is_subjective(*trace->except) : scheduled_failure_is_subjective(*trace->except))) {
          // Attempt error handling for the generated transaction.
 
          auto error_trace = apply_onerror( gtrx, deadline, trx_context.pseudo_start,
@@ -1664,7 +1678,7 @@ struct controller_impl {
 
       // Create (unsigned) block:
       auto block_ptr = std::make_shared<signed_block>( pbhs.make_block_header(
-         calculate_trx_merkle(),
+         bb._transaction_mroot ? *bb._transaction_mroot : calculate_trx_merkle( bb._pending_trx_receipts ),
          calculate_action_merkle(),
          bb._new_pending_producer_schedule,
          std::move( bb._new_protocol_feature_activations ),
@@ -1807,6 +1821,27 @@ struct controller_impl {
       }
    }
 
+   void report_block_header_diff( const block_header& b, const block_header& ab ) {
+
+#define EOS_REPORT(DESC,A,B) \
+   if( A != B ) { \
+      elog("${desc}: ${bv} != ${abv}", ("desc", DESC)("bv", A)("abv", B)); \
+   }
+
+      EOS_REPORT( "timestamp", b.timestamp, ab.timestamp )
+      EOS_REPORT( "producer", b.producer, ab.producer )
+      EOS_REPORT( "confirmed", b.confirmed, ab.confirmed )
+      EOS_REPORT( "previous", b.previous, ab.previous )
+      EOS_REPORT( "transaction_mroot", b.transaction_mroot, ab.transaction_mroot )
+      EOS_REPORT( "action_mroot", b.action_mroot, ab.action_mroot )
+      EOS_REPORT( "schedule_version", b.schedule_version, ab.schedule_version )
+      EOS_REPORT( "new_producers", b.new_producers, ab.new_producers )
+      EOS_REPORT( "header_extensions", b.header_extensions, ab.header_extensions )
+
+#undef EOS_REPORT
+   }
+
+
    void apply_block( const block_state_ptr& bsp, controller::block_status s, const trx_meta_cache_lookup& trx_lookup )
    { try {
       try {
@@ -1885,13 +1920,20 @@ struct controller_impl {
                         ("producer_receipt", receipt)("validator_receipt", trx_receipts.back()) );
          }
 
+         // validated in create_block_state_future()
+         pending->_block_stage.get<building_block>()._transaction_mroot = b->transaction_mroot;
+
          finalize_block();
 
          auto& ab = pending->_block_stage.get<assembled_block>();
 
-         // this implicitly asserts that all header fields (less the signature) are identical
-         EOS_ASSERT( producer_block_id == ab._id, block_validate_exception, "Block ID does not match",
-                     ("producer_block_id",producer_block_id)("validator_block_id",ab._id) );
+         if( producer_block_id != ab._id ) {
+            elog( "Validation block id does not match producer block id" );
+            report_block_header_diff( *b, *ab._unsigned_block );
+            // this implicitly asserts that all header fields (less the signature) are identical
+            EOS_ASSERT( producer_block_id == ab._id, block_validate_exception, "Block ID does not match",
+                        ("producer_block_id", producer_block_id)("validator_block_id", ab._id) );
+         }
 
          if( !use_bsp_cached ) {
             bsp->set_trxs_metas( std::move( ab._trx_metas ), !skip_auth_checks );
@@ -1923,6 +1965,11 @@ struct controller_impl {
 
       return async_thread_pool( thread_pool.get_executor(), [b, prev, control=this]() {
          const bool skip_validate_signee = false;
+
+         auto trx_mroot = calculate_trx_merkle( b->transactions );
+         EOS_ASSERT( b->transaction_mroot == trx_mroot, block_validate_exception,
+                     "invalid block transaction merkle root ${b} != ${c}", ("b", b->transaction_mroot)("c", trx_mroot) );
+
          return std::make_shared<block_state>(
                         *prev,
                         move( b ),
@@ -2113,9 +2160,8 @@ struct controller_impl {
       return merkle( move(action_digests) );
    }
 
-   checksum256_type calculate_trx_merkle() {
+   static checksum256_type calculate_trx_merkle( const vector<transaction_receipt>& trxs ) {
       vector<digest_type> trx_digests;
-      const auto& trxs = pending->_block_stage.get<building_block>()._pending_trx_receipts;
       trx_digests.reserve( trxs.size() );
       for( const auto& a : trxs )
          trx_digests.emplace_back( a.digest() );
@@ -3128,6 +3174,10 @@ bool controller::is_known_unexpired_transaction( const transaction_id_type& id) 
 
 void controller::set_subjective_cpu_leeway(fc::microseconds leeway) {
    my->subjective_cpu_leeway = leeway;
+}
+
+fc::optional<fc::microseconds> controller::get_subjective_cpu_leeway() const {
+    return my->subjective_cpu_leeway;
 }
 
 void controller::set_greylist_limit( uint32_t limit ) {

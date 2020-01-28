@@ -332,8 +332,16 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          }
       };
 
-      void on_incoming_block(const signed_block_ptr& block) {
-         auto id = block->id();
+      bool on_incoming_block(const signed_block_ptr& block, const std::optional<block_id_type>& block_id) {
+         auto& chain = chain_plug->chain();
+         if ( chain.is_building_block() && _pending_block_mode == pending_block_mode::producing ) {
+            fc_wlog( _log, "dropped incoming block #${num} while producing #${pbn} for ${bt}, id: ${id}",
+                     ("num", block->block_num())("pbn", chain.head_block_num() + 1)
+                     ("bt", chain.pending_block_time())("id", block_id ? (*block_id).str() : "UNKNOWN") );
+            return false;
+         }
+
+         const auto& id = block_id ? *block_id : block->id();
          auto blk_num = block->block_num();
 
          fc_dlog(_log, "received incoming block ${n} ${id}", ("n", blk_num)("id", id));
@@ -341,11 +349,9 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          EOS_ASSERT( block->timestamp < (fc::time_point::now() + fc::seconds( 7 )), block_from_the_future,
                      "received a block from the future, ignoring it: ${id}", ("id", id) );
 
-         chain::controller& chain = chain_plug->chain();
-
          /* de-dupe here... no point in aborting block if we already know the block */
          auto existing = chain.fetch_block_by_id( id );
-         if( existing ) { return; }
+         if( existing ) { return false; }
 
          // start processing of block
          auto bsf = chain.create_block_state_future( block );
@@ -359,7 +365,6 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          });
 
          // push the new block
-         bool except = false;
          try {
             chain.push_block( bsf, [this]( const branch_type& forked_branch ) {
                _unapplied_transactions.add_forked( forked_branch );
@@ -368,32 +373,36 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
             } );
          } catch ( const guard_exception& e ) {
             chain_plugin::handle_guard_exception(e);
-            return;
+            return false;
          } catch( const fc::exception& e ) {
             elog((e.to_detail_string()));
-            except = true;
+            app().get_channel<channels::rejected_block>().publish( priority::medium, block );
+            throw;
          } catch ( const std::bad_alloc& ) {
             chain_plugin::handle_bad_alloc();
          } catch ( boost::interprocess::bad_alloc& ) {
             chain_plugin::handle_db_exhaustion();
          }
 
-         if( except ) {
-            app().get_channel<channels::rejected_block>().publish( priority::medium, block );
-            return;
-         }
-
-         if( chain.head_block_state()->header.timestamp.next().to_time_point() >= fc::time_point::now() ) {
+         const auto& hbs = chain.head_block_state();
+         if( hbs->header.timestamp.next().to_time_point() >= fc::time_point::now() ) {
             _production_enabled = true;
          }
-
 
          if( fc::time_point::now() - block->timestamp < fc::minutes(5) || (blk_num % 1000 == 0) ) {
             ilog("Received block ${id}... #${n} @ ${t} signed by ${p} [trxs: ${count}, lib: ${lib}, conf: ${confs}, latency: ${latency} ms]",
                  ("p",block->producer)("id",id.str().substr(8,16))("n",blk_num)("t",block->timestamp)
                  ("count",block->transactions.size())("lib",chain.last_irreversible_block_num())
                  ("confs", block->confirmed)("latency", (fc::time_point::now() - block->timestamp).count()/1000 ) );
+            if( chain.get_read_mode() != db_read_mode::IRREVERSIBLE && hbs->id != id && hbs->block != nullptr ) { // not applied to head
+               ilog("Block not applied to head ${id}... #${n} @ ${t} signed by ${p} [trxs: ${count}, dpos: ${dpos}, conf: ${confs}, latency: ${latency} ms]",
+                    ("p",hbs->block->producer)("id",hbs->id.str().substr(8,16))("n",hbs->block_num)("t",hbs->block->timestamp)
+                    ("count",hbs->block->transactions.size())("dpos", hbs->dpos_irreversible_blocknum)
+                    ("confs", hbs->block->confirmed)("latency", (fc::time_point::now() - hbs->block->timestamp).count()/1000 ) );
+            }
          }
+
+         return true;
       }
 
       class incoming_transaction_queue {
@@ -650,7 +659,7 @@ void producer_plugin::set_program_options(
           "Limit (between 1 and 1000) on the multiple that CPU/NET virtual resources can extend during low usage (only enforced subjectively; use 1000 to not enforce any limit)")
          ("produce-time-offset-us", boost::program_options::value<int32_t>()->default_value(0),
           "offset of non last block producing time in microseconds. Negative number results in blocks to go out sooner, and positive number results in blocks to go out later")
-         ("last-block-time-offset-us", boost::program_options::value<int32_t>()->default_value(0),
+         ("last-block-time-offset-us", boost::program_options::value<int32_t>()->default_value(-200000),
           "offset of last block producing time in microseconds. Negative number results in blocks to go out sooner, and positive number results in blocks to go out later")
          ("max-scheduled-transaction-time-per-block-ms", boost::program_options::value<int32_t>()->default_value(100),
           "Maximum wall-clock time, in milliseconds, spent retiring scheduled transactions in any block before returning to normal transaction processing.")
@@ -839,7 +848,7 @@ void producer_plugin::plugin_initialize(const boost::program_options::variables_
    my->_incoming_block_subscription = app().get_channel<incoming::channels::block>().subscribe(
          [this](const signed_block_ptr& block) {
       try {
-         my->on_incoming_block(block);
+         my->on_incoming_block(block, {});
       } LOG_AND_DROP();
    });
 
@@ -851,8 +860,8 @@ void producer_plugin::plugin_initialize(const boost::program_options::variables_
    });
 
    my->_incoming_block_sync_provider = app().get_method<incoming::methods::block_sync>().register_provider(
-         [this](const signed_block_ptr& block) {
-      my->on_incoming_block(block);
+         [this](const signed_block_ptr& block, const std::optional<block_id_type>& block_id) {
+      return my->on_incoming_block(block, block_id);
    });
 
    my->_incoming_transaction_async_provider = app().get_method<incoming::methods::transaction_async>().register_provider(
@@ -1011,8 +1020,11 @@ producer_plugin::runtime_options producer_plugin::get_runtime_options() const {
       my->_produce_time_offset_us,
       my->_last_block_time_offset_us,
       my->_max_scheduled_transaction_time_per_block_ms,
-      fc::optional<int32_t>(),
-      fc::optional<double>()
+      my->chain_plug->chain().get_subjective_cpu_leeway() ?
+            my->chain_plug->chain().get_subjective_cpu_leeway()->count() :
+            fc::optional<int32_t>(),
+      my->_incoming_defer_ratio,
+      my->chain_plug->chain().get_greylist_limit()
    };
 }
 
@@ -1956,7 +1968,7 @@ void producer_plugin_impl::produce_block() {
    block_state_ptr new_bs = chain.head_block_state();
 
    ilog("Produced block ${id}... #${n} @ ${t} signed by ${p} [trxs: ${count}, lib: ${lib}, confirmed: ${confs}]",
-        ("p",new_bs->header.producer)("id",new_bs->id.str().substr(0,16))
+        ("p",new_bs->header.producer)("id",new_bs->id.str().substr(8,16))
         ("n",new_bs->block_num)("t",new_bs->header.timestamp)
         ("count",new_bs->block->transactions.size())("lib",chain.last_irreversible_block_num())("confs", new_bs->header.confirmed));
 
