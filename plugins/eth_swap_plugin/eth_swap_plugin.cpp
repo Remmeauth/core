@@ -78,8 +78,7 @@ namespace eosio {
             });
             t.detach();
 
-            uint32_t current_long_polling_blocks_per_filter = long_polling_blocks_per_filter;
-            uint64_t from_block_dec = last_block_dec - current_long_polling_blocks_per_filter - min_tx_confirmations;
+            uint64_t from_block_dec = last_block_dec - long_polling_blocks_per_filter - min_tx_confirmations;
             while (true) {
                 try {
                     last_block_dec = get_last_block_num(this->_eth_https_provider_host,
@@ -95,7 +94,7 @@ namespace eosio {
                     uint64_t to_block_dec;
 
                     to_block_dec = std::min(last_block_dec - min_tx_confirmations,
-                                            from_block_dec + current_long_polling_blocks_per_filter);
+                                            from_block_dec + long_polling_blocks_per_filter);
 
                     if (to_block_dec < from_block_dec)
                         continue;
@@ -120,18 +119,9 @@ namespace eosio {
                     }
                     push_txs(prev_swap_requests);
                     from_block_dec = to_block_dec;
-                    current_long_polling_blocks_per_filter = std::min(current_long_polling_blocks_per_filter * 2,
-                                                                      long_polling_blocks_per_filter);
 
                     sleep(long_polling_period);
-                } /*catch (TimeoutException e) {
-                    if(current_long_polling_blocks_per_filter == 1) {
-                        elog("Eth node is not responding at block ${b}", ("b", from_block_dec));
-                        sleep(wait_for_eth_node);
-                    }
-                    current_long_polling_blocks_per_filter /= 4;
-                    current_long_polling_blocks_per_filter = std::max(1u, current_long_polling_blocks_per_filter);
-                } */FC_LOG_WAIT_AND_CONTINUE()
+                } FC_LOG_WAIT_AND_CONTINUE()
             }
         }
 
@@ -144,7 +134,6 @@ namespace eosio {
         }
 
         void init_prev_swap_requests(uint64_t min_block_dec, uint64_t to_block_dec) {
-            uint32_t current_blocks_per_filter = blocks_per_filter;
             while (to_block_dec > min_block_dec) {
                 try {
                     while (to_block_dec > min_block_dec) {
@@ -158,7 +147,7 @@ namespace eosio {
 
                         std::string request_swap_filter_id, filter_logs, from_block;
 
-                        stream << std::hex << std::max(min_block_dec, to_block_dec - current_blocks_per_filter);
+                        stream << std::hex << std::max(min_block_dec, to_block_dec - blocks_per_filter);
                         from_block = "0x" + stream.str();
                         stream.str("");
                         stream.clear();
@@ -181,18 +170,10 @@ namespace eosio {
                         std::reverse(prev_swap_requests.begin(), prev_swap_requests.end());
 
                         push_txs(prev_swap_requests);
-                        to_block_dec -= current_blocks_per_filter;
-                        current_blocks_per_filter = std::min(current_blocks_per_filter * 2, blocks_per_filter);
+                        to_block_dec -= blocks_per_filter;
                     }
 
-                } /*catch (TimeoutException e) {
-                    if(current_blocks_per_filter == 1) {
-                        elog("Eth node is not responding at block ${b}", ("b", to_block_dec));
-                        sleep(wait_for_eth_node);
-                    }
-                    current_blocks_per_filter /= 4;
-                    current_blocks_per_filter = std::max(1u, current_blocks_per_filter);
-                }*/ FC_LOG_WAIT_AND_CONTINUE()
+                } FC_LOG_WAIT_AND_CONTINUE()
             }
         }
 
