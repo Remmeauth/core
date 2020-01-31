@@ -493,7 +493,7 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
         }
 
         // Day 210 (30)
-        // re-staking vote power 83%
+        // re-staking vote power 84%
         // staked 60KK
         // re-staked 20KK
         {
@@ -505,9 +505,9 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
             votepro( N(whale1), { N(proda) } );
 
             // adjusted:   now + 30 Days * 60 / 80 + 180 Days * 20 / 80 => 67.5 Days
-            // weeks to mature: 9;
+            // weeks to mature: 4;
             // eos weight:      1.627939195726894e+06;
-            // rem weight:      0.65;
+            // rem weight:      0.844444;
             // staked:          799999999000
             const auto prod = get_producer_info( name("proda") );
             BOOST_TEST_REQUIRE( 8.4652838071982426e+17 == prod["total_votes"].as_double() );
