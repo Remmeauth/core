@@ -393,140 +393,154 @@ BOOST_FIXTURE_TEST_CASE( rem_voting_test, voting_tester ) {
 }
 
 BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
-   try {
-      // Register producers
-      const auto producer_candidates = {
-               N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
-               N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-               N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)
-      };
-      for( const auto& producer : producer_candidates ) {
-         register_producer(producer);
-      }
+    try {
+        // Register producers
+        const auto producer_candidates = {
+                N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)
+        };
+        for( const auto& producer : producer_candidates ) {
+            register_producer(producer);
+        }
 
-      // Register whales as producers
-      const auto whales_as_producers = { N(b1), N(whale1), N(whale2), N(whale2) };
-      for( const auto& producer : whales_as_producers ) {
-         register_producer(producer);
-      }
+        // Register whales as producers
+        const auto whales_as_producers = { N(b1), N(whale1), N(whale2), N(whale2) };
+        for( const auto& producer : whales_as_producers ) {
+            register_producer(producer);
+        }
 
-      // Day 0
-      {
-         const auto voter = get_voter_info( name("whale1") );
-         BOOST_TEST_REQUIRE( 0.0 == voter["last_vote_weight"].as_double() );
+        // Day 0
+        {
+            const auto voter = get_voter_info( name("whale1") );
+            BOOST_TEST_REQUIRE( 0.0 == voter["last_vote_weight"].as_double() );
 
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 0.0 == prod["total_votes"].as_double() );
-      }
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 0.0 == prod["total_votes"].as_double() );
+        }
 
-      {
-         votepro( N(whale1), { N(proda) } );
-         // vote gains full power at:     1593388805500000
-         // voteproducer was done at:     1577836844500000
-         // 180 days in microseconds is:  15552000000000
+        {
+            votepro( N(whale1), { N(proda) } );
+            // vote gains full power at:     1593388805500000
+            // voteproducer was done at:     1577836844500000
+            // 180 days in microseconds is:  15552000000000
 
-         // eos weight:      1.091357477572318e+06;
-         // weeks to mature: 24;
-         // rem weight:      0.04;
-         // staked:          399999999000;
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 17461719597502810 == prod["total_votes"].as_double() );
-      }
+            // eos weight:      1.091357477572318e+06;
+            // weeks to mature: 25;
+            // rem weight:      0.027;
+            // staked:          399999999000;
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 12126194164932502 == prod["total_votes"].as_double() );
+        }
 
-      // Day 30
-      {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
-         votepro( N(whale1), { N(proda) } );
+        // Day 30
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
+            votepro( N(whale1), { N(proda) } );
 
-         // eos weight:      1.151126844657861e+06;
-         // weeks to mature: 20;
-         // rem weight:      0.2;
-         // staked:          399999999000
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 92090147342403456 == prod["total_votes"].as_double() );
-      }
+            // eos weight:      1.151126844657861e+06;
+            // weeks to mature: 21;
+            // rem weight:      0.183;
+            // staked:          399999999000
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 84415968397203200 == prod["total_votes"].as_double() );
+        }
 
-      // Day 30+
-      // `days to mature` and `rem weight` should be the same within 1 day
-      {
-         produce_blocks( 500 );
-         votepro( N(whale1), { N(proda) } );
+        // Day 30+
+        // `days to mature` and `rem weight` should be the same within 1 day
+        {
+            produce_blocks( 500 );
+            votepro( N(whale1), { N(proda) } );
 
-         // eos weight:      1.151126844657861e+06;
-         // weeks to mature: 20;
-         // rem weight:      0.2;
-         // staked:          399999999000
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 92090147342403456 == prod["total_votes"].as_double() );
-      }
+            // eos weight:      1.151126844657861e+06;
+            // weeks to mature: 21;
+            // rem weight:      0.183;
+            // staked:          399999999000
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 84415968397203200 == prod["total_votes"].as_double() );
+        }
 
-      // Day 180
-      {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(150 * 24 * 3600)); // +150 days
-         votepro( N(whale1), { N(proda) } );
+        // Day 180
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(150 * 24 * 3600)); // +150 days
+            votepro( N(whale1), { N(proda) } );
 
-         // eos weight:      1.543412546180063e+06;
-         // weeks to mature: 0;
-         // rem weight:      1.000000;
-         // staked:          399999999000
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 6.1736501692861286e+17 == prod["total_votes"].as_double() );
-      }
+            // eos weight:      1.543412546180063e+06;
+            // weeks to mature: 0;
+            // rem weight:      1.000000;
+            // staked:          399999999000
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 6.1736501692861286e+17 == prod["total_votes"].as_double() );
+        }
 
-      // Day 180 (0)
-      // re-staking vote power 100%
-      // staked 40KK
-      // re-staked 20KK
-      {
-         const auto r = delegate_bandwidth(N(rem.stake), N(whale1), asset(20'000'000'0000LL));
-         BOOST_REQUIRE( !r->except_ptr );
+        // Day 180 (0)
+        // re-staking vote power 100%
+        // staked 40KK
+        // re-staked 20KK
+        {
+            const auto r = delegate_bandwidth(N(rem.stake), N(whale1), asset(20'000'000'0000LL));
+            BOOST_REQUIRE( !r->except_ptr );
 
-         votepro( N(whale1), { N(proda) } );
+            votepro( N(whale1), { N(proda) } );
 
-         // adjusted:   now + 0 Days * 40 / 60 + 180 Days * 20 / 60 => 60 Days
-         // weeks to mature: 7;
-         // eos weight:      1.543412546180063e+06;
-         // rem weight:      0.72;
-         // staked:          599999999000
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 6.667542188385303e+17 == prod["total_votes"].as_double() );
-      }
+            // adjusted:   now + 0 Days * 40 / 60 + 180 Days * 20 / 60 => 60 Days
+            // weeks to mature: 8;
+            // eos weight:      1.543412546180063e+06;
+            // rem weight:      0.688;
+            // staked:          599999999000
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 6.3794385135785318e+17 == prod["total_votes"].as_double() );
+        }
 
-      // Day 210 (30)
-      // re-staking vote power 83%
-      // staked 60KK
-      // re-staked 20KK
-      {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
+        // Day 210 (30)
+        // re-staking vote power 84%
+        // staked 60KK
+        // re-staked 20KK
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
 
-         const auto r = delegate_bandwidth(N(rem.stake), N(whale1), asset(20'000'000'0000LL));
-         BOOST_REQUIRE( !r->except_ptr );
+            const auto r = delegate_bandwidth(N(rem.stake), N(whale1), asset(20'000'000'0000LL));
+            BOOST_REQUIRE( !r->except_ptr );
 
-         votepro( N(whale1), { N(proda) } );
+            votepro( N(whale1), { N(proda) } );
 
-         // adjusted:   now + 30 Days * 60 / 80 + 180 Days * 20 / 80 => 67.5 Days
-         // weeks to mature: 8;
-         // eos weight:      1.627939195726894e+06;
-         // rem weight:      0.678;
-         // staked:          799999999000
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 8.8559892136843136e+17 == prod["total_votes"].as_double() );
-      }
+            // adjusted:   now + 30 Days * 60 / 80 + 180 Days * 20 / 80 => 67.5 Days
+            // weeks to mature: 4;
+            // eos weight:      1.627939195726894e+06;
+            // rem weight:      0.844444;
+            // staked:          799999999000
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 8.4652838071982426e+17 == prod["total_votes"].as_double() );
+        }
 
-      // 8 Weeks Later
-      {
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days( 7 * 8 )); // +8 weeks
-         votepro( N(whale1), { N(proda) } );
+        // 8 Weeks Later
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days( 7 * 8 )); // +8 weeks
+            votepro( N(whale1), { N(proda) } );
 
-         // weeks to mature: 0;
-         // eos weight:      1.811133596417372e+06;
-         // rem weight:      1.000000;
-         // staked:          799999999000
-         const auto prod = get_producer_info( name("proda") );
-         BOOST_TEST_REQUIRE( 1.4489068753227643e+18 == prod["total_votes"].as_double() );
+            // weeks to mature: 1;
+            // eos weight:      1.811133596417372e+06;
+            // rem weight:      0.961;
+            // staked:          799999999000
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 1.3925604968379901e+18 == prod["total_votes"].as_double() );
 
-      }
-   } FC_LOG_AND_RETHROW()
+        }
+
+        // 1 Week Later
+        {
+            produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::days( 7 )); // +1 week
+            votepro( N(whale1), { N(proda) } );
+
+            // weeks to mature: 0;
+            // eos weight:      1.860066895765736e+06;
+            // rem weight:      1.000;
+            // staked:          799999999000
+            const auto prod = get_producer_info( name("proda") );
+            BOOST_TEST_REQUIRE( 1.4880535147525217e+18 == prod["total_votes"].as_double() );
+
+        }
+    } FC_LOG_AND_RETHROW()
 }
 
 BOOST_FIXTURE_TEST_CASE( stake_lock_period_test, voting_tester ) {
