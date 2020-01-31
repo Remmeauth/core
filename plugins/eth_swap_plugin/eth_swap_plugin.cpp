@@ -113,7 +113,7 @@ namespace eosio {
                     try {
                         prev_swap_requests = get_prev_swap_events(filter_logs);
                     } catch(...) {
-                        elog("Error parsing response from Infura: {$logs}", ("logs", filter_logs));
+                        wlog("Error parsing response from Infura: ${logs}", ("logs", filter_logs));
                         sleep(wait_for_eth_node);
                         continue;
                     }
@@ -162,7 +162,7 @@ namespace eosio {
                         try {
                             prev_swap_requests = get_prev_swap_events(filter_logs);
                         } catch(...) {
-                            elog("Error parsing response from Infura: {$logs}", ("logs", filter_logs));
+                            wlog("Error parsing response from Infura: ${logs}", ("logs", filter_logs));
                             sleep(wait_for_eth_node);
                             continue;
                         }
@@ -252,6 +252,15 @@ namespace eosio {
                                                     err_str.find("approval already exists") == string::npos &&
                                                     err_str.find("Duplicate transaction") == string::npos)
                                                     elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
+                                                         ("prod", account)("res",
+                                                                           result.get<fc::exception_ptr>()->to_string())(
+                                                                 "txid", data.txid)("pubkey", data.swap_pubkey)(
+                                                                 "amount", data.amount)
+                                                                 ("ret_addr", data.return_address)("ret_chainid",
+                                                                                                   data.return_chain_id)(
+                                                                 "timestamp", epoch_block_timestamp(slot)));
+                                                else
+                                                    ilog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                                                          ("prod", account)("res",
                                                                            result.get<fc::exception_ptr>()->to_string())(
                                                                  "txid", data.txid)("pubkey", data.swap_pubkey)(
@@ -381,7 +390,7 @@ namespace eosio {
     }
 
     void eth_swap_plugin::plugin_startup() {
-        ilog("Ethereum swap plugin started. Version 2.0");
+        ilog("Ethereum swap plugin started. Version 2.0.1");
 
         try {
             ilog("last eth block: " +
