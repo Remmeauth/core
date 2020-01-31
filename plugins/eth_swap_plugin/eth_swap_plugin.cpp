@@ -250,6 +250,7 @@ namespace eosio {
                                                 if (err_str.find("swap already canceled") == string::npos &&
                                                     err_str.find("swap already finished") == string::npos &&
                                                     err_str.find("approval already exists") == string::npos &&
+                                                    err_str.find("only top25 block producers' approvals are recorded") == string::npos &&
                                                     err_str.find("Duplicate transaction") == string::npos)
                                                     elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                                                          ("prod", account)("res",
@@ -260,7 +261,7 @@ namespace eosio {
                                                                                                    data.return_chain_id)(
                                                                  "timestamp", epoch_block_timestamp(slot)));
                                                 else
-                                                    ilog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
+                                                    ilog("${prod} skips swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                                                          ("prod", account)("res",
                                                                            result.get<fc::exception_ptr>()->to_string())(
                                                                  "txid", data.txid)("pubkey", data.swap_pubkey)(
