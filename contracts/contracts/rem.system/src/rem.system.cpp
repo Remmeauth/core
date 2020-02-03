@@ -162,10 +162,15 @@ namespace eosiosystem {
 
    uint64_t system_contract::get_min_account_stake() {
       eosio::remprice_idx remprice_table(oracle_account, oracle_account.value);
-      auto it = remprice_table.find(rem_usd_pair.value);
-      bool is_valid_price = (it != remprice_table.end()) && ((current_time_point() - it->last_update.to_time_point()) <= eosio::minutes(70));
+      auto rem_usd_it = remprice_table.find(rem_usd_pair.value);
+      auto setprice_window_m = eosio::seconds(eosio::setprice_window + eosio::setprice_window * 0.2);
+      bool is_valid_price = ( rem_usd_it != remprice_table.end() ) && ( (current_time_point() - rem_usd_it->last_update.to_time_point()) <= setprice_window_m );
+      uint64_t oracle_min_account_stake = min_account_price / rem_usd_it->price;
 
-      return is_valid_price ? std::min(uint64_t(min_account_price / it->price), _gstate.min_account_stake) : _gstate.min_account_stake;
+      if ( is_valid_price && oracle_min_account_stake > 0 ) {
+         return std::min(oracle_min_account_stake, _gstate.min_account_stake);
+      }
+      return _gstate.min_account_stake;
    }
 
    void system_contract::setram( uint64_t max_ram_size ) {
