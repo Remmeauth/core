@@ -8,10 +8,25 @@
 #include <eosio/singleton.hpp>
 #include <eosio/eosio.hpp>
 
-namespace eosio {
+namespace remoracle {
 
+   using eosio::asset;
+   using eosio::block_timestamp;
+   using eosio::check;
+   using eosio::const_mem_fun;
+   using eosio::current_time_point;
+   using eosio::datastream;
+   using eosio::indexed_by;
+   using eosio::singleton;
+   using eosio::seconds;
+   using eosio::name;
+   using eosio::time_point;
+   using eosio::multi_index;
    using std::string;
    using std::vector;
+
+   // A window in which producer can submit a new rate
+   static constexpr uint32_t setprice_window = 3600;
 
    // Defines 'remprice' to be stored market price to the specified pairs
    struct [[eosio::table, eosio::contract("rem.oracle")]] remprice {
@@ -38,7 +53,8 @@ namespace eosio {
     * cryptocurrencies market price.
     * @{
     */
-   class [[eosio::contract("rem.oracle")]] oracle : public contract {
+
+   class [[eosio::contract("rem.oracle")]] oracle : public eosio::contract {
    public:
 
       oracle(name receiver, name code,  datastream<const char*> ds);
@@ -104,4 +120,4 @@ namespace eosio {
       double get_median(const vector<double>& sorted_points) const;
    };
    /** @}*/ // end of @defgroup eosioauth rem.oracle
-} /// namespace eosio
+} /// namespace remoracle

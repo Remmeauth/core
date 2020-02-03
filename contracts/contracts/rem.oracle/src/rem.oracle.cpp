@@ -5,7 +5,7 @@
 #include <rem.oracle/rem.oracle.hpp>
 #include <rem.system/rem.system.hpp>
 
-namespace eosio {
+namespace remoracle {
 
    oracle::oracle(name receiver, name code, datastream<const char*> ds)
    :contract(receiver, code, ds),
@@ -28,8 +28,8 @@ namespace eosio {
       time_point ct = current_time_point();
 
       if (data_it != pricedata_tbl.end()) {
-         uint64_t ct_amount_hours = ct.sec_since_epoch() / 3600;
-         uint64_t last_amount_hours = data_it->last_update.to_time_point().sec_since_epoch() / 3600;
+         uint64_t ct_amount_hours = ct.sec_since_epoch() / setprice_window;
+         uint64_t last_amount_hours = data_it->last_update.to_time_point().sec_since_epoch() / setprice_window;
          check(ct_amount_hours > last_amount_hours, "the frequency of price changes should not exceed 1 time during the current hour");
 
          pricedata_tbl.modify(*data_it, producer, [&](auto &p) {
@@ -47,10 +47,10 @@ namespace eosio {
       if (is_active_producer) {
          std::map<name, vector<double>> pairs_points = get_relevant_prices();
          auto majority_amount = get_majority_amount();
-         uint32_t amount_prod_points = pairs_points.begin()->second.size();
 
-         if (amount_prod_points > majority_amount) {
-            for (const auto &points: pairs_points) {
+         for (const auto &points: pairs_points) {
+            uint32_t amount_prod_points = pairs_points.at(points.first).size();
+            if (amount_prod_points > majority_amount) {
                double median = get_subset_median(points.second);
 
                auto price_it = remprice_tbl.find(points.first.value);
@@ -84,6 +84,7 @@ namespace eosio {
    std::map<name, vector<double>> oracle::get_relevant_prices() const {
       vector <name> _producers = eosio::get_active_producers();
       std::map<name, vector<double>> prices_data;
+      auto ct = current_time_point();
 
       for (const auto &producer: _producers) {
          auto it = pricedata_tbl.find(producer.value);
@@ -91,10 +92,8 @@ namespace eosio {
 
             for (const auto &pair: pairstable_data.pairs) {
                // if a new pair is added, but the producer doesn't add the rate for new pair, its data is skipped
-               if (it->pairs_data.count(pair) == 0) {
-                  break;
-               }
-               prices_data[pair].push_back(it->pairs_data.at(pair));
+               if (ct - it->last_update <= seconds(setprice_window) || it->pairs_data.count(pair) != 0)
+                  prices_data[pair].push_back(it->pairs_data.at(pair));
             }
          }
       }
@@ -141,12 +140,11 @@ namespace eosio {
    }
 
    void oracle::check_pairs(const std::map<name, double> &pairs) {
-      check(pairs.size() == pairstable_data.pairs.size(), "incorrect pairs");
       for(const auto &pair: pairs) {
          auto it = pairstable_data.pairs.find(pair.first);
          check(it != pairstable_data.pairs.end(), "unsupported pairs");
       }
    }
-} /// namespace eosio
+} /// namespace remoracle
 
-EOSIO_DISPATCH( eosio::oracle, (setprice)(addpair) )
+EOSIO_DISPATCH( remoracle::oracle, (setprice)(addpair) )

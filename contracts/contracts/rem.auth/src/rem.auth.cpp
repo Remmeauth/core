@@ -152,7 +152,7 @@ namespace eosio {
       check(max_price > 0, "maximum price should be a positive value");
       check(quantity.symbol == auth_symbol, "symbol precision mismatch");
 
-      remprice_idx remprice_table(system_contract::oracle_account, system_contract::oracle_account.value);
+      remoracle::remprice_idx remprice_table(system_contract::oracle_account, system_contract::oracle_account.value);
       auto remusd_it = remprice_table.find("rem.usd"_n.value);
       check(remusd_it != remprice_table.end(), "pair does not exist");
 
@@ -269,7 +269,7 @@ namespace eosio {
 
    asset auth::get_purchase_fee(const asset &quantity_auth)
    {
-      remprice_idx remprice_table(system_contract::oracle_account, system_contract::oracle_account.value);
+      remoracle::remprice_idx remprice_table(system_contract::oracle_account, system_contract::oracle_account.value);
       auto remusd_it = remprice_table.find("rem.usd"_n.value);
       check(remusd_it != remprice_table.end(), "pair does not exist");
 
