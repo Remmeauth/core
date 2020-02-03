@@ -75,9 +75,8 @@ namespace eosiosystem {
    static constexpr int64_t  default_inflation_pay_factor  = 50000;   // producers pay share = 10000 / 50000 = 20% of the inflation
    static constexpr int64_t  default_votepay_factor        = 40000;   // per-block pay share = 10000 / 40000 = 25% of the producer pay
 
-   // 3742 bytes - is size of the new user account for current version
-   static constexpr int64_t  min_account_ram = 3800;
-   
+   static constexpr int64_t  min_account_ram = 3800; // 3742 bytes - is size of the new user account for current version
+   static constexpr uint64_t min_account_price = 5000; // the minimum price for creating a new account 0.5 $
 
    /**
     *
@@ -152,7 +151,7 @@ namespace eosiosystem {
       symbol               core_symbol;
 
       uint64_t             max_ram_size = 64ll*1024 * 1024 * 1024;
-      uint64_t             min_account_stake = 1000000; //minimum stake for new created account 100'0000 REM
+      uint64_t             min_account_stake = 1000000; // the minimum stake for new created account 100'0000 REM
       uint64_t             total_ram_bytes_reserved = 0;
       int64_t              total_ram_stake = 0;
       //producer name and pervote factor
@@ -664,6 +663,7 @@ namespace eosiosystem {
          static constexpr eosio::name saving_account{"rem.saving"_n};
          static constexpr eosio::name rex_account{"rem.rex"_n};
          static constexpr eosio::name null_account{"rem.null"_n};
+         static constexpr eosio::name rem_usd_pair{"rem.usd"_n};
          static constexpr symbol rex_symbol = symbol(symbol_code("REX"), 4);
 
          static constexpr uint8_t max_block_producers      = 21;
@@ -1460,10 +1460,11 @@ namespace eosiosystem {
       private:
          // Implementation details:
 
-         //defined in rem.system.cpp
+         // defined in rem.system.cpp
          static eosio_global_state get_default_parameters();
          static eosio_global_state4 get_default_inflation_parameters();
          static eosio_global_rem_state get_default_rem_parameters();
+         uint64_t get_min_account_stake();
          symbol core_symbol()const;
          void update_ram_supply();
 

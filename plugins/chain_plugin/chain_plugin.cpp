@@ -1133,8 +1133,8 @@ void chain_apis::read_write::validate() const {
    EOS_ASSERT( db.get_read_mode() != chain::db_read_mode::READ_ONLY, missing_chain_api_plugin_exception, "Not allowed, node in read-only mode" );
 }
 
-void chain_plugin::accept_block(const signed_block_ptr& block ) {
-   my->incoming_block_sync_method(block);
+bool chain_plugin::accept_block(const signed_block_ptr& block, const block_id_type& id ) {
+   return my->incoming_block_sync_method(block, id);
 }
 
 void chain_plugin::accept_transaction(const chain::packed_transaction_ptr& trx, next_function<chain::transaction_trace_ptr> next) {
@@ -1902,9 +1902,9 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
 
 read_only::get_voters_result read_only::get_voters( const read_only::get_voters_params& p ) const {
    get_voters_result result;
-   try{   
+   try{
       const abi_def abi = eosio::chain_apis::get_abi(db, config::system_account_name);
-      
+
       const auto table_type = get_table_type(abi, N(voters));
       const abi_serializer abis{ abi, abi_serializer_max_time };
       EOS_ASSERT(table_type == KEYi64, chain::contract_table_query_exception, "Invalid table type ${type} for table voters", ("type",table_type));
@@ -1929,7 +1929,7 @@ read_only::get_voters_result read_only::get_voters( const read_only::get_voters_
          if (p.json)
             result.rows.emplace_back( abis.binary_to_variant( abis.get_table_type(N(voters)), data, abi_serializer_max_time, shorten_abi_errors ) );
          else
-            result.rows.emplace_back(fc::variant(data));         
+            result.rows.emplace_back(fc::variant(data));
       }
    }
    catch (...) {
@@ -2108,7 +2108,7 @@ fc::variant read_only::get_block_header_state(const get_block_header_state_param
 
 void read_write::push_block(read_write::push_block_params&& params, next_function<read_write::push_block_results> next) {
    try {
-      app().get_method<incoming::methods::block_sync>()(std::make_shared<signed_block>(std::move(params)));
+      app().get_method<incoming::methods::block_sync>()(std::make_shared<signed_block>(std::move(params)), {});
       next(read_write::push_block_results{});
    } catch ( boost::interprocess::bad_alloc& ) {
       chain_plugin::handle_db_exhaustion();

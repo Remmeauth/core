@@ -7,6 +7,7 @@
 
 #include <rem.system/rem.system.hpp>
 #include <rem.token/rem.token.hpp>
+#include <rem.oracle/rem.oracle.hpp>
 
 #include <cmath>
 #include <map>
@@ -64,6 +65,7 @@ namespace eosiosystem {
    {
       require_auth( from );
       check( stake_delta.amount != 0, "should stake non-zero amount" );
+      uint64_t min_account_stake = get_min_account_stake();
 
       name source_stake_from = from;
       if ( transfer ) {
@@ -116,14 +118,14 @@ namespace eosiosystem {
                      tot.own_stake_amount += stake_delta.amount;
 
                      // we have to decrease free bytes in case of own stake
-                     const int64_t new_free_stake_amount = std::min( static_cast< int64_t >(_gstate.min_account_stake) - tot.own_stake_amount, tot.free_stake_amount);
+                     const int64_t new_free_stake_amount = std::min( static_cast< int64_t >(min_account_stake) - tot.own_stake_amount, tot.free_stake_amount);
                      tot.free_stake_amount = std::max(new_free_stake_amount, 0LL);
                   }
                });
          }
          check( 0 <= tot_itr->net_weight.amount, "insufficient staked total net bandwidth" );
          check( 0 <= tot_itr->cpu_weight.amount, "insufficient staked total cpu bandwidth" );
-         check( _gstate.min_account_stake <= tot_itr->own_stake_amount + tot_itr->free_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
+         check( min_account_stake <= tot_itr->own_stake_amount + tot_itr->free_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
 
          {
             bool ram_managed = false;

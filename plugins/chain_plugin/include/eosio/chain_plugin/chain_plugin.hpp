@@ -658,7 +658,7 @@ public:
             // which is the format used by secondary index
             uint8_t buffer[32];
             memcpy(buffer, v.data(), 32);
-            fixed_bytes<32> fb(buffer); 
+            fixed_bytes<32> fb(buffer);
             return chain::key256_t(fb.get_array());
         };
      }
@@ -676,7 +676,7 @@ public:
             // which is the format used by secondary index
             uint8_t buffer[20];
             memcpy(buffer, v.data(), 20);
-            fixed_bytes<20> fb(buffer); 
+            fixed_bytes<20> fb(buffer);
             return chain::key256_t(fb.get_array());
         };
      }
@@ -719,7 +719,7 @@ public:
    chain_apis::read_only get_read_only_api() const { return chain_apis::read_only(chain(), get_abi_serializer_max_time()); }
    chain_apis::read_write get_read_write_api() { return chain_apis::read_write(chain(), get_abi_serializer_max_time()); }
 
-   void accept_block( const chain::signed_block_ptr& block );
+   bool accept_block( const chain::signed_block_ptr& block, const chain::block_id_type& id );
    void accept_transaction(const chain::packed_transaction_ptr& trx, chain::plugin_interface::next_function<chain::transaction_trace_ptr> next);
 
    bool block_is_on_preferred_chain(const chain::block_id_type& block_id);

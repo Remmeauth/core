@@ -28,8 +28,8 @@ namespace eosio {
       time_point ct = current_time_point();
 
       if (data_it != pricedata_tbl.end()) {
-         uint64_t ct_amount_hours = ct.sec_since_epoch() / 3600;
-         uint64_t last_amount_hours = data_it->last_update.to_time_point().sec_since_epoch() / 3600;
+         uint64_t ct_amount_hours = ct.sec_since_epoch() / setprice_window;
+         uint64_t last_amount_hours = data_it->last_update.to_time_point().sec_since_epoch() / setprice_window;
          check(ct_amount_hours > last_amount_hours, "the frequency of price changes should not exceed 1 time during the current hour");
 
          pricedata_tbl.modify(*data_it, producer, [&](auto &p) {

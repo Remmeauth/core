@@ -11,7 +11,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 
 if (UNIX AND APPLE)
-   list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/llvm@7" "/usr/local/opt/gettext")
+   list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/gettext")
 endif()
 
 include( GNUInstallDirs )
@@ -56,6 +56,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 set(BUILD_DOXYGEN FALSE CACHE BOOL "Build doxygen documentation on every make")
 set(BUILD_MONGO_DB_PLUGIN FALSE CACHE BOOL "Build mongo database plugin")
+set(ENABLE_MULTIVERSION_PROTOCOL_TEST FALSE CACHE BOOL "Enable nodeos multiversion protocol test")
 
 # add defaults for openssl
 if(APPLE AND UNIX AND "${OPENSSL_ROOT_DIR}" STREQUAL "")
@@ -67,17 +68,15 @@ endif()
 #  * ctest entries with --runtime
 list(APPEND EOSIO_WASM_RUNTIMES wabt)   #always enable wabt; it works everywhere and parts of eosio still assume it's always available
 if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT WIN32)
-   list(APPEND EOSIO_WASM_RUNTIMES wavm)
-   # WAVM requires LLVM, but move the check up here to a central location so that the EosioTester.cmakes
-   # can be created with the exact version found
-   find_package(LLVM REQUIRED CONFIG)
-   if(LLVM_VERSION_MAJOR VERSION_LESS 7 OR LLVM_VERSION_MAJOR VERSION_GREATER 9)
-	   message(FATAL_ERROR "EOSIO requires an LLVM version 7.0 to 9.0")
-   endif()
-
-   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-      list(APPEND EOSIO_WASM_RUNTIMES eos-vm-oc)
-   endif()
+    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+        list(APPEND EOSIO_WASM_RUNTIMES eos-vm-oc)
+        # EOS VM OC requires LLVM, but move the check up here to a central location so that the EosioTester.cmakes
+        # can be created with the exact version found
+        find_package(LLVM REQUIRED CONFIG)
+        if(LLVM_VERSION_MAJOR VERSION_LESS 7 OR LLVM_VERSION_MAJOR VERSION_GREATER 9)
+            message(FATAL_ERROR "EOSIO requires an LLVM version 7.0 to 9.0")
+        endif()
+    endif()
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT WIN32)

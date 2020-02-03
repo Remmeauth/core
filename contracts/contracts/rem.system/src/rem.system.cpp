@@ -1,6 +1,7 @@
 #include <rem.system/rem.system.hpp>
 #include <rem.token/rem.token.hpp>
 #include <rem.attr/rem.attr.hpp>
+#include <rem.oracle/rem.oracle.hpp>
 
 #include <eosio/crypto.hpp>
 #include <eosio/dispatcher.hpp>
@@ -157,6 +158,19 @@ namespace eosiosystem {
       require_auth( get_self() );
 
       _gstate.min_account_stake = min_account_stake;
+   }
+
+   uint64_t system_contract::get_min_account_stake() {
+      eosio::remprice_idx remprice_table(oracle_account, oracle_account.value);
+      auto rem_usd_it = remprice_table.find(rem_usd_pair.value);
+      auto setprice_window_m = eosio::seconds(eosio::setprice_window + eosio::setprice_window * 0.2);
+      bool is_valid_price = ( rem_usd_it != remprice_table.end() ) && ( (current_time_point() - rem_usd_it->last_update.to_time_point()) <= setprice_window_m );
+      uint64_t oracle_min_account_stake = min_account_price / rem_usd_it->price;
+
+      if ( is_valid_price && oracle_min_account_stake > 0 ) {
+         return std::min(oracle_min_account_stake, _gstate.min_account_stake);
+      }
+      return _gstate.min_account_stake;
    }
 
    void system_contract::setram( uint64_t max_ram_size ) {
@@ -318,10 +332,11 @@ namespace eosiosystem {
          // 0 - 0.0000%, 100'0000 - 100.0000%
          check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
          const auto discount_rate = discount / 100'0000.0;
+         uint64_t min_account_stake = get_min_account_stake();
 
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-         free_stake_amount                  = discount_rate * _gstate.min_account_stake;
+         free_stake_amount                  = discount_rate * min_account_stake;
          free_gift_bytes                    = bytes_per_token * free_stake_amount;
       }
 
