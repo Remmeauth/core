@@ -391,7 +391,7 @@ namespace eosio {
     }
 
     void eth_swap_plugin::plugin_startup() {
-        ilog("Ethereum swap plugin started. Version 2.0.1");
+        ilog("Ethereum swap plugin started");
 
         try {
             ilog("last eth block: " +
