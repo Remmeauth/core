@@ -426,36 +426,29 @@ BOOST_FIXTURE_TEST_CASE( setprice_test, oracle_tester ) {
       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
 
       // test submit an incomplete list of pairs
-      pair_price.erase(N(rem.eth));
-      auto rem_eth_data_before = get_remprice_tbl(N(rem.eth));
-      for (const auto &producer: _producers)
-         setprice(producer.producer_name, pair_price);
+      {
+         pair_price.erase(N(rem.eth));
+         auto rem_eth_data_before = get_remprice_tbl(N(rem.eth));
+         for (const auto &producer: _producers)
+            setprice(producer.producer_name, pair_price);
 
-      auto ct = control->head_block_time();
-      for (const auto &pair : pair_price) {
+         auto ct = control->head_block_time();
+         for (const auto &pair : pair_price) {
 
-         auto pair_data = get_remprice_tbl(pair.first);
+            auto pair_data = get_remprice_tbl(pair.first);
 
-         vector<variant> pair_points(_producers.size(), pair.second);
+            vector<variant> pair_points(_producers.size(), pair.second);
 
-         BOOST_TEST_REQUIRE(pair_data["price"].as_double() == pair.second);
-         BOOST_TEST_REQUIRE(pair_data["pair"].as_string() == pair.first.to_string());
-         BOOST_TEST_REQUIRE(pair_data["price_points"].get_array() == pair_points);
-         BOOST_TEST_REQUIRE(pair_data["last_update"].as_string() == string(ct));
+            BOOST_TEST_REQUIRE(pair_data["price"].as_double() == pair.second);
+            BOOST_TEST_REQUIRE(pair_data["pair"].as_string() == pair.first.to_string());
+            BOOST_TEST_REQUIRE(pair_data["price_points"].get_array() == pair_points);
+            BOOST_TEST_REQUIRE(pair_data["last_update"].as_string() == string(ct));
+         }
+
+         auto rem_eth_data_after = get_remprice_tbl(N(rem.eth));
+         BOOST_TEST_REQUIRE(
+            rem_eth_data_after["last_update"].as_string() == rem_eth_data_before["last_update"].as_string());
       }
-
-      auto rem_eth_data_after = get_remprice_tbl(N(rem.eth));
-      BOOST_TEST_REQUIRE(rem_eth_data_after["last_update"].as_string() == rem_eth_data_before["last_update"].as_string());
-
-      // block producer authorization required
-      BOOST_REQUIRE_THROW(setprice(N(runnerup3), pair_price), eosio_assert_message_exception );
-      // the frequency of price changes should not exceed 1 time per hour
-      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
-      // unsupported pairs
-      pair_price[N(remxrp)] = 0.0000003957;
-      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
-      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
-
       // create account by oracle price, should be deduct 0.5 / 0.003210 = 155.7632 REM for 1 account
       {
          auto system_acc_before_balance = get_balance(config::system_account_name);
@@ -466,8 +459,8 @@ BOOST_FIXTURE_TEST_CASE( setprice_test, oracle_tester ) {
          produce_blocks();
          // insufficient minimal account stake for test2
          BOOST_REQUIRE_THROW(create_account_with_resources(N(test2), config::system_account_name,core_from_string("155.7631")), eosio_assert_message_exception );
-         // if last_update > 1 hour 10 m than min_account_stake = 100.0000 REM
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::minutes(71));
+         // if last_update > 1 hour 12 m than min_account_stake = 200.0000 REM
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::minutes(72));
 
          system_acc_before_balance = system_acc_before_after;
          create_account_with_resources(N(test3), config::system_account_name,core_from_string("200.0000"));
@@ -475,6 +468,16 @@ BOOST_FIXTURE_TEST_CASE( setprice_test, oracle_tester ) {
 
          BOOST_TEST_REQUIRE(system_acc_before_balance - core_from_string("200.0000") == system_acc_before_after);
       }
+
+      // block producer authorization required
+      BOOST_REQUIRE_THROW(setprice(N(runnerup3), pair_price), eosio_assert_message_exception );
+      // the frequency of price changes should not exceed 1 time per hour
+      setprice(N(proda), pair_price);
+      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
+      // unsupported pairs
+      pair_price[N(remxrp)] = 0.0000003957;
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
+      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
 
    } FC_LOG_AND_RETHROW()
 }
