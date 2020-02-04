@@ -94,7 +94,8 @@ int main(int argc, char** argv)
          .default_http_port = 8888
       });
       if(!app().initialize<chain_plugin, net_plugin, producer_plugin>(argc, argv)) {
-         if(app().get_options().count("help") || app().get_options().count("version") || app().get_options().count("full-version")) {
+         const auto& opts = app().get_options();
+         if( opts.count("help") || opts.count("version") || opts.count("full-version") || opts.count("print-default-config") ) {
             return SUCCESS;
          }
          return INITIALIZE_FAIL;
@@ -102,7 +103,7 @@ int main(int argc, char** argv)
       initialize_logging();
       ilog( "${name} version ${ver} ${fv}",
             ("name", remnode::config::node_executable_name)("ver", app().version_string())
-               ("fv", app().version_string() == app().full_version_string() ? "" : app().full_version_string()) );
+            ("fv", app().version_string() == app().full_version_string() ? "" : app().full_version_string()) );
       ilog("${name} using configuration file ${c}", ("name", remnode::config::node_executable_name)("c", app().full_config_file_path().string()));
       ilog("${name} data directory is ${d}", ("name", remnode::config::node_executable_name)("d", app().data_dir().string()));
       app().startup();

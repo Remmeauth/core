@@ -113,6 +113,14 @@ public:
       return r;
    }
 
+   auto setminstake(const uint64_t& min_account_stake) {
+      auto r = base_tester::push_action(config::system_account_name, N(setminstake), config::system_account_name, mvo()
+         ("min_account_stake",  min_account_stake)
+      );
+      produce_block();
+      return r;
+   }
+
    auto addpair(const name& pair, const vector<permission_level>& level) {
       auto r = base_tester::push_action(N(rem.oracle), N(addpair), level, mvo()
          ("pair", pair )
@@ -141,6 +149,30 @@ public:
       );
       produce_blocks();
    };
+
+   transaction_trace_ptr create_account_with_resources(account_name new_acc, account_name creator, asset stake, bool transfer = true) {
+      signed_transaction trx;
+      set_transaction_headers(trx);
+
+      authority owner_auth = authority(get_public_key(new_acc, "owner"));
+
+      trx.actions.emplace_back(vector<permission_level>{{creator, config::active_name}},
+                               newaccount{
+                                  .creator = creator,
+                                  .name = new_acc,
+                                  .owner = owner_auth,
+                                  .active = authority(get_public_key(new_acc, "active"))});
+
+      trx.actions.emplace_back(
+         get_action(config::system_account_name, N(delegatebw), vector<permission_level>{{creator, config::active_name}},
+                    mvo()("from", creator)("receiver", new_acc)("stake_quantity", stake)("transfer", transfer)
+         )
+      );
+
+      set_transaction_headers(trx);
+      trx.sign(get_private_key(creator, "active"), control->get_chain_id());
+      return push_transaction(trx);
+   }
 
    variant get_remprice_tbl( const name& pair ) {
       vector<char> data = get_row_by_account( N(rem.oracle), N(rem.oracle), N(remprice), pair );
@@ -318,6 +350,8 @@ oracle_tester::oracle_tester() {
    for (const auto &pair : supported_pairs) {
       addpair(pair, { {N(rem.oracle), config::active_name} });
    }
+   // for creating account by oracle price
+   setminstake(200'0000u);
 }
 
 BOOST_AUTO_TEST_SUITE(rem_oracle_tests)
@@ -421,6 +455,26 @@ BOOST_FIXTURE_TEST_CASE( setprice_test, oracle_tester ) {
       pair_price[N(remxrp)] = 0.0000003957;
       produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
       BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
+
+      // create account by oracle price, should be deduct 0.5 / 0.003210 = 155.7632 REM for 1 account
+      {
+         auto system_acc_before_balance = get_balance(config::system_account_name);
+         create_account_with_resources(N(test1), config::system_account_name,core_from_string("155.7632"));
+         auto system_acc_before_after = get_balance(config::system_account_name);
+
+         BOOST_TEST_REQUIRE(system_acc_before_balance - core_from_string("155.7632") == system_acc_before_after);
+         produce_blocks();
+         // insufficient minimal account stake for test2
+         BOOST_REQUIRE_THROW(create_account_with_resources(N(test2), config::system_account_name,core_from_string("155.7631")), eosio_assert_message_exception );
+         // if last_update > 1 hour 10 m than min_account_stake = 100.0000 REM
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::minutes(71));
+
+         system_acc_before_balance = system_acc_before_after;
+         create_account_with_resources(N(test3), config::system_account_name,core_from_string("200.0000"));
+         system_acc_before_after = get_balance(config::system_account_name);
+
+         BOOST_TEST_REQUIRE(system_acc_before_balance - core_from_string("200.0000") == system_acc_before_after);
+      }
 
    } FC_LOG_AND_RETHROW()
 }

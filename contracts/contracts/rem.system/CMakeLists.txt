@@ -13,6 +13,7 @@ target_include_directories(rem.system
    ${CMAKE_CURRENT_SOURCE_DIR}/include
    ${CMAKE_CURRENT_SOURCE_DIR}/../rem.token/include
    ${CMAKE_CURRENT_SOURCE_DIR}/../rem.attr/include
+   ${CMAKE_CURRENT_SOURCE_DIR}/../rem.oracle/include
 )
 
 set_target_properties(rem.system
