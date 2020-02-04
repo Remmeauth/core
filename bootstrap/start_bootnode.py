@@ -13,7 +13,7 @@ unlockTimeout = 999999999
 maxClients = 30
 
 cryptocompare_apikey = '3149f5165071436773542056dc30d8ec7d4ba986968c51e46103c19a212a21ed'
-eth_wss_provider = 'wss://ropsten.infura.io/ws/v3/3f98ae6029094659ac8f57f66e673129'
+eth_https_provider = 'https://ropsten.infura.io/v3/3f98ae6029094659ac8f57f66e673129'
 
 private_key = '5K463ynhZoCDDa4RDcr63cUwWLTnKqmdcoTKTHBjqoKfv4u5V7p'
 
@@ -59,9 +59,9 @@ def start_node(nodeIndex, accounts):
         swap_and_oracle_opts += (
                 '    --cryptocompare-apikey ' + cryptocompare_apikey
         )
-    if eth_wss_provider:
+    if eth_https_provider:
         swap_and_oracle_opts += (
-                '    --eth-wss-provider ' + eth_wss_provider
+                '    --eth-https-provider ' + eth_https_provider
         )
     cmd = (
             remnode +

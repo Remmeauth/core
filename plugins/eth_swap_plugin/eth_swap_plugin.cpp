@@ -3,7 +3,7 @@
  *  @copyright defined in eos/LICENSE
  */
 #include <eosio/eth_swap_plugin/eth_swap_plugin.hpp>
-#include <eosio/eth_swap_plugin/my_web3.hpp>
+#include <eosio/eth_swap_plugin/http_client.hpp>
 #include <eosio/chain_plugin/chain_plugin.hpp>
 #include <eosio/chain/wast_to_wasm.hpp>
 
@@ -24,6 +24,7 @@
 #include <websocketpp/common/thread.hpp>
 
 #include <iostream>
+
 #include <algorithm>
 
 
@@ -37,10 +38,10 @@ namespace eosio {
         std::vector<fc::crypto::private_key> _swap_signing_key;
         std::vector<name> _swap_signing_account;
         std::vector<std::string> _swap_signing_permission;
-        std::string _eth_wss_provider;
+        std::string _eth_https_provider_host;
+        std::string _eth_https_provider_endpoint;
 
         void start_monitor() {
-
             while (eth_swap_contract_address.empty() && return_chain_id.empty()) {
                 try {
                     chain_apis::read_only::get_table_rows_params params = {};
@@ -65,8 +66,8 @@ namespace eosio {
             uint64_t last_block_dec = 0;
             while (last_block_dec == 0) {
                 try {
-                    my_web3 my_w3(this->_eth_wss_provider);
-                    last_block_dec = my_w3.get_last_block_num();
+                    last_block_dec = get_last_block_num(this->_eth_https_provider_host,
+                                                        this->_eth_https_provider_endpoint);
                 } FC_LOG_WAIT_AND_CONTINUE()
             }
 
@@ -77,12 +78,11 @@ namespace eosio {
             });
             t.detach();
 
-            uint32_t current_long_polling_blocks_per_filter = long_polling_blocks_per_filter;
-            uint64_t from_block_dec = last_block_dec - current_long_polling_blocks_per_filter - min_tx_confirmations;
+            uint64_t from_block_dec = last_block_dec - long_polling_blocks_per_filter - min_tx_confirmations;
             while (true) {
                 try {
-                    my_web3 my_w3(this->_eth_wss_provider);
-                    last_block_dec = my_w3.get_last_block_num();
+                    last_block_dec = get_last_block_num(this->_eth_https_provider_host,
+                                                        this->_eth_https_provider_endpoint);
 
                     std::stringstream stream;
                     stream << std::hex << from_block_dec;
@@ -94,32 +94,33 @@ namespace eosio {
                     uint64_t to_block_dec;
 
                     to_block_dec = std::min(last_block_dec - min_tx_confirmations,
-                                            from_block_dec + current_long_polling_blocks_per_filter);
+                                            from_block_dec + long_polling_blocks_per_filter);
+
+                    if (to_block_dec < from_block_dec)
+                        continue;
                     stream << std::hex << to_block_dec;
                     std::string to_block("0x" + stream.str());
                     stream.str("");
                     stream.clear();
 
-                    request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block,
-                                                              "[\"" + string(eth_swap_request_event) + "\"]");
-                    filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
-                    my_w3.uninstall_filter(request_swap_filter_id);
-
-                    std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
-
+                    filter_logs = get_filter_logs(this->_eth_https_provider_host,
+                                                  this->_eth_https_provider_endpoint,
+                                                  eth_swap_contract_address,
+                                                  from_block,
+                                                  to_block,
+                                                  "[\"" + string(eth_swap_request_event) + "\"]");
+                    std::vector<swap_event_data> prev_swap_requests;
+                    try {
+                        prev_swap_requests = get_prev_swap_events(filter_logs);
+                    } catch(...) {
+                        wlog("Error parsing response from Infura: ${logs}", ("logs", filter_logs));
+                        sleep(wait_for_eth_node);
+                        continue;
+                    }
                     push_txs(prev_swap_requests);
                     from_block_dec = to_block_dec;
-                    current_long_polling_blocks_per_filter = std::min(current_long_polling_blocks_per_filter * 2,
-                                                                      long_polling_blocks_per_filter);
 
                     sleep(long_polling_period);
-                } catch (TimeoutException e) {
-                    if (current_long_polling_blocks_per_filter == 1) {
-                        elog("Eth node is not responding at block ${b}", ("b", from_block_dec));
-                        sleep(wait_for_eth_node);
-                    }
-                    current_long_polling_blocks_per_filter /= 4;
-                    current_long_polling_blocks_per_filter = std::max(1u, current_long_polling_blocks_per_filter);
                 } FC_LOG_WAIT_AND_CONTINUE()
             }
         }
@@ -133,11 +134,8 @@ namespace eosio {
         }
 
         void init_prev_swap_requests(uint64_t min_block_dec, uint64_t to_block_dec) {
-            uint32_t current_blocks_per_filter = blocks_per_filter;
             while (to_block_dec > min_block_dec) {
                 try {
-                    my_web3 my_w3(this->_eth_wss_provider);
-
                     while (to_block_dec > min_block_dec) {
 
                         std::stringstream stream;
@@ -149,31 +147,32 @@ namespace eosio {
 
                         std::string request_swap_filter_id, filter_logs, from_block;
 
-                        stream << std::hex << std::max(min_block_dec, to_block_dec - current_blocks_per_filter);
+                        stream << std::hex << std::max(min_block_dec, to_block_dec - blocks_per_filter);
                         from_block = "0x" + stream.str();
                         stream.str("");
                         stream.clear();
 
-                        request_swap_filter_id = my_w3.new_filter(eth_swap_contract_address, from_block, to_block,
-                                                                  "[\"" + string(eth_swap_request_event) + "\"]");
-                        filter_logs = my_w3.get_filter_logs(request_swap_filter_id);
-                        my_w3.uninstall_filter(request_swap_filter_id);
+                        filter_logs = get_filter_logs(this->_eth_https_provider_host,
+                                                      this->_eth_https_provider_endpoint,
+                                                      eth_swap_contract_address,
+                                                      from_block,
+                                                      to_block,
+                                                      "[\"" + string(eth_swap_request_event) + "\"]");
+                        std::vector<swap_event_data> prev_swap_requests;
+                        try {
+                            prev_swap_requests = get_prev_swap_events(filter_logs);
+                        } catch(...) {
+                            wlog("Error parsing response from Infura: ${logs}", ("logs", filter_logs));
+                            sleep(wait_for_eth_node);
+                            continue;
+                        }
 
-                        std::vector<swap_event_data> prev_swap_requests = get_prev_swap_events(filter_logs);
                         std::reverse(prev_swap_requests.begin(), prev_swap_requests.end());
 
                         push_txs(prev_swap_requests);
-                        to_block_dec -= current_blocks_per_filter;
-                        current_blocks_per_filter = std::min(current_blocks_per_filter * 2, blocks_per_filter);
+                        to_block_dec -= blocks_per_filter;
                     }
 
-                } catch (TimeoutException e) {
-                    if (current_blocks_per_filter == 1) {
-                        elog("Eth node is not responding at block ${b}", ("b", to_block_dec));
-                        sleep(wait_for_eth_node);
-                    }
-                    current_blocks_per_filter /= 4;
-                    current_blocks_per_filter = std::max(1u, current_blocks_per_filter);
                 } FC_LOG_WAIT_AND_CONTINUE()
             }
         }
@@ -221,15 +220,20 @@ namespace eosio {
                                                   data.return_chain_id,
                                                   epoch_block_timestamp(slot)});
 
-                    trx.expiration = cc.head_block_time() + fc::seconds(init_swap_expiration_time);
-                    trx.set_reference_block(cc.head_block_id());
                     trx.max_net_usage_words = 5000;
-                    trx.sign(this->_swap_signing_key[i], chainid);
                     trxs.emplace_back(std::move(trx));
                     try {
                         auto trxs_copy = std::make_shared<std::decay_t<decltype(trxs)>>(std::move(trxs));
-                        app().post(priority::low, [trxs_copy, &status, data, slot]() {
+                        app().post(priority::low, [this, trxs_copy, &status, data, slot]() {
+                            controller &cc = app().get_plugin<chain_plugin>().chain();
+                            auto chainid = app().get_plugin<chain_plugin>().get_chain_id();
                             for (size_t i = 0; i < trxs_copy->size(); ++i) {
+
+                                trxs_copy->at(i).expiration =
+                                        cc.head_block_time() + fc::seconds(init_swap_expiration_time);
+                                trxs_copy->at(i).set_reference_block(cc.head_block_id());
+                                trxs_copy->at(i).sign(this->_swap_signing_key[i], chainid);
+
                                 name account = trxs_copy->at(i).first_authorizer();
                                 app().get_plugin<chain_plugin>().accept_transaction(
                                         std::make_shared<packed_transaction>(trxs_copy->at(i)),
@@ -246,8 +250,18 @@ namespace eosio {
                                                 if (err_str.find("swap already canceled") == string::npos &&
                                                     err_str.find("swap already finished") == string::npos &&
                                                     err_str.find("approval already exists") == string::npos &&
+                                                    err_str.find("only top25 block producers' approvals are recorded") == string::npos &&
                                                     err_str.find("Duplicate transaction") == string::npos)
                                                     elog("${prod} failed to push init swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
+                                                         ("prod", account)("res",
+                                                                           result.get<fc::exception_ptr>()->to_string())(
+                                                                 "txid", data.txid)("pubkey", data.swap_pubkey)(
+                                                                 "amount", data.amount)
+                                                                 ("ret_addr", data.return_address)("ret_chainid",
+                                                                                                   data.return_chain_id)(
+                                                                 "timestamp", epoch_block_timestamp(slot)));
+                                                else
+                                                    ilog("${prod} skips swap transaction(${txid}, ${pubkey}, ${amount}, ${ret_addr}, ${ret_chainid}, ${timestamp}): ${res}",
                                                          ("prod", account)("res",
                                                                            result.get<fc::exception_ptr>()->to_string())(
                                                                  "txid", data.txid)("pubkey", data.swap_pubkey)(
@@ -273,7 +287,7 @@ namespace eosio {
                             }
                         });
                     } FC_LOG_AND_DROP()
-                    for (uint i = 0; i < retry_push_tx_time / wait_for_accept_tx && status == NoStatus; i++)
+                    for (uint j = 0; j < retry_push_tx_time / wait_for_accept_tx && status == NoStatus; j++)
                         sleep(wait_for_accept_tx);
                     if (status == OutOfResources)
                         sleep(wait_for_resources);
@@ -289,8 +303,8 @@ namespace eosio {
 
     void eth_swap_plugin::set_program_options(options_description &, options_description &cfg) {
         cfg.add_options()
-                ("eth-wss-provider", bpo::value<std::string>(),
-                 "Ethereum websocket provider. For example wss://mainnet.infura.io/ws/v3/<infura_id>")
+                ("eth-https-provider", bpo::value<std::string>(),
+                 "Ethereum https provider. For example https://mainnet.infura.io/v3/<infura_id>")
                 ("swap-authority", bpo::value<std::vector<std::string>>(),
                  "Account name and permission to authorize init swap actions. For example blockproducer1@active")
                 ("swap-signing-key", bpo::value<std::vector<std::string>>(),
@@ -335,10 +349,24 @@ namespace eosio {
                         fc::crypto::private_key(swap_signing_key[std::min(i, swap_signing_key.size() - 1)]));
             }
 
-            //std::string prefix = "wss://";
-            my->_eth_wss_provider = options.at("eth-wss-provider").as<std::string>();
-            //if(my->_eth_wss_provider.substr(0, prefix.size()) != prefix)
-            //throw InvalidWssLinkException("Invalid ethereum node connection link. Should start with " + prefix);
+            std::string eth_https_provider = options.at("eth-https-provider").as<std::string>();
+            size_t protocol_len = 0;
+            if (eth_https_provider.rfind("https://", 0) == 0)
+                protocol_len = 8;
+            else if (eth_https_provider.rfind("http://", 0) == 0)
+                protocol_len = 7;
+
+            if (protocol_len != 0) {
+                eth_https_provider.erase(0, protocol_len);
+
+                string::size_type pos;
+                pos = eth_https_provider.find('/', 0);
+                my->_eth_https_provider_host = eth_https_provider.substr(0, pos);
+                my->_eth_https_provider_endpoint = eth_https_provider.substr(pos, eth_https_provider.length() - pos);
+            } else {
+                throw InvalidEthLinkException(
+                        "Invalid Ethereum https link. Should be https://mainnet.infura.io/v3/<infura_id>");
+            }
 
             //eth_swap_contract_address = options.at( "eth_swap_contract_address" ).as<std::string>();
             eth_swap_request_event = options.at("eth_swap_request_event").as<std::string>();
@@ -364,9 +392,10 @@ namespace eosio {
 
     void eth_swap_plugin::plugin_startup() {
         ilog("Ethereum swap plugin started");
+
         try {
-            my_web3 my_w3(my->_eth_wss_provider);
-            ilog("last eth block: " + to_string(my_w3.get_last_block_num()));
+            ilog("last eth block: " +
+                 to_string(get_last_block_num(my->_eth_https_provider_host, my->_eth_https_provider_endpoint)));
         } FC_LOG_AND_RETHROW()
 
         std::thread t2([=]() {
@@ -379,6 +408,46 @@ namespace eosio {
     }
 
     void eth_swap_plugin::plugin_shutdown() {
+    }
+
+    template<typename T>
+    boost::optional<T> get_json_optional(const std::string &payload, const std::string &path) {
+        boost::iostreams::stream<boost::iostreams::array_source> stream(payload.c_str(), payload.size());
+        namespace pt = boost::property_tree;
+        pt::ptree root;
+        pt::read_json(stream, root);
+        return root.get_optional<T>(path.c_str());
+    }
+
+    uint64_t get_last_block_num(std::string host, std::string endpoint) {
+        const char *get_last_block_body = "{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":0}";
+        std::string res = make_request(host, endpoint, "POST", get_last_block_body);
+        boost::optional<std::string> block_num_hex = get_json_optional<std::string>(res, "result");
+        uint64_t last_block_num;
+
+        if (block_num_hex) {
+            std::stringstream ss;
+            ss << std::hex << block_num_hex;
+            ss >> last_block_num;
+            return last_block_num;
+        }
+        return 0;
+    }
+
+    std::string get_filter_logs(const std::string &host,
+                                const std::string &endpoint,
+                                const std::string &contract_address,
+                                const std::string &from_block,
+                                const std::string &to_block,
+                                const std::string &topics) {
+        std::string get_logs_body = "{\"id\": " + std::to_string(0) + "," \
+        "\"method\": \"eth_getLogs\"," \
+        "\"params\": [{\"address\": \"" + contract_address + "\"," \
+        "\"fromBlock\": \"" + from_block + "\"," \
+        "\"toBlock\": \"" + to_block + "\"," \
+        "\"topics\": " + topics + "}]}";
+
+        return make_request(host, endpoint, "POST", get_logs_body);
     }
 
     std::string hex_to_string(const std::string &input) {

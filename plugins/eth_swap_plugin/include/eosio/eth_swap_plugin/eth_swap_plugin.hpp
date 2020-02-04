@@ -92,8 +92,8 @@ namespace eosio {
   amount of blocks per one filter
   infura doesn't support long filters so need to split to several filters
 */
-    uint32_t blocks_per_filter = 1000;
-    uint32_t long_polling_blocks_per_filter = 1000;
+    uint32_t blocks_per_filter = 10000;
+    uint32_t long_polling_blocks_per_filter = 10000;
     uint32_t long_polling_period = 60;
 /*
   maximum amount of checks for transaction confirmations of ethereum
@@ -142,9 +142,18 @@ namespace eosio {
 
     std::vector<swap_event_data> get_prev_swap_events(const std::string &logs);
 
-    class InvalidWssLinkException : public std::exception {
+    uint64_t get_last_block_num(std::string host, std::string endpoint);
+
+    std::string get_filter_logs(const std::string &host,
+                                const std::string &endpoint,
+                                const std::string &contract_address,
+                                const std::string &from_block,
+                                const std::string &to_block,
+                                const std::string &topics);
+
+    class InvalidEthLinkException : public std::exception {
     public:
-        explicit InvalidWssLinkException(const std::string &message) : message_(message) {}
+        explicit InvalidEthLinkException(const std::string &message) : message_(message) {}
 
         const char *what() const throw() {
             return message_.c_str();

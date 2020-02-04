@@ -1,11 +1,9 @@
 #include <eosio/rem_oracle_plugin/http_client.hpp>
 
-using boost::asio::ip::tcp;
-
-
 http_client::http_client(boost::asio::io_service &io_service,
                          boost::asio::ssl::context &context,
-                         const std::string &server, const std::string &path)
+                         const std::string &server, const std::string &path, const std::string &method,
+                         const std::string &body)
         : resolver_(io_service),
           socket_(io_service, context) {
 
@@ -13,10 +11,17 @@ http_client::http_client(boost::asio::io_service &io_service,
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
     std::ostream request_stream(&request_);
-    request_stream << "GET " << path << " HTTP/1.0\r\n";
+    request_stream << method << " " << path << " HTTP/1.0\r\n";
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
+
+    if (body != "") {
+        request_stream << "Content-Type: application/json\n";
+        request_stream << "Content-Length: " << body.length() << "\n";
+    }
     request_stream << "Connection: close\r\n\r\n";
+
+    request_stream << body;
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
@@ -171,4 +176,16 @@ void http_client::handle_read_content(const boost::system::error_code &err) {
     } else if (err != boost::asio::error::eof) {
         //std::cout << "Error: " << err << "\n";
     }
+}
+
+std::string make_request(std::string host, std::string endpoint, std::string method, std::string body) {
+    boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+    ctx.set_default_verify_paths();
+
+    boost::asio::io_service io_service;
+    http_client c(io_service, ctx, host, endpoint, method, body);
+    io_service.run();
+
+    std::string response = c.get_response_body();
+    return response;
 }
