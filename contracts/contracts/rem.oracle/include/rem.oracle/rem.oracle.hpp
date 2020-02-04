@@ -26,7 +26,7 @@ namespace remoracle {
    using std::vector;
 
    // A window in which producer can submit a new rate
-   static constexpr uint32_t setprice_window = 3600;
+   static constexpr uint32_t setprice_window_seconds = 3600;
 
    // Defines 'remprice' to be stored market price to the specified pairs
    struct [[eosio::table, eosio::contract("rem.oracle")]] remprice {

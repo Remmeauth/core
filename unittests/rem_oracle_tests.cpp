@@ -352,7 +352,7 @@ BOOST_FIXTURE_TEST_CASE( setprice_test, oracle_tester ) {
 
       {
          time_point ct;
-         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(3600)); // +1 hour
+         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
          for (const auto &producer : _producers) {
             setprice(producer.producer_name, pair_price);
             ct = control->head_block_time();
@@ -389,16 +389,37 @@ BOOST_FIXTURE_TEST_CASE( setprice_test, oracle_tester ) {
          }
       }
 
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
+
+      // test submit an incomplete list of pairs
+      pair_price.erase(N(rem.eth));
+      auto rem_eth_data_before = get_remprice_tbl(N(rem.eth));
+      for (const auto &producer: _producers)
+         setprice(producer.producer_name, pair_price);
+
+      auto ct = control->head_block_time();
+      for (const auto &pair : pair_price) {
+
+         auto pair_data = get_remprice_tbl(pair.first);
+
+         vector<variant> pair_points(_producers.size(), pair.second);
+
+         BOOST_TEST_REQUIRE(pair_data["price"].as_double() == pair.second);
+         BOOST_TEST_REQUIRE(pair_data["pair"].as_string() == pair.first.to_string());
+         BOOST_TEST_REQUIRE(pair_data["price_points"].get_array() == pair_points);
+         BOOST_TEST_REQUIRE(pair_data["last_update"].as_string() == string(ct));
+      }
+
+      auto rem_eth_data_after = get_remprice_tbl(N(rem.eth));
+      BOOST_TEST_REQUIRE(rem_eth_data_after["last_update"].as_string() == rem_eth_data_before["last_update"].as_string());
+
       // block producer authorization required
       BOOST_REQUIRE_THROW(setprice(N(runnerup3), pair_price), eosio_assert_message_exception );
       // the frequency of price changes should not exceed 1 time per hour
       BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
-      // incorrect pairs
-      pair_price = { {N(rem.usd), 0.003210},
-                     {N(rem.btc), 0.0000003957} };
-      BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
       // unsupported pairs
       pair_price[N(remxrp)] = 0.0000003957;
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
       BOOST_REQUIRE_THROW(setprice(N(proda), pair_price), eosio_assert_message_exception );
 
    } FC_LOG_AND_RETHROW()
@@ -418,7 +439,7 @@ BOOST_FIXTURE_TEST_CASE( setprice_median_test, oracle_tester ) {
       vector<variant> remusd_points;
       vector<variant> rembtc_points;
       vector<variant> remeth_points;
-      produce_blocks_for_n_rounds(10); // shift time to test the frequency of price changes
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::minutes(20)); // shift time to test the frequency of price changes
 
       for (const auto &producer: _producers) {
          remusd_points.emplace_back(++pair_price[N(rem.usd)]);
@@ -438,20 +459,17 @@ BOOST_FIXTURE_TEST_CASE( setprice_median_test, oracle_tester ) {
       BOOST_TEST_REQUIRE(rembtc_data["price_points"].get_array() == rembtc_points);
       BOOST_TEST_REQUIRE(remeth_data["price_points"].get_array() == remeth_points);
 
+      produce_blocks_for_n_rounds(29); // +1 hour
       // shift median remusd on nth position
       // the range of points remusd is a [ 1 .. 21 ], to shift median need to reduce delta of the current subset
       for(size_t i = 0; i < (_producers.size() - majority_amount); ++i) {
-         produce_blocks_for_n_rounds(29); // +1 hour
-
          // increase the prev delta for the current subset
          pair_price[N(rem.usd)] = i + 1;
          setprice(_producers.at(i).producer_name, pair_price);
          // decrease by 0.5 the current delta
          pair_price[N(rem.usd)] = i + 2.5;
-         setprice(_producers.at(i + 1).producer_name, pair_price);
 
          remusd_data = get_remprice_tbl(N(rem.usd));
-
          BOOST_TEST_REQUIRE(remusd_data["price"].as_double() == remusd_points[(majority_amount / 2) + i + 1]);
       }
 
@@ -480,7 +498,7 @@ BOOST_FIXTURE_TEST_CASE( addpair_test, oracle_tester ) {
       supported_pairs.emplace_back(N(rem.bnb));
       addpair(N(rem.bnb), { {N(rem.oracle), config::active_name} });
 
-      produce_blocks_for_n_rounds(29); // +1 hour
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
       pair_price[N(rem.bnb)] = 1;
       setprice(N(proda), pair_price);
 
@@ -504,7 +522,7 @@ BOOST_FIXTURE_TEST_CASE( addpair_test, oracle_tester ) {
       BOOST_TEST_REQUIRE(remeth_data["pair"] == remeth_data_after["pair"]);
       BOOST_TEST_REQUIRE(remeth_data["last_update"] == remeth_data_after["last_update"]);
 
-      produce_blocks_for_n_rounds(29); // +1 hour
+      produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::hours(1));
       // add new pair data (rembnb)
       for (const auto &producer : _producers) {
          setprice(producer.producer_name, pair_price);

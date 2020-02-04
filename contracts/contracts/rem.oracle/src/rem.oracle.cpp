@@ -28,8 +28,8 @@ namespace remoracle {
       time_point ct = current_time_point();
 
       if (data_it != pricedata_tbl.end()) {
-         uint64_t ct_amount_hours = ct.sec_since_epoch() / setprice_window;
-         uint64_t last_amount_hours = data_it->last_update.to_time_point().sec_since_epoch() / setprice_window;
+         uint64_t ct_amount_hours = ct.sec_since_epoch() / setprice_window_seconds;
+         uint64_t last_amount_hours = data_it->last_update.to_time_point().sec_since_epoch() / setprice_window_seconds;
          check(ct_amount_hours > last_amount_hours, "the frequency of price changes should not exceed 1 time during the current hour");
 
          pricedata_tbl.modify(*data_it, producer, [&](auto &p) {
@@ -49,8 +49,7 @@ namespace remoracle {
          auto majority_amount = get_majority_amount();
 
          for (const auto &points: pairs_points) {
-            uint32_t amount_prod_points = pairs_points.at(points.first).size();
-            if (amount_prod_points > majority_amount) {
+            if (points.second.size() > majority_amount) {
                double median = get_subset_median(points.second);
 
                auto price_it = remprice_tbl.find(points.first.value);
@@ -88,11 +87,11 @@ namespace remoracle {
 
       for (const auto &producer: _producers) {
          auto it = pricedata_tbl.find(producer.value);
-         if (it != pricedata_tbl.end()) {
+         if (it != pricedata_tbl.end() && ((ct - it->last_update) < seconds(setprice_window_seconds * 2))) {
 
             for (const auto &pair: pairstable_data.pairs) {
                // if a new pair is added, but the producer doesn't add the rate for new pair, its data is skipped
-               if (ct - it->last_update <= seconds(setprice_window) || it->pairs_data.count(pair) != 0)
+               if (it->pairs_data.count(pair) != 0)
                   prices_data[pair].push_back(it->pairs_data.at(pair));
             }
          }
