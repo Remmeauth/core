@@ -181,10 +181,6 @@ namespace eosiosystem {
       if( voter == "b1"_n ) {
          validate_b1_vesting( voter_itr->staked );
       }
-
-      if( voter_itr->producers.size() || voter_itr->proxy ) {
-         update_votes( voter, voter_itr->proxy, voter_itr->producers, false );
-      }
    }
 
    void system_contract::delegatebw( const name& from, const name& receiver,
@@ -209,8 +205,8 @@ namespace eosiosystem {
                + microseconds{ static_cast< int64_t >( restake_rate * _gremstate.stake_lock_period.count() ) };
       });
 
-      // transfer staked tokens to stake_account (eosio.stake)
-      // for eosio.stake both transfer and refund make no sense
+      // transfer staked tokens to stake_account (rem.stake)
+      // for rem.stake both transfer and refund make no sense
       if ( stake_account != from ) { 
          token::transfer_action transfer_act{ token_account, { {from, active_permission} } };
          transfer_act.send( from, stake_account, asset(stake_quantity), "stake bandwidth" );
