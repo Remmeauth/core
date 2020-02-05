@@ -34,7 +34,8 @@ Remme Protocol currently supports the following operating systems:
 2. CentOS 7
 3. Ubuntu 16.04
 4. Ubuntu 18.04
-5. MacOS 10.14 (Mojave)
+5. Ubuntu 19.04
+6. MacOS 10.14 (Mojave)
 
 ## <a name="overview"></a> Get familiar with EOSIO architecture
 
@@ -50,10 +51,9 @@ If you are a developer, depending on your context, you would probably need an in
 Before you begin, install EOSIO.CDT v1.7+ from [the EOSIO.CDT repository](https://github.com/EOSIO/eosio.cdt).
 
 ```sh
-git clone https://github.com/Remmeauth/remprotocol
+git clone --recursive https://github.com/Remmeauth/remprotocol
 cd remprotocol/
-git submodule update --init --recursive
-./scripts/eosio_build.sh -s REM -y
+./scripts/eosio_build.sh -ym
 ```
 
 Alternatively, you may install pre-built binaries from [the archive](https://github.com/Remmeauth/remprotocol/releases/latest).
