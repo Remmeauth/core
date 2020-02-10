@@ -540,6 +540,17 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
             BOOST_TEST_REQUIRE( 1.4880535147525217e+18 == prod["total_votes"].as_double() );
 
         }
+
+        // Test removing votes
+        {
+           const auto voter_before = get_voter_info( name("whale1") );
+           BOOST_TEST_REQUIRE( 0.0 < voter_before["last_vote_weight"].as_double() );
+           votepro( N(whale1), {} );
+
+           // last_vote_weight should be 0
+           const auto voter_after = get_voter_info( name("whale1") );
+           BOOST_TEST_REQUIRE( 0.0 == voter_after["last_vote_weight"].as_double() );
+        }
     } FC_LOG_AND_RETHROW()
 }
 
