@@ -294,10 +294,10 @@ namespace eosiosystem {
     *  who can create accounts with the creator's name as a suffix.
     *
     */
-   void system_contract::newaccount( const name&       creator,
-                            const name&       newact,
-                            ignore<authority> owner,
-                            ignore<authority> active ) {
+   void system_contract::newaccount( const name&        creator,
+                                     const name&        newact,
+                                     ignore<authority>  owner,
+                                     ignore<authority>  active ) {
 
       if( creator != get_self() ) {
          uint64_t tmp = newact.value >> 4;
@@ -332,11 +332,10 @@ namespace eosiosystem {
          // 0 - 0.0000%, 100'0000 - 100.0000%
          check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
          const auto discount_rate = discount / 100'0000.0;
-         uint64_t min_account_stake = get_min_account_stake();
 
          const auto system_token_max_supply = eosio::token::get_max_supply(token_account, system_contract::get_core_symbol().code() );
          const double bytes_per_token       = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
-         free_stake_amount                  = discount_rate * min_account_stake;
+         free_stake_amount                  = discount_rate * _gstate.min_account_stake;
          free_gift_bytes                    = bytes_per_token * free_stake_amount;
       }
 

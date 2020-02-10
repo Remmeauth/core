@@ -604,10 +604,9 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
       // in this case min_account_stake > min_account_price / rem_usd_price
       setminstake(200'0000);
 
-      auto min_account_stake = get_global_state()["min_account_stake"].as<int64_t>();
+      auto min_account_stake_global = get_global_state()["min_account_stake"].as<int64_t>();
       const uint64_t min_account_price = 5000;
-      BOOST_REQUIRE_EQUAL(min_account_stake, 2000000u);
-      BOOST_REQUIRE_EQUAL(min_account_price, 5000u);
+      BOOST_REQUIRE_EQUAL(min_account_stake_global, 2000000u);
       auto pair_data = get_remprice_tbl(N(rem.usd));
       print_usage(N(rem));
       print_usage(N(rem.stake));
@@ -619,7 +618,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
          BOOST_REQUIRE(get_account_attribute(N(rem.attr), config::system_account_name, acc_gifter_attr_name).is_null());
          
          BOOST_REQUIRE_EXCEPTION(
-               create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake}, false),
+               create_account_with_resources(N(testram11111), config::system_account_name, asset{min_account_stake_global}, false),
                eosio_assert_message_exception, fc_exception_message_starts_with("assertion failure with message: insufficient minimal account stake")
          );
       }
@@ -642,7 +641,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
       }
 
       // create account by oracle price, min_account_stake = 0.5 / 0.003210 = 155.7632 REM for 1 account
-      min_account_stake = min_account_price / pair_data["price"].as_double();
+      int64_t min_account_stake = min_account_price / pair_data["price"].as_double();
 
       // now `accgifter` attribute is set for `rem` so it can create acc with gifted resources
       {
@@ -650,7 +649,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
 
          const auto total_stake = get_total_stake(N(testram11111));
          BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 0);
-         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake_global);
       }
 
       // transfer resources to testram11111 so free_stake_amount is half covered
@@ -658,8 +657,10 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
          delegate_bandwidth(N(rem.stake), N(testram11111), asset(min_account_stake / 2));
 
          const auto total_stake = get_total_stake(N(testram11111));
+         uint64_t free_stake_amount = min_account_stake_global - (min_account_stake / 2);
+
          BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == min_account_stake / 2);
-         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() ==  min_account_stake / 2);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() ==  free_stake_amount);
       }
 
       // set `accgifter` attribute to 100% for `testram11111` so it can create account with gifted resources
@@ -676,7 +677,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
 
          const auto total_stake = get_total_stake(N(testram22222));
          BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 0);
-         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake_global);
          BOOST_TEST( get_balance(N(testram11111)) == asset{ 10'000'0000 } - asset(min_account_stake) );
       }
 
@@ -699,8 +700,10 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
          BOOST_TEST( balance_before - asset(min_account_stake / 2) == balance_after );
 
          const auto total_stake = get_total_stake(N(testram33333));
+         uint64_t free_stake_amount = min_account_stake_global - (min_account_stake / 2);
+
          BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == min_account_stake / 2);
-         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake / 2);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == free_stake_amount);
       }
 
       // set `accgifter` attribute to 20% for `testram11111` so now it should pay 80% of min stake
@@ -721,27 +724,31 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
          BOOST_TEST( balance_before - asset((min_account_stake * 8 / 10) + 1) == balance_after );
 
          const auto total_stake = get_total_stake(N(testram44444));
+         uint64_t free_stake_amount = min_account_stake_global - (min_account_stake * 8 / 10);
+
          BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == (min_account_stake * 8 / 10) + 1);
          // min_account_stake / 5 = 20 % min_account_stake
-         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == min_account_stake / 5);
+         BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == free_stake_amount - 1);
       }
 
       // create account with more than min_account_stake * 8 / 10 own resources
       {
          {
             // min_account_stake * 8 / 10 = 80 % min_account_stake + 5.0000 REM + 0.0001 REM accuracy
-            create_account_with_resources(N(testram55555), N(testram11111), asset((min_account_stake * 8 / 10) + 5'0001), true);
+            create_account_with_resources(N(testram55555), N(testram11111), asset((min_account_stake * 8 / 10) + 5'0000), true);
 
             const auto total_stake = get_total_stake(N(testram55555));
-            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == (min_account_stake * 8 / 10) + 5'0001);
+            uint64_t free_stake_amount = min_account_stake_global - (min_account_stake * 8 / 10) - 5'0000;
+
+            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == (min_account_stake * 8 / 10) + 5'0000);
             // min_account_stake / 5 = 20 % min_account_stake - 5.0000 REM
-            BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == (min_account_stake / 5) - 5'0000);
+            BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == free_stake_amount);
          }
          {
-            create_account_with_resources(N(testram12121), N(testram11111), asset{165'0000}, true);
+            create_account_with_resources(N(testram12121), N(testram11111), asset{265'0000}, true);
 
             const auto total_stake = get_total_stake(N(testram12121));
-            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 165'0000);
+            BOOST_TEST(total_stake["own_stake_amount"].as_uint64() == 265'0000);
             BOOST_TEST(total_stake["free_stake_amount"].as_uint64() == 0);
          }
       }

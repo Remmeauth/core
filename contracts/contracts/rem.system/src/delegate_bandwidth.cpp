@@ -5,6 +5,7 @@
 #include <eosio/serialize.hpp>
 #include <eosio/transaction.hpp>
 
+#include <rem.attr/rem.attr.hpp>
 #include <rem.system/rem.system.hpp>
 #include <rem.token/rem.token.hpp>
 #include <rem.oracle/rem.oracle.hpp>
@@ -101,7 +102,7 @@ namespace eosiosystem {
       {
          user_resources_table   totals_tbl( get_self(), receiver.value );
          auto tot_itr = totals_tbl.find( receiver.value );
-         if( tot_itr ==  totals_tbl.end() ) {
+         if( tot_itr == totals_tbl.end() ) {
             tot_itr = totals_tbl.emplace( from, [&]( auto& tot ) {
                   tot.owner = receiver;
                   tot.net_weight    = stake_delta;
@@ -118,7 +119,13 @@ namespace eosiosystem {
                      tot.own_stake_amount += stake_delta.amount;
 
                      // we have to decrease free bytes in case of own stake
-                     const int64_t new_free_stake_amount = std::min( static_cast< int64_t >(min_account_stake) - tot.own_stake_amount, tot.free_stake_amount);
+                     int64_t discount = 0;
+                     if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, source_stake_from, _gremstate.gifter_attr_name ) ) {
+                        discount = eosio::attribute::get_attribute<int64_t>(_gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, source_stake_from, _gremstate.gifter_attr_name);
+                        check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
+                     }
+                     const int64_t min_stake_delta = ( _gstate.min_account_stake - min_account_stake ) * ( 1 - (discount / 100'0000.0) );
+                     const int64_t new_free_stake_amount = std::min( static_cast< int64_t >(_gstate.min_account_stake) - tot.own_stake_amount, tot.free_stake_amount + min_stake_delta);
                      tot.free_stake_amount = std::max(new_free_stake_amount, 0LL);
                   }
                });
@@ -148,10 +155,12 @@ namespace eosiosystem {
                const double bytes_per_token = (double)_gstate.max_ram_size / (double)system_token_max_supply.amount;
                const int64_t staked = tot_itr->own_stake_amount + tot_itr->free_stake_amount;
                const int64_t bytes_for_stake = bytes_per_token * staked + ram_gift_bytes( staked );
-               set_resource_limits( receiver,
-                                    ram_managed ? ram_bytes : bytes_for_stake,
-                                    net_managed ? net : tot_itr->net_weight.amount + tot_itr->free_stake_amount,
-                                    cpu_managed ? cpu : tot_itr->cpu_weight.amount + tot_itr->free_stake_amount);
+
+               ram_bytes = ram_managed ? ram_bytes : bytes_for_stake;
+               net = net_managed ? net : std::max( tot_itr->net_weight.amount + tot_itr->free_stake_amount, static_cast< int64_t >(_gstate.min_account_stake) );
+               cpu = cpu_managed ? cpu : std::max( tot_itr->cpu_weight.amount + tot_itr->free_stake_amount, static_cast< int64_t >(_gstate.min_account_stake) );
+
+               set_resource_limits( receiver, ram_bytes, net, cpu );
             }
          }
       } // tot_itr can be invalid, should go out of scope
