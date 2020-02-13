@@ -184,7 +184,12 @@ namespace eosiosystem {
          }
       }
 
-      auto new_vote_weight = producers.size() > 0 ? stake2vote( voter->staked, voter->stake_lock_time ) / producers.size() : 0;
+      auto new_vote_weight = 0;
+      
+      if(producers.size()) {
+         stake2vote( voter->staked, voter->stake_lock_time ) / producers.size();
+      }
+      
       if( voter->is_proxy ) {
          new_vote_weight += voter->proxied_vote_weight;
       }
