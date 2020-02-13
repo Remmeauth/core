@@ -499,8 +499,15 @@ BOOST_FIXTURE_TEST_CASE( rem_vote_weight_test, voting_tester ) {
         {
             produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // +30 days
 
+            // `last_vote_weight` and `last_reassertion_time` should not change after `delegate_bandwidth`
+            // explanation bug https://www.reddit.com/r/eos/comments/b74xpy/bps_are_exploiting_a_protocol_bug_to_manipulate/?utm_source=amp&utm_medium=&utm_content=post_body
+            const auto whale1_info_before = get_voter_info( name("whale1") );
             const auto r = delegate_bandwidth(N(rem.stake), N(whale1), asset(20'000'000'0000LL));
+            const auto whale1_info_after = get_voter_info( name("whale1") );
+
             BOOST_REQUIRE( !r->except_ptr );
+            BOOST_TEST_REQUIRE( whale1_info_before["last_vote_weight"] == whale1_info_after["last_vote_weight"] );
+            BOOST_TEST_REQUIRE( whale1_info_before["last_reassertion_time"] == whale1_info_after["last_reassertion_time"] );
 
             votepro( N(whale1), { N(proda) } );
 
