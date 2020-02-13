@@ -165,7 +165,7 @@ namespace eosiosystem {
       auto rem_usd_it = remprice_table.find(rem_usd_pair.value);
       auto setprice_window = eosio::seconds(remoracle::setprice_window_seconds + remoracle::setprice_window_seconds * 0.2);
       bool is_valid_price = ( rem_usd_it != remprice_table.end() ) && ( (current_time_point() - rem_usd_it->last_update.to_time_point()) <= setprice_window );
-      uint64_t oracle_min_account_stake = min_account_price / rem_usd_it->price;
+      uint64_t oracle_min_account_stake = account_usd_price / rem_usd_it->price;
 
       if ( is_valid_price && oracle_min_account_stake > 0 ) {
          return std::min(oracle_min_account_stake, _gstate.min_account_stake);
