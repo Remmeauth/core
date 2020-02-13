@@ -76,7 +76,7 @@ namespace eosiosystem {
    static constexpr int64_t  default_votepay_factor        = 40000;   // per-block pay share = 10000 / 40000 = 25% of the producer pay
 
    static constexpr int64_t  min_account_ram = 3800; // 3742 bytes - is size of the new user account for current version
-   static constexpr uint64_t min_account_price = 5000; // the minimum price for creating a new account 0.5 $
+   static constexpr uint64_t account_usd_price = 5000; // the price for creating a new account in USD (default = $0.5)
 
    /**
     *
@@ -1464,7 +1464,7 @@ namespace eosiosystem {
          static eosio_global_state get_default_parameters();
          static eosio_global_state4 get_default_inflation_parameters();
          static eosio_global_rem_state get_default_rem_parameters();
-         uint64_t get_min_account_stake();
+         uint64_t get_min_threshold_stake();
          symbol core_symbol()const;
          void update_ram_supply();
 
