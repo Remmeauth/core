@@ -184,10 +184,10 @@ namespace eosiosystem {
          }
       }
 
-      auto new_vote_weight = 0;
+      double new_vote_weight = 0;
       
       if(producers.size()) {
-         stake2vote( voter->staked, voter->stake_lock_time ) / producers.size();
+         new_vote_weight = stake2vote( voter->staked, voter->stake_lock_time ) / producers.size();
       }
       
       if( voter->is_proxy ) {
@@ -282,7 +282,12 @@ namespace eosiosystem {
 
    void system_contract::propagate_weight_change( const voter_info& voter ) {
       check( !voter.proxy || !voter.is_proxy, "account registered as a proxy is not allowed to use a proxy" );
-      double new_weight = voter.producers.size() > 0 ? stake2vote( voter.staked, voter.stake_lock_time ) / voter.producers.size() : 0;
+      
+      double new_weight = 0;
+      
+      if(voter.producers.size()) {
+         new_weight = stake2vote( voter.staked, voter.stake_lock_time ) / voter.producers.size();
+      }
       if ( voter.is_proxy ) {
          new_weight += voter.proxied_vote_weight;
       }
