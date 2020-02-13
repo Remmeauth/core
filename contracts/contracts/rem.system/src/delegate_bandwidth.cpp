@@ -52,13 +52,6 @@ namespace eosiosystem {
     */
    typedef eosio::multi_index< "refunds"_n, refund_request >      refunds_table;
 
-   void validate_b1_vesting( int64_t stake ) {
-      const int64_t base_time = 1527811200; /// 2018-06-01
-      const int64_t max_claimable = 100'000'000'0000ll;
-      const int64_t claimable = int64_t(max_claimable * double(current_time_point().sec_since_epoch() - base_time) / (10*seconds_per_year) );
-
-      check( max_claimable - claimable <= stake, "b1 can only claim their tokens over 10 years" );
-   }
 
    void system_contract::changebw( name from, const name& receiver,
                                    const asset& stake_delta, bool transfer )
@@ -177,10 +170,6 @@ namespace eosiosystem {
       }
 
       check( 0 <= voter_itr->staked, "stake for voting cannot be negative" );
-
-      if( voter == "b1"_n ) {
-         validate_b1_vesting( voter_itr->staked );
-      }
    }
 
    void system_contract::delegatebw( const name& from, const name& receiver,
