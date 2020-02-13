@@ -52,13 +52,6 @@ namespace eosiosystem {
     */
    typedef eosio::multi_index< "refunds"_n, refund_request >      refunds_table;
 
-   void validate_b1_vesting( int64_t stake ) {
-      const int64_t base_time = 1527811200; /// 2018-06-01
-      const int64_t max_claimable = 100'000'000'0000ll;
-      const int64_t claimable = int64_t(max_claimable * double(current_time_point().sec_since_epoch() - base_time) / (10*seconds_per_year) );
-
-      check( max_claimable - claimable <= stake, "b1 can only claim their tokens over 10 years" );
-   }
 
    void system_contract::changebw( name from, const name& receiver,
                                    const asset& stake_delta, bool transfer )
@@ -177,14 +170,6 @@ namespace eosiosystem {
       }
 
       check( 0 <= voter_itr->staked, "stake for voting cannot be negative" );
-
-      if( voter == "b1"_n ) {
-         validate_b1_vesting( voter_itr->staked );
-      }
-
-      if( voter_itr->producers.size() || voter_itr->proxy ) {
-         update_votes( voter, voter_itr->proxy, voter_itr->producers, false );
-      }
    }
 
    void system_contract::delegatebw( const name& from, const name& receiver,
@@ -209,8 +194,8 @@ namespace eosiosystem {
                + microseconds{ static_cast< int64_t >( restake_rate * _gremstate.stake_lock_period.count() ) };
       });
 
-      // transfer staked tokens to stake_account (eosio.stake)
-      // for eosio.stake both transfer and refund make no sense
+      // transfer staked tokens to stake_account (rem.stake)
+      // for rem.stake both transfer and refund make no sense
       if ( stake_account != from ) { 
          token::transfer_action transfer_act{ token_account, { {from, active_permission} } };
          transfer_act.send( from, stake_account, asset(stake_quantity), "stake bandwidth" );
