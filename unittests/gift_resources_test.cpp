@@ -734,7 +734,7 @@ BOOST_FIXTURE_TEST_CASE(acc_creation_with_attr_set_with_oracle_price, gift_resou
       // create account with more than min_account_stake * 8 / 10 own resources
       {
          {
-            // min_account_stake * 8 / 10 = 80 % min_account_stake + 5.0000 REM + 0.0001 REM accuracy
+            // min_account_stake * 8 / 10 = 80 % min_account_stake + 5.0000 REM
             create_account_with_resources(N(testram55555), N(testram11111), asset((min_account_stake * 8 / 10) + 5'0000), true);
 
             const auto total_stake = get_total_stake(N(testram55555));

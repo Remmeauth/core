@@ -66,12 +66,19 @@ namespace eosiosystem {
    {
       require_auth( from );
       check( stake_delta.amount != 0, "should stake non-zero amount" );
-      uint64_t min_account_stake = get_min_account_stake();
+      uint64_t min_threshold_stake = get_min_threshold_stake();
 
       name source_stake_from = from;
       if ( transfer ) {
          from = receiver;
       }
+
+      int64_t discount = 0;
+      if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, source_stake_from, _gremstate.gifter_attr_name ) ) {
+         discount = eosio::attribute::get_attribute<int64_t>(_gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, source_stake_from, _gremstate.gifter_attr_name);
+         check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
+      }
+      const int64_t min_account_stake_delta = ( _gstate.min_account_stake - min_threshold_stake ) * ( 1 - (discount / 100'0000.0) );
 
       // update stake delegated from "from" to "receiver"
       {
@@ -119,21 +126,14 @@ namespace eosiosystem {
                      tot.own_stake_amount += stake_delta.amount;
 
                      // we have to decrease free bytes in case of own stake
-                     int64_t discount = 0;
-                     if ( eosio::attribute::has_attribute( _gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, source_stake_from, _gremstate.gifter_attr_name ) ) {
-                        discount = eosio::attribute::get_attribute<int64_t>(_gremstate.gifter_attr_contract, _gremstate.gifter_attr_issuer, source_stake_from, _gremstate.gifter_attr_name);
-                        check( (discount >= 0) && (discount <= 100'0000), "discount value should be in range[0, 100'0000]" );
-                     }
-                     const int64_t min_stake_delta = ( _gstate.min_account_stake - min_account_stake ) * ( 1 - (discount / 100'0000.0) );
-                     const int64_t new_free_stake_amount = std::min( static_cast< int64_t >(_gstate.min_account_stake) - tot.own_stake_amount, tot.free_stake_amount + min_stake_delta);
+                     const int64_t new_free_stake_amount = std::min( static_cast< int64_t >(_gstate.min_account_stake) - tot.own_stake_amount, tot.free_stake_amount + min_account_stake_delta);
                      tot.free_stake_amount = std::max(new_free_stake_amount, 0LL);
                   }
                });
          }
          check( 0 <= tot_itr->net_weight.amount, "insufficient staked total net bandwidth" );
          check( 0 <= tot_itr->cpu_weight.amount, "insufficient staked total cpu bandwidth" );
-         check( min_account_stake <= tot_itr->own_stake_amount + tot_itr->free_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
-
+         check( min_threshold_stake + min_account_stake_delta <= tot_itr->own_stake_amount + tot_itr->free_stake_amount, "insufficient minimal account stake for " + receiver.to_string() );
          {
             bool ram_managed = false;
             bool net_managed = false;

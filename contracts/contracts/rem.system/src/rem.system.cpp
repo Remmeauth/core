@@ -160,7 +160,7 @@ namespace eosiosystem {
       _gstate.min_account_stake = min_account_stake;
    }
 
-   uint64_t system_contract::get_min_account_stake() {
+   uint64_t system_contract::get_min_threshold_stake() {
       remoracle::remprice_idx remprice_table(oracle_account, oracle_account.value);
       auto rem_usd_it = remprice_table.find(rem_usd_pair.value);
       auto setprice_window = eosio::seconds(remoracle::setprice_window_seconds + remoracle::setprice_window_seconds * 0.2);

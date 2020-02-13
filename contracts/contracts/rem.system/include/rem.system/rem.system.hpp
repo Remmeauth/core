@@ -1464,7 +1464,7 @@ namespace eosiosystem {
          static eosio_global_state get_default_parameters();
          static eosio_global_state4 get_default_inflation_parameters();
          static eosio_global_rem_state get_default_rem_parameters();
-         uint64_t get_min_account_stake();
+         uint64_t get_min_threshold_stake();
          symbol core_symbol()const;
          void update_ram_supply();
 
