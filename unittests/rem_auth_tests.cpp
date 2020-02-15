@@ -514,7 +514,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_test, rem_auth_tester ) {
                                      "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
@@ -535,7 +535,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_test, rem_auth_tester ) {
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -588,7 +588,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_discount_test, rem_auth_teste
       double discount              = 0.87;
       string payer_str;
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
@@ -613,7 +613,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_discount_test, rem_auth_teste
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -667,7 +667,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_test, rem_auth_
                                      "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str             = payer.to_string();
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
@@ -686,7 +686,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_test, rem_auth_
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -742,7 +742,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_use_discount_te
       string payer_str             = payer.to_string();
       double discount              = 0.87;
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
@@ -762,7 +762,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_rem_with_another_payer_use_discount_te
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -812,7 +812,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
                                      "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
@@ -840,7 +840,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_test, rem_auth_tester ) {
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -918,7 +918,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_with_another_payer_test, rem_auth
                                      "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str             = payer.to_string();
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
@@ -943,7 +943,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyacc_pay_by_auth_with_another_payer_test, rem_auth
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -997,10 +997,10 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_test, rem_auth_tester ) {
                                          "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
 
-      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                    string(key_pub), payer_str }) );
+      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                    key_pub.to_string(), payer_str }) );
 
       auto signed_by_key = key_priv.sign(digest_addkeyacc);
       auto signed_by_new_key_app = new_key_priv.sign(digest_addkeyapp);
@@ -1023,7 +1023,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_test, rem_auth_tester ) {
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(new_key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), new_key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -1089,10 +1089,10 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_with_another_payer_test, rem_auth_
       string payer_str                 = payer.to_string();
 
 
-      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
 
-      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                    string(key_pub), payer_str }) );
+      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                    key_pub.to_string(), payer_str }) );
 
       auto signed_by_key          = key_priv.sign(digest_addkeyacc);
       auto signed_by_new_key_app  = new_key_priv.sign(digest_addkeyapp);
@@ -1116,7 +1116,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_rem_with_another_payer_test, rem_auth_
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(new_key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), new_key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -1179,10 +1179,10 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_test, rem_auth_tester ) {
                                          "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
 
-      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                    string(key_pub), payer_str }) );
+      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                    key_pub.to_string(), payer_str }) );
 
       auto signed_by_key          = key_priv.sign(digest_addkeyacc);
       auto signed_by_new_key_app  = new_key_priv.sign(digest_addkeyapp);
@@ -1214,7 +1214,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_test, rem_auth_tester ) {
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(new_key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), new_key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -1280,10 +1280,10 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_with_another_payer_test, rem_auth
                                          "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str                 = payer.to_string();
 
-      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
 
-      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                    string(key_pub), payer_str }) );
+      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                    key_pub.to_string(), payer_str }) );
 
       auto signed_by_key          = key_priv.sign(digest_addkeyacc);
       auto signed_by_new_key_app  = new_key_priv.sign(digest_addkeyapp);
@@ -1315,7 +1315,7 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_pay_by_auth_with_another_payer_test, rem_auth
 
       auto ct = control->head_block_time();
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(new_key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), new_key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -1380,10 +1380,10 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_require_app_auth_test, rem_auth_tester ) {
                                          "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
 
-      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                    string(key_pub), payer_str }) );
+      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                    key_pub.to_string(), payer_str }) );
 
       auto signed_by_key = key_priv.sign(digest_addkeyacc);
       auto signed_by_new_key_app = new_key_priv.sign(digest_addkeyapp);
@@ -1403,8 +1403,8 @@ BOOST_FIXTURE_TEST_CASE( addkeyapp_require_app_auth_test, rem_auth_tester ) {
 
       crypto::private_key nonexistkey_priv = crypto::private_key::generate();
       crypto::public_key nonexistkey_pub   = nonexistkey_priv.get_public_key();
-      sha256 nonexist_digest = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                    string(nonexistkey_pub), payer_str }) );
+      sha256 nonexist_digest = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                    nonexistkey_pub.to_string(), payer_str }) );
 
       signed_by_new_key_app = new_key_priv.sign(nonexist_digest);
       auto signed_by_nonexistkey_app = nonexistkey_priv.sign(nonexist_digest);
@@ -1449,7 +1449,7 @@ BOOST_FIXTURE_TEST_CASE( revokedacc_test, rem_auth_tester ) {
                                      "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
 
       auto signed_by_key = key_priv.sign(digest);
 
@@ -1466,7 +1466,7 @@ BOOST_FIXTURE_TEST_CASE( revokedacc_test, rem_auth_tester ) {
       auto data = get_authkeys_tbl();
 
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -1506,8 +1506,8 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_test, rem_auth_tester ) {
                                             "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 addkeyacc_digest = sha256::hash(join( { account.to_string(), string(revoke_key_pub), extra_pub_key, payer_str } ));
-      sha256 revokeapp_digest = sha256::hash(join( { account.to_string(), string(revoke_key_pub), string(revoke_key_pub) } ));
+      sha256 addkeyacc_digest = sha256::hash(join( { account.to_string(), revoke_key_pub.to_string(), extra_pub_key, payer_str } ));
+      sha256 revokeapp_digest = sha256::hash(join( { account.to_string(), revoke_key_pub.to_string(), revoke_key_pub.to_string() } ));
 
       auto signed_by_addkey = revoke_key_priv.sign(addkeyacc_digest);
       auto signed_by_revkey = revoke_key_priv.sign(revokeapp_digest);
@@ -1525,7 +1525,7 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_test, rem_auth_tester ) {
       auto data = get_authkeys_tbl();
 
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(revoke_key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), revoke_key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -1546,13 +1546,13 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_test, rem_auth_tester ) {
          revokeapp(account, nonexistkey_pub, revoke_key_pub, signed_by_revkey, auths_level), eosio_assert_message_exception
       );
       // account has no active app keys (revoke nonexist key)
-      revokeapp_digest = sha256::hash(join( { account.to_string(), string(nonexistkey_pub), string(revoke_key_pub) }));
+      revokeapp_digest = sha256::hash(join( { account.to_string(), nonexistkey_pub.to_string(), revoke_key_pub.to_string() }));
       signed_by_revkey = revoke_key_priv.sign(revokeapp_digest);
       BOOST_REQUIRE_THROW(
          revokeapp(account, nonexistkey_pub, revoke_key_pub, signed_by_revkey, auths_level), eosio_assert_message_exception
       );
       // account has no active app keys (revoke again same key)
-      revokeapp_digest = sha256::hash(join( { account.to_string(), string(revoke_key_pub), string(revoke_key_pub) } ));
+      revokeapp_digest = sha256::hash(join( { account.to_string(), revoke_key_pub.to_string(), revoke_key_pub.to_string() } ));
       signed_by_revkey = revoke_key_priv.sign(revokeapp_digest);
       revokeapp(account, revoke_key_pub, revoke_key_pub, signed_by_revkey, auths_level);
       BOOST_REQUIRE_THROW(
@@ -1576,8 +1576,8 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_and_sign_by_another_key_test, rem_auth_teste
                                             "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 addkeyacc_digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
-      sha256 revokeapp_digest = sha256::hash(join( { account.to_string(), string(revoke_key_pub), string(key_pub) } ));
+      sha256 addkeyacc_digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
+      sha256 revokeapp_digest = sha256::hash(join( { account.to_string(), revoke_key_pub.to_string(), key_pub.to_string() } ));
 
       auto signed_by_addkey = key_priv.sign(addkeyacc_digest);
       auto signed_by_revkey = key_priv.sign(revokeapp_digest);
@@ -1588,7 +1588,7 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_and_sign_by_another_key_test, rem_auth_teste
       // Add key_pub
       addkeyacc(account, key_pub, signed_by_addkey, extra_pub_key, price_limit, payer_str, { permission_level{account, config::active_name} });
       // Add revoke_key_pub
-      addkeyacc_digest = sha256::hash(join( { account.to_string(), string(revoke_key_pub), extra_pub_key, payer_str } ));
+      addkeyacc_digest = sha256::hash(join( { account.to_string(), revoke_key_pub.to_string(), extra_pub_key, payer_str } ));
       signed_by_addkey = revoke_key_priv.sign(addkeyacc_digest);
       produce_blocks();
       addkeyacc(account, revoke_key_pub, signed_by_addkey, extra_pub_key, price_limit, payer_str,
@@ -1602,7 +1602,7 @@ BOOST_FIXTURE_TEST_CASE( revokedapp_and_sign_by_another_key_test, rem_auth_teste
       auto data = get_authkeys_tbl();
 
       BOOST_REQUIRE_EQUAL(data["owner"].as_string(), account.to_string());
-      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), string(revoke_key_pub));
+      BOOST_REQUIRE_EQUAL(data["public_key"].as_string(), revoke_key_pub.to_string());
       BOOST_REQUIRE_EQUAL(data["not_valid_before"].as_string(), string(ct));
       BOOST_REQUIRE_EQUAL(data["not_valid_after"].as_string(), string(ct + days(360)));
       BOOST_REQUIRE_EQUAL(data["extra_public_key"].as_string(), extra_pub_key);
@@ -1627,10 +1627,10 @@ BOOST_FIXTURE_TEST_CASE( revoke_require_app_auth_test, rem_auth_tester ) {
                                          "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest_addkeyacc = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
 
-      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                    string(key_pub), payer_str }) );
+      sha256 digest_addkeyapp = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                    key_pub.to_string(), payer_str }) );
 
       auto signed_by_key = key_priv.sign(digest_addkeyacc);
       auto signed_by_new_key_app = new_key_priv.sign(digest_addkeyapp);
@@ -1651,8 +1651,8 @@ BOOST_FIXTURE_TEST_CASE( revoke_require_app_auth_test, rem_auth_tester ) {
 
       crypto::private_key nonexistkey_priv = crypto::private_key::generate();
       crypto::public_key nonexistkey_pub = nonexistkey_priv.get_public_key();
-      sha256 nonexist_digest = sha256::hash(join({ account.to_string(), string(new_key_pub), extra_pub_key,
-                                                   string(nonexistkey_pub), payer_str }) );
+      sha256 nonexist_digest = sha256::hash(join({ account.to_string(), new_key_pub.to_string(), extra_pub_key,
+                                                   nonexistkey_pub.to_string(), payer_str }) );
 
       signed_by_new_key_app = new_key_priv.sign(nonexist_digest);
       auto signed_by_nonexistkey_app = nonexistkey_priv.sign(nonexist_digest);
@@ -1793,7 +1793,7 @@ BOOST_FIXTURE_TEST_CASE( keys_cleanup_test, rem_auth_tester ) {
                                      "/r82O1HnpuJFd/jyM3iWInPZvmOnPCP3/Nx4fRNj1y0U9QFnlfefNeECAwEAAQ==";
       string payer_str;
 
-      sha256 digest = sha256::hash(join( { account.to_string(), string(key_pub), extra_pub_key, payer_str } ));
+      sha256 digest = sha256::hash(join( { account.to_string(), key_pub.to_string(), extra_pub_key, payer_str } ));
       auto signed_by_key = key_priv.sign(digest);
 
       // tokens to pay for torewards action
