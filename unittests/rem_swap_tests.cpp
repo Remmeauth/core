@@ -295,7 +295,7 @@ public:
 
    static string get_pubkey_str(const crypto::private_key& priv_key) {
       crypto::public_key pub_key = priv_key.get_public_key();
-      return string(pub_key);
+      return pub_key.to_string();
    }
 
    void set_code_abi(const account_name &account, const vector<uint8_t> &wasm, const char *abi,
