@@ -26,16 +26,16 @@ namespace eosio {
    namespace testing {
       struct contracts {
          // Contracts in `eos/unittests/contracts' directory
-         MAKE_READ_WASM_ABI(rem_attr,   rem.attr,   ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_auth,   rem.auth, ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_bios,   rem.bios, ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_msig,   rem.msig, ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_oracle, rem.oracle, ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_swap,   rem.swap, ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_system, rem.system, ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_token,  rem.token,  ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_utils,  rem.utils,  ../contracts/contracts)
-         MAKE_READ_WASM_ABI(rem_wrap,   rem.wrap,   ../contracts/contracts)
+         MAKE_READ_WASM_ABI(rem_attr,   rem.attr, contracts)
+         MAKE_READ_WASM_ABI(rem_auth,   rem.auth, contracts)
+         MAKE_READ_WASM_ABI(rem_bios,   rem.bios, contracts)
+         MAKE_READ_WASM_ABI(rem_msig,   rem.msig, contracts)
+         MAKE_READ_WASM_ABI(rem_oracle, rem.oracle, contracts)
+         MAKE_READ_WASM_ABI(rem_swap,   rem.swap, contracts)
+         MAKE_READ_WASM_ABI(rem_system, rem.system, contracts)
+         MAKE_READ_WASM_ABI(rem_token,  rem.token,  contracts)
+         MAKE_READ_WASM_ABI(rem_utils,  rem.utils,  contracts)
+         MAKE_READ_WASM_ABI(rem_wrap,   rem.wrap,   contracts)
 
          MAKE_READ_WASM_ABI(before_producer_authority_eosio_bios,   eosio.bios, contracts/old_versions/v1.7.0-develop-preactivate_feature)
 //         MAKE_READ_WASM_ABI(before_preactivate_eosio_bios,          eosio.bios, contracts/old_versions/v1.6.0-rc3)

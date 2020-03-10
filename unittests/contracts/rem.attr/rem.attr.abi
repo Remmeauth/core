@@ -1,0 +1,215 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.1",
+    "types": [],
+    "structs": [
+        {
+            "name": "attribute_data",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "receiver",
+                    "type": "name"
+                },
+                {
+                    "name": "issuer",
+                    "type": "name"
+                },
+                {
+                    "name": "attribute",
+                    "type": "attribute_t"
+                }
+            ]
+        },
+        {
+            "name": "attribute_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "attribute_name",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "int32"
+                },
+                {
+                    "name": "ptype",
+                    "type": "int32"
+                },
+                {
+                    "name": "valid",
+                    "type": "bool"
+                },
+                {
+                    "name": "next_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "attribute_t",
+            "base": "",
+            "fields": [
+                {
+                    "name": "data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "pending",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "confirm",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "issuer",
+                    "type": "name"
+                },
+                {
+                    "name": "attribute_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "create",
+            "base": "",
+            "fields": [
+                {
+                    "name": "attribute_name",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "int32"
+                },
+                {
+                    "name": "ptype",
+                    "type": "int32"
+                }
+            ]
+        },
+        {
+            "name": "invalidate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "attribute_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "remove",
+            "base": "",
+            "fields": [
+                {
+                    "name": "attribute_name",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "setattr",
+            "base": "",
+            "fields": [
+                {
+                    "name": "issuer",
+                    "type": "name"
+                },
+                {
+                    "name": "receiver",
+                    "type": "name"
+                },
+                {
+                    "name": "attribute_name",
+                    "type": "name"
+                },
+                {
+                    "name": "value",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "unsetattr",
+            "base": "",
+            "fields": [
+                {
+                    "name": "issuer",
+                    "type": "name"
+                },
+                {
+                    "name": "receiver",
+                    "type": "name"
+                },
+                {
+                    "name": "attribute_name",
+                    "type": "name"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "confirm",
+            "type": "confirm",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "create",
+            "type": "create",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "invalidate",
+            "type": "invalidate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "remove",
+            "type": "remove",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setattr",
+            "type": "setattr",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "unsetattr",
+            "type": "unsetattr",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "attributes",
+            "type": "attribute_data",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "attrinfo",
+            "type": "attribute_info",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": []
+}
