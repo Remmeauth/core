@@ -22,7 +22,7 @@ fi
 
 bioscontractpath=$BIOS_CONTRACT_PATH
 if [ -z "$bioscontractpath" ]; then
-    bioscontractpath="contracts/contracts/$bioscontractname"
+    bioscontractpath="unittests/contracts/$bioscontractname"
 fi
 
 bioscurrencysymbol=$BIOS_CURRENCY_SYMBOL
@@ -124,9 +124,9 @@ ecmd create account rem rem.vpay $pubsyskey $pubsyskey
 ecmd create account rem rem.wrap $pubsyskey $pubsyskey
 ecmd create account rem rem.rex $pubsyskey $pubsyskey
 
-ecmd set contract rem.token contracts/contracts/rem.token rem.token.wasm rem.token.abi
-ecmd set contract rem.msig contracts/contracts/rem.msig rem.msig.wasm rem.msig.abi
-ecmd set contract rem.wrap contracts/contracts/rem.wrap rem.wrap.wasm rem.wrap.abi
+ecmd set contract rem.token unittests/contracts/rem.token rem.token.wasm rem.token.abi
+ecmd set contract rem.msig unittests/contracts/rem.msig rem.msig.wasm rem.msig.abi
+ecmd set contract rem.wrap unittests/contracts/rem.wrap rem.wrap.wasm rem.wrap.abi
 
 echo ===== Start: $step ============ >> $logfile
 echo executing: remcli --wallet-url $wdurl --url http://$bioshost:$biosport push action rem.token create '[ "rem", "1000000000.0000 '$bioscurrencysymbol'" ]' -p rem.token | tee -a $logfile
@@ -137,7 +137,7 @@ programs/remcli/remcli --wallet-url $wdurl --url http://$bioshost:$biosport push
 echo ==== End: $step ============== >> $logfile
 step=$(($step + 1))
 
-ecmd set contract rem contracts/contracts/rem.system rem.system.wasm rem.system.abi
+ecmd set contract rem unittests/contracts/rem.system rem.system.wasm rem.system.abi
 programs/remcli/remcli --wallet-url $wdurl --url http://$bioshost:$biosport push action rem init '[0, "4,'$bioscurrencysymbol'"]' -p rem >> $logfile 2>&1
 
 # Manual deployers, add a series of lines below this block that looks like:

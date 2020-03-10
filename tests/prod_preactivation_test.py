@@ -108,7 +108,7 @@ try:
 
     node0 = cluster.getNode(0)
     contract="rem.bios"
-    contractDir="contracts/contracts/%s" % (contract)
+    contractDir="../unittests/contracts/%s" % (contract)
     wasmFile="%s.wasm" % (contract)
     abiFile="%s.abi" % (contract)
 

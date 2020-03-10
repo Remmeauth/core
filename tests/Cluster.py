@@ -1034,7 +1034,7 @@ class Cluster(object):
         return biosNode
 
     def publishContract(self, node, contract, account):
-        contractDir = "contracts/contracts/%s" % (contract)
+        contractDir = "../unittests/contracts/%s" % (contract)
         wasmFile = "%s.wasm" % (contract)
         abiFile  = "%s.abi" % (contract)
 
@@ -1181,7 +1181,7 @@ class Cluster(object):
             return None
 
         contract = "rem.bios"
-        contractDir="contracts/contracts/%s" % (contract)
+        contractDir="../unittests/contracts/%s" % (contract)
         biosFilename = 'rem.bios'
         if PFSetupPolicy.hasPreactivateFeature(pfSetupPolicy):
             biosFilename = 'eosio.bios'
