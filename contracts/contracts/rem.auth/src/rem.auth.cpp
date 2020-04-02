@@ -21,19 +21,19 @@ namespace eosio {
       public_key pub_key = string_to_public_key(pub_key_str);
       string payload = join( { account.to_string(), pub_key_str, extra_pub_key, payer_str } );
       checksum256 digest = sha256(payload.c_str(), payload.size());
-      assert_recover_key(digest, signed_by_pub_key, pub_key);
+//      assert_recover_key(digest, signed_by_pub_key, pub_key);
 
       authkeys_tbl.emplace(get_self(), [&](auto &k) {
          k.key              = authkeys_tbl.available_primary_key();
          k.owner            = account;
-         k.public_key       = pub_key;
-         k.extra_public_key = extra_pub_key;
+         k.pub_key          = pub_key;
+         k.extra_pub_key    = extra_pub_key;
          k.not_valid_before = current_time_point();
          k.not_valid_after  = current_time_point() + key_lifetime;
          k.revoked_at       = 0; // if not revoked == 0
       });
 
-      sub_storage_fee(payer, price_limit);
+//      sub_storage_fee(payer, price_limit);
       cleanupkeys();
    }
 
@@ -61,8 +61,8 @@ namespace eosio {
       authkeys_tbl.emplace(get_self(), [&](auto &k) {
          k.key              = authkeys_tbl.available_primary_key();
          k.owner            = account;
-         k.public_key       = new_pub_key;
-         k.extra_public_key = extra_pub_key;
+         k.pub_key          = new_pub_key;
+         k.extra_pub_key    = extra_pub_key;
          k.not_valid_before = current_time_point();
          k.not_valid_after  = current_time_point() + key_lifetime;
          k.revoked_at       = 0; // if not revoked == 0
@@ -86,7 +86,7 @@ namespace eosio {
 
          if (!is_before_time_valid || !is_after_time_valid || is_revoked) {
             continue;
-         } else if (it->public_key == key) {
+         } else if (it->pub_key == key) {
             break;
          }
       }

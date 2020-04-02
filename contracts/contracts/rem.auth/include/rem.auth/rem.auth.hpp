@@ -147,22 +147,37 @@ namespace eosio {
       struct [[eosio::table]] authkeys {
          uint64_t          key;
          name              owner;
-         public_key        public_key;
-         string            extra_public_key;
+         public_key        pub_key;
+         string            extra_pub_key;
          block_timestamp   not_valid_before;
          block_timestamp   not_valid_after;
          uint32_t          revoked_at;
 
-         uint64_t primary_key()const         { return key;         }
-         uint64_t by_name()const             { return owner.value; }
-         uint64_t by_not_valid_before()const { return not_valid_before.to_time_point().elapsed.count(); }
-         uint64_t by_not_valid_after()const  { return not_valid_after.to_time_point().elapsed.count(); }
-         uint64_t by_revoked()const          { return revoked_at;  }
+         static fixed_bytes<32> get_pub_key_hash(public_key key) {
+            bool is_k1_type = std::get_if<0>(&key);
+            auto key_data = is_k1_type ? std::get_if<0>(&key)->data() : std::get_if<1>(&key)->data();
+            auto key_size = is_k1_type ? std::get_if<0>(&key)->size() : std::get_if<1>(&key)->size();
 
-         EOSLIB_SERIALIZE( authkeys, (key)(owner)(public_key)(extra_public_key)(not_valid_before)(not_valid_after)(revoked_at))
+            checksum256 key_hash = sha256(key_data, key_size);
+            const uint128_t *p128 = reinterpret_cast<const uint128_t *>(&key_hash);
+            fixed_bytes<32> key_hash_bytes;
+            key_hash_bytes.data()[0] = p128[0];
+            key_hash_bytes.data()[1] = p128[1];
+            return key_hash_bytes;
+         }
+
+         uint64_t primary_key()const          { return key;         }
+         fixed_bytes<32> by_public_key()const { return get_pub_key_hash(pub_key); }
+         uint64_t by_name()const              { return owner.value; }
+         uint64_t by_not_valid_before()const  { return not_valid_before.to_time_point().elapsed.count(); }
+         uint64_t by_not_valid_after()const   { return not_valid_after.to_time_point().elapsed.count(); }
+         uint64_t by_revoked()const           { return revoked_at;  }
+
+         EOSLIB_SERIALIZE( authkeys, (key)(owner)(pub_key)(extra_pub_key)(not_valid_before)(not_valid_after)(revoked_at))
       };
-      typedef multi_index<"authkeys"_n, authkeys,
-            indexed_by<"byname"_n,       const_mem_fun < authkeys, uint64_t, &authkeys::by_name>>,
+      typedef multi_index<"authkeys"_n,  authkeys,
+            indexed_by<"bypubkey"_n,     const_mem_fun <authkeys, fixed_bytes<32>, &authkeys::by_public_key>>,
+            indexed_by<"byname"_n,       const_mem_fun <authkeys, uint64_t, &authkeys::by_name>>,
             indexed_by<"bynotvalbfr"_n,  const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_before>>,
             indexed_by<"bynotvalaftr"_n, const_mem_fun <authkeys, uint64_t, &authkeys::by_not_valid_after>>,
             indexed_by<"byrevoked"_n,    const_mem_fun <authkeys, uint64_t, &authkeys::by_revoked>>

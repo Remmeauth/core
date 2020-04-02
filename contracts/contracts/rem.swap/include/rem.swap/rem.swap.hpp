@@ -302,16 +302,16 @@ namespace eosio {
    }
 
    inline public_key string_to_public_key(std::string_view s) {
-      public_key key;
-      bool is_k1_type = s.size() >= 3 && ( s.substr(0, 3) == "EOS" || s.substr(0, 3) == "REM");
+      std::array<char, 33> key_data;
+      bool is_k1_type = s.size()   >= 3 && ( s.substr(0, 3) == "EOS" || s.substr(0, 3) == "REM");
       bool is_r1_type = s.size() >= 7 && s.substr(0, 7) == "PUB_R1_";
-
       check(is_k1_type || is_r1_type, "unrecognized public key format");
-      auto whole = base58_to_binary<37>( is_k1_type ? s.substr(3) : s.substr(7) );
-      check(whole.size() == std::get_if<0>(&key)->size() + 4, "invalid public key length");
 
-      memcpy(std::get_if<0>(&key)->data(), whole.data(), std::get_if<0>(&key)->size());
-      return key;
+      auto whole = base58_to_binary<37>( is_k1_type ? s.substr(3) : s.substr(7) );
+      check(whole.size() == key_data.size() + 4, "invalid public key length");
+
+      memcpy(key_data.data(), whole.data(), key_data.size());
+      return is_k1_type ? public_key(std::in_place_index<0>, key_data) : public_key(std::in_place_index<1>, key_data);
    }
 
    inline string join( vector<string>&& vec, string delim = "*" ) {
