@@ -91,3 +91,5 @@ replay.sh
 start.sh
 stop.sh
 wp
+
+!*.swagger.*

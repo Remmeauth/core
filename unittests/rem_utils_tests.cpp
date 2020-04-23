@@ -123,7 +123,7 @@ public:
 
    fc::variant get_swap_fee_info( const name& chain_id ) {
       vector<char> data = get_row_by_account( N(rem.utils), N(rem.utils), N(swapfee), chain_id );
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "swap_fee", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "swap_fee", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    asset get_balance( const account_name& act ) {
@@ -138,7 +138,7 @@ public:
          const auto& accnt = control->db().get<account_object,by_name>( account );
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+         abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
       }
       produce_blocks();
    }
