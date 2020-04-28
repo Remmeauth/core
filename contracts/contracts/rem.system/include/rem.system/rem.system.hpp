@@ -1217,6 +1217,14 @@ namespace eosiosystem {
          void setminstake( uint64_t min_account_stake );
 
          /**
+         * Set activated stake action.
+         *
+         * @details Set activated stake to equal minimum activated stake.
+         */
+         [[eosio::action]]
+         void setactvstake();
+
+         /**
           * Set ram rate action.
 
           * @details Sets the rate of increase of RAM in bytes per block. It is capped by the uint16_t to
