@@ -62,7 +62,7 @@ public:
       const auto& accnt = control->db().get<account_object,by_name>( config::system_account_name );
       abi_def abi;
       BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi), true);
-      rem_sys_abi_ser.set_abi(abi, abi_serializer_max_time);
+      rem_sys_abi_ser.set_abi(abi, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    auto delegate_bandwidth(name from, name receiver, asset stake_quantity, uint8_t transfer = 1)
@@ -101,13 +101,13 @@ public:
          std::cout << "\nData is empty\n"
                    << std::endl;
       }
-      return data.empty() ? fc::variant() : rem_sys_abi_ser.binary_to_variant("eosio_global_state", data, abi_serializer_max_time);
+      return data.empty() ? fc::variant() : rem_sys_abi_ser.binary_to_variant("eosio_global_state", data, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    fc::variant get_total_stake(const account_name &act)
    {
       vector<char> data = get_row_by_account(config::system_account_name, act, N(userres), act);
-      return data.empty() ? fc::variant() : rem_sys_abi_ser.binary_to_variant("user_resources", data, abi_serializer_max_time);
+      return data.empty() ? fc::variant() : rem_sys_abi_ser.binary_to_variant("user_resources", data, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    transaction_trace_ptr create_account_with_resources(account_name new_acc, account_name creator, asset stake, bool transfer = true)
@@ -163,7 +163,7 @@ public:
       {
          return fc::variant();
       }
-      return rem_attr_abi_ser.binary_to_variant("attribute_info", data, abi_serializer_max_time);
+      return rem_attr_abi_ser.binary_to_variant("attribute_info", data, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    fc::variant get_account_attribute(const account_name &issuer, const account_name &account, const account_name &attribute)
@@ -187,7 +187,7 @@ public:
          data.resize(it->value.size());
          memcpy(data.data(), it->value.data(), data.size());
 
-         const auto attr_obj = rem_attr_abi_ser.binary_to_variant("attribute_data", data, abi_serializer_max_time);
+         const auto attr_obj = rem_attr_abi_ser.binary_to_variant("attribute_data", data, abi_serializer::create_yield_function( abi_serializer_max_time ));
          if (attr_obj["receiver"].as_string() == account.to_string() &&
              attr_obj["issuer"].as_string() == issuer.to_string())
          {
@@ -206,7 +206,7 @@ public:
    variant get_remprice_tbl( const name& pair )
    {
       vector<char> data = get_row_by_account( N(rem.oracle), N(rem.oracle), N(remprice), pair );
-      return data.empty() ? fc::variant() : rem_oracle_abi_ser.binary_to_variant( "remprice", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : rem_oracle_abi_ser.binary_to_variant( "remprice", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    auto register_producer(name producer)
@@ -283,14 +283,14 @@ public:
          const auto &accnt = control->db().get<account_object, by_name>(account);
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         rem_attr_abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+         rem_attr_abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
       }
       else if (account == N(rem.oracle))
       {
          const auto &accnt = control->db().get<account_object, by_name>(account);
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         rem_oracle_abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+         rem_oracle_abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
       }
       produce_blocks();
    }

@@ -271,7 +271,7 @@ public:
 
    variant get_authkeys_tbl( const name& account ) {
       vector<char> data = get_row_by_account( N(rem.auth), N(rem.auth), N(authkeys), account );
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "authkeys", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "authkeys", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    variant get_singtable(const name& contract, const name& scope, const name &table, const string &type) {
@@ -296,12 +296,12 @@ public:
 
       data.resize(itr->value.size());
       memcpy(data.data(), itr->value.data(), data.size());
-      return data.empty() ? variant() : abi_ser.binary_to_variant(type, data, abi_serializer_max_time);
+      return data.empty() ? variant() : abi_ser.binary_to_variant(type, data, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    variant get_remprice_tbl( const name& pair ) {
       vector<char> data = get_row_by_account( N(rem.oracle), N(rem.oracle), N(remprice), pair );
-      return data.empty() ? fc::variant() : abi_ser_oracle.binary_to_variant( "remprice", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser_oracle.binary_to_variant( "remprice", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    asset get_balance( const account_name& act ) {
@@ -315,7 +315,7 @@ public:
    auto get_stats( const symbol& sym ) {
       auto symbol_code = sym.to_symbol_code().value;
       vector<char> data = get_row_by_account( N(rem.token), name(symbol_code), N(stat), name(symbol_code) );
-      return data.empty() ? fc::variant() : abi_ser_token.binary_to_variant( "currency_stats", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser_token.binary_to_variant( "currency_stats", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    auto get_auth_purchase_fee(const asset &quantity_auth) {
@@ -332,19 +332,19 @@ public:
          const auto& accnt = control->db().get<account_object,by_name>( account );
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+         abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
 
       } else if (account == N(rem.token)) {
          const auto& accnt = control->db().get<account_object,by_name>( account );
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         abi_ser_token.set_abi(abi_definition, abi_serializer_max_time);
+         abi_ser_token.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
 
       } else if (account == N(rem.oracle)) {
          const auto& accnt = control->db().get<account_object,by_name>( account );
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         abi_ser_oracle.set_abi(abi_definition, abi_serializer_max_time);
+         abi_ser_oracle.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
       }
       produce_blocks();
    }
