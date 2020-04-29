@@ -182,7 +182,7 @@ public:
         if (data.empty()) {
             return fc::variant();
         }
-        return abi_ser.binary_to_variant( "attribute_info", data, abi_serializer_max_time );
+        return abi_ser.binary_to_variant( "attribute_info", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
     }
 
     fc::variant get_account_attribute( const account_name& account, const account_name& issuer, const account_name& attribute ) {
@@ -207,7 +207,7 @@ public:
           data.resize( it->value.size() );
           memcpy( data.data(), it->value.data(), data.size() );
 
-          const auto attr_obj = abi_ser.binary_to_variant( "attribute_data", data, abi_serializer_max_time );
+          const auto attr_obj = abi_ser.binary_to_variant( "attribute_data", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
           if (attr_obj["receiver"].as_string() == account.to_string() &&
               attr_obj["issuer"].as_string() == issuer.to_string()) {
              return attr_obj["attribute"];
@@ -228,7 +228,7 @@ public:
            const auto& accnt = control->db().get<account_object,by_name>( account );
            abi_def abi_definition;
            BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-           abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+           abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
         }
         produce_blocks();
     }

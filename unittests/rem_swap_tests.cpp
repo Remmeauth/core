@@ -270,7 +270,7 @@ public:
 
       data.resize(itr->value.size());
       memcpy(data.data(), itr->value.data(), data.size());
-      return data.empty() ? variant() : abi_ser.binary_to_variant(type, data, abi_serializer_max_time);
+      return data.empty() ? variant() : abi_ser.binary_to_variant(type, data, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    asset get_balance(const account_name &act) {
@@ -284,13 +284,13 @@ public:
 
    variant get_supported_chain(const name& chain) {
       vector<char> data = get_row_by_account( N(rem.swap), N(rem.swap), N(chains), chain );
-      return data.empty() ? variant() : abi_ser.binary_to_variant("chains", data, abi_serializer_max_time);
+      return data.empty() ? variant() : abi_ser.binary_to_variant("chains", data, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    auto get_stats( const symbol& sym ) {
       auto symbol_code = sym.to_symbol_code().value;
       vector<char> data = get_row_by_account( N(rem.token), name(symbol_code), N(stat), name(symbol_code) );
-      return data.empty() ? fc::variant() : abi_ser_token.binary_to_variant( "currency_stats", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser_token.binary_to_variant( "currency_stats", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    static string get_pubkey_str(const crypto::private_key& priv_key) {
@@ -307,13 +307,13 @@ public:
          const auto &accnt = control->db().get<account_object, by_name>(account);
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+         abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
 
       } else if (account == N(rem.token)) {
          const auto& accnt = control->db().get<account_object,by_name>( account );
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         abi_ser_token.set_abi(abi_definition, abi_serializer_max_time);
+         abi_ser_token.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
       }
       produce_blocks();
    }
