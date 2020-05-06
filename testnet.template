@@ -57,7 +57,7 @@ echo "FEATURE_DIGESTS: $FEATURE_DIGESTS" >> $logfile
 
 echo "http-server-address = $wdaddr" > $wddir/config.ini
 
-programs/remvault/remvault --config-dir $wddir --data-dir $wddir 2> $wddir/wdlog.txt &
+programs/remvault/remvault --config-dir $wddir --data-dir $wddir --http-max-response-time-ms 99999 2> $wddir/wdlog.txt &
 echo $$ > ignition_wallet.pid
 echo remvault log in $wddir/wdlog.txt >> $logfile
 sleep 1

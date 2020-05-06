@@ -176,12 +176,12 @@ public:
 
    variant get_remprice_tbl( const name& pair ) {
       vector<char> data = get_row_by_account( N(rem.oracle), N(rem.oracle), N(remprice), pair );
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "remprice", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "remprice", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    variant get_pricedata_tbl( const name& producer ) {
       vector<char> data = get_row_by_account( N(rem.oracle), N(rem.oracle), N(pricedata), producer );
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "pricedata", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "pricedata", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
    variant get_singtable(const name& contract, const name &table, const string &type) {
@@ -206,7 +206,7 @@ public:
 
       data.resize(itr->value.size());
       memcpy(data.data(), itr->value.data(), data.size());
-      return data.empty() ? variant() : abi_ser.binary_to_variant(type, data, abi_serializer_max_time);
+      return data.empty() ? variant() : abi_ser.binary_to_variant(type, data, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    asset get_balance( const account_name& act ) {
@@ -221,7 +221,7 @@ public:
          const auto& accnt = control->db().get<account_object,by_name>( account );
          abi_def abi_definition;
          BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-         abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+         abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
       }
       produce_blocks();
    }
