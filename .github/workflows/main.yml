@@ -6,7 +6,6 @@ env:
 
 jobs:
   submodule_regression_check:
-    if: github.event.pull_request.base.repo.id != github.event.pull_request.head.repo.id
     name: Submodule Regression Check
     runs-on: ubuntu-latest
     steps:
@@ -22,7 +21,6 @@ jobs:
 
 
   amazon_linux-2-build:
-    if: github.event.pull_request.base.repo.id != github.event.pull_request.head.repo.id
     name: Amazon_Linux 2 | Build
     runs-on: ubuntu-latest
     steps:
@@ -117,7 +115,6 @@ jobs:
 
 
   centos-77-build:
-    if: github.event.pull_request.base.repo.id != github.event.pull_request.head.repo.id
     name: CentOS 7.7 | Build
     runs-on: ubuntu-latest
     steps:
@@ -212,7 +209,6 @@ jobs:
 
 
   ubuntu-1604-build:
-    if: github.event.pull_request.base.repo.id != github.event.pull_request.head.repo.id  
     name: Ubuntu 16.04 | Build
     runs-on: ubuntu-latest
     steps:
@@ -307,7 +303,6 @@ jobs:
 
 
   ubuntu-1804-build:
-    if: github.event.pull_request.base.repo.id != github.event.pull_request.head.repo.id
     name: Ubuntu 18.04 | Build
     runs-on: ubuntu-latest
     steps:
@@ -402,7 +397,6 @@ jobs:
 
 
   macos-1015-build:
-    if: github.event.pull_request.base.repo.id != github.event.pull_request.head.repo.id
     name: MacOS 10.15 | Build
     runs-on: macos-latest
     steps:
