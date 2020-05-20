@@ -1,1 +1,0 @@
-/usr/bin/eosio-ld  CMakeFiles/rem.swap.dir/src/rem.swap.cpp.obj CMakeFiles/rem.swap.dir/src/system_info.cpp.obj -o rem.swap.wasm 
