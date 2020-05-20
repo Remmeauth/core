@@ -176,6 +176,12 @@ public:
        return r;
     }
 
+    auto set_activated_stake() {
+       auto r = base_tester::push_action(config::system_account_name, N(setactvstake), config::system_account_name, mvo());
+       produce_block();
+       return r;
+   }
+
     asset get_balance( const account_name& act ) {
          return get_currency_balance(N(rem.token), symbol(CORE_SYMBOL), act);
     }
@@ -564,11 +570,14 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod( fc::days( 180 ) );
         undelegate_bandwidth(N(b1), N(b1), core_from_string("49999500.0000"));
 
+        // Test setactvstake action
+        set_activated_stake();
+        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 150'000'000'0000);
+
         return;
         produce_blocks(7000); /// produce blocks until virutal bandwidth can acomadate a small user
         wlog("minow" );
         votepro( N(minow1), {N(p1), N(p2)} );
-
 
 // TODO: Complete this test
     } FC_LOG_AND_RETHROW()
