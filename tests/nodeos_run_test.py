@@ -320,7 +320,7 @@ try:
     if hashNum != 0:
         errorExit("FAILURE - get code currency1111 failed", raw=True)
 
-    contractDir="contracts/contracts/rem.token"
+    contractDir="../unittests/contracts/rem.token"
     wasmFile="rem.token.wasm"
     abiFile="rem.token.abi"
     Print("Publish contract")

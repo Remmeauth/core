@@ -13,7 +13,7 @@ file(GLOB UNIT_TESTS "*.cpp")
 add_executable( plugin_test ${UNIT_TESTS} )
 target_link_libraries( plugin_test eosio_testing eosio_chain chainbase chain_plugin wallet_plugin fc ${PLATFORM_SPECIFIC_LIBS} )
 
-add_dependencies( plugin_test contracts_project test_contracts_project)
+#add_dependencies( plugin_test contracts_project test_contracts_project)
 
 target_include_directories( plugin_test PUBLIC
                             ${CMAKE_SOURCE_DIR}/plugins/net_plugin/include

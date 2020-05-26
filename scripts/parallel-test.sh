@@ -22,8 +22,8 @@ else
 fi
 # run tests
 set +e # defer ctest error handling to end
-echo "$ ctest -j $JOBS -LE _tests --output-on-failure -T Test"
-ctest -j $JOBS -LE _tests --output-on-failure -T Test
+echo "$ ctest --exclude-regex snapshot_tests -j $JOBS -LE _tests --output-on-failure -T Test"
+ctest -j $JOBS --exclude-regex snapshot_tests -LE _tests --output-on-failure -T Test
 EXIT_STATUS=$?
 echo 'Done running parallelizable tests.'
 exit $EXIT_STATUS

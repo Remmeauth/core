@@ -1,0 +1,342 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.1",
+    "types": [],
+    "structs": [
+        {
+            "name": "addchain",
+            "base": "",
+            "fields": [
+                {
+                    "name": "chain_id",
+                    "type": "name"
+                },
+                {
+                    "name": "input",
+                    "type": "bool"
+                },
+                {
+                    "name": "output",
+                    "type": "bool"
+                },
+                {
+                    "name": "in_swap_min_amount",
+                    "type": "int64"
+                },
+                {
+                    "name": "out_swap_min_amount",
+                    "type": "int64"
+                }
+            ]
+        },
+        {
+            "name": "cancel",
+            "base": "",
+            "fields": [
+                {
+                    "name": "rampayer",
+                    "type": "name"
+                },
+                {
+                    "name": "txid",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_pubkey_str",
+                    "type": "string"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "return_address",
+                    "type": "string"
+                },
+                {
+                    "name": "return_chain_id",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_timestamp",
+                    "type": "block_timestamp_type"
+                }
+            ]
+        },
+        {
+            "name": "chains",
+            "base": "",
+            "fields": [
+                {
+                    "name": "chain",
+                    "type": "name"
+                },
+                {
+                    "name": "input",
+                    "type": "bool"
+                },
+                {
+                    "name": "output",
+                    "type": "bool"
+                },
+                {
+                    "name": "in_swap_min_amount",
+                    "type": "int64"
+                },
+                {
+                    "name": "out_swap_min_amount",
+                    "type": "int64"
+                }
+            ]
+        },
+        {
+            "name": "finish",
+            "base": "",
+            "fields": [
+                {
+                    "name": "rampayer",
+                    "type": "name"
+                },
+                {
+                    "name": "receiver",
+                    "type": "name"
+                },
+                {
+                    "name": "txid",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_pubkey_str",
+                    "type": "string"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "return_address",
+                    "type": "string"
+                },
+                {
+                    "name": "return_chain_id",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_timestamp",
+                    "type": "block_timestamp_type"
+                },
+                {
+                    "name": "sign",
+                    "type": "signature"
+                }
+            ]
+        },
+        {
+            "name": "finishnewacc",
+            "base": "",
+            "fields": [
+                {
+                    "name": "rampayer",
+                    "type": "name"
+                },
+                {
+                    "name": "receiver",
+                    "type": "name"
+                },
+                {
+                    "name": "owner_pubkey_str",
+                    "type": "string"
+                },
+                {
+                    "name": "active_pubkey_str",
+                    "type": "string"
+                },
+                {
+                    "name": "txid",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_pubkey_str",
+                    "type": "string"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "return_address",
+                    "type": "string"
+                },
+                {
+                    "name": "return_chain_id",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_timestamp",
+                    "type": "block_timestamp_type"
+                },
+                {
+                    "name": "sign",
+                    "type": "signature"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "base": "",
+            "fields": [
+                {
+                    "name": "rampayer",
+                    "type": "name"
+                },
+                {
+                    "name": "txid",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_pubkey",
+                    "type": "string"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "return_address",
+                    "type": "string"
+                },
+                {
+                    "name": "return_chain_id",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_timestamp",
+                    "type": "block_timestamp_type"
+                }
+            ]
+        },
+        {
+            "name": "setswapparam",
+            "base": "",
+            "fields": [
+                {
+                    "name": "chain_id",
+                    "type": "string"
+                },
+                {
+                    "name": "eth_swap_contract_address",
+                    "type": "string"
+                },
+                {
+                    "name": "eth_return_chainid",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "swap_data",
+            "base": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "uint64"
+                },
+                {
+                    "name": "txid",
+                    "type": "string"
+                },
+                {
+                    "name": "swap_id",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "swap_timestamp",
+                    "type": "block_timestamp_type"
+                },
+                {
+                    "name": "status",
+                    "type": "int8"
+                },
+                {
+                    "name": "provided_approvals",
+                    "type": "name[]"
+                }
+            ]
+        },
+        {
+            "name": "swapparams",
+            "base": "",
+            "fields": [
+                {
+                    "name": "chain_id",
+                    "type": "string"
+                },
+                {
+                    "name": "eth_swap_contract_address",
+                    "type": "string"
+                },
+                {
+                    "name": "eth_return_chainid",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addchain",
+            "type": "addchain",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancel",
+            "type": "cancel",
+            "ricardian_contract": "---\nspec_version: \"0.2.0\"\ntitle: Cancel Token Swap\nsummary: 'Cancel already initialized token swap'\nicon: http://127.0.0.1/ricardian_assets/rem.contracts/icons/\n---\n\nThe {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data in table and already approved by the majority of producers of an active unit.\n\nThe sender as token swap initiator between sender network and Remchaim agrees to return tokens to the network {{return_chain_id}} with address {{return_address}} considering producers reward.\n\nThe swap sender agrees if the swap is not canceled after expiration period within 173 days, his tokens will be lost.\n\nThe sender as token swap initiator agrees that anybody can to canceled swap after expiration period and return tokens to the network {{return_chain_id}} with address {{return_address}}.\n\nRAM will deducted from {{rampayer}}’s resources to create the necessary records."
+        },
+        {
+            "name": "finish",
+            "type": "finish",
+            "ricardian_contract": "---\nspec_version: \"0.2.0\"\ntitle: Finish Token Swap\nsummary: 'Finish already initialized token swap and transfer already issued tokens from rem.swap to {{receiver}}'\nicon: http://127.0.0.1/ricardian_assets/rem.contracts/icons/\n---\n\nThe {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data in table and already approved by the majority of producers of an active unit.\n\nThe {{receiver}} as token swap initiator between sender network and Remchaim agrees to finish token swap and transfer already issued tokens considering producers reward to the {{receiver}}.\n\nCurrent producers reward for swap specified by a majority of producers of an active unit.\n\nRAM will deducted from {{rampayer}}’s resources to create the necessary records."
+        },
+        {
+            "name": "finishnewacc",
+            "type": "finishnewacc",
+            "ricardian_contract": "---\nspec_version: \"0.2.0\"\ntitle: Finish token swap\nsummary: 'Finish already initialized token swap, create a new account with name {{receiver}} and transfer already issued tokens from rem.swap to {{receiver}}'\nicon: http://127.0.0.1/ricardian_assets/rem.contracts/icons/\n---\n\nThe {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data in table and already approved by the majority of producers of an active unit.\n\nThe {{receiver}} as token swap initiator between sender network and Remchaim agrees to finish token swap, create new account with name {{receiver}} and transfer already issued tokens considering producers reward to the {{receiver}}.\n\nThe current producers reward for swap specified by a majority of producers of an active unit.\n\nRAM will deducted from {{rampayer}}’s resources to create the necessary records."
+        },
+        {
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": "---\nspec_version: \"0.2.0\"\ntitle: Initialize Token Swap\nsummary: 'Initialized token swap'\nicon: http://127.0.0.1/ricardian_assets/rem.contracts/icons/\n---\n\nThe {{rampayer}} affirms that was initialized token swap between sender network and Remchaim with relevant data on the sender’s network according to contract.\n\nThe swap sender will be allowed to finish token swap after obtaining approvals of the majority of producers of an active unit.\n\nThe swap sender will be allowed to cancel token swap after an expiration period (1 week) and already obtained approvals of the majority of producers of an active unit.\n\nThe swap sender agrees if the swap is not completed within 180 days, his tokens will be lost.\n\nRAM will deducted from {{rampayer}’s resources to create the necessary records."
+        },
+        {
+            "name": "setswapparam",
+            "type": "setswapparam",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "chains",
+            "type": "chains",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "swapparams",
+            "type": "swapparams",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "swaps",
+            "type": "swap_data",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": []
+}
