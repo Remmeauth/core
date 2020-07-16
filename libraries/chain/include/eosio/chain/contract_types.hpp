@@ -1,8 +1,6 @@
 #pragma once
 
 #include <eosio/chain/authority.hpp>
-#include <eosio/chain/chain_config.hpp>
-#include <eosio/chain/config.hpp>
 #include <eosio/chain/types.hpp>
 #include <eosio/chain/asset.hpp>
 #include <eosio/chain/block_timestamp.hpp>
