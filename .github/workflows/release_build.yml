@@ -4,6 +4,9 @@ on:
     types:
       - created
 
+env:
+  PR_NUMBER: ${{ toJson(github.event.number) }}
+
 jobs:
   ubuntu-1604-build:
     name: Ubuntu 16.04 | Build
@@ -12,8 +15,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
@@ -36,8 +39,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Download Build Artifact
@@ -68,8 +71,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
@@ -92,8 +95,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Download Build Artifact
@@ -126,8 +129,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
@@ -150,8 +153,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Download Build Artifact
@@ -184,8 +187,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
@@ -206,8 +209,8 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/${GITHUB_REPOSITORY} .
-          git fetch -v --prune origin +refs/pull/${PR_NUMBER}/merge:refs/remotes/pull/${PR_NUMBER}/merge
-          git checkout --force --progress refs/remotes/pull/${PR_NUMBER}/merge
+          git fetch --all --tags
+          git checkout --force --progress tags/${{ github.event.release.tag_name }}
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Download Build Artifact
