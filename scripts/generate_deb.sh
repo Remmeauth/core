@@ -12,8 +12,6 @@ if [[ -z $RELEASE ]]; then
   RELEASE="1"
 fi
 
-NAME="${PROJECT}_${VERSION_NO_SUFFIX}-${RELEASE}_amd64"
-
 if [[ -f /etc/upstream-release/lsb-release ]]; then
   source /etc/upstream-release/lsb-release
 elif [[ -f /etc/lsb-release ]]; then
@@ -22,6 +20,11 @@ else
   echo "Unrecognized Debian derivative.  Not generating .deb file."
   exit 1
 fi
+
+DISTRIB_ID_LOWERCASE=`echo "$DISTRIB_ID" | awk '{ print tolower($0) }'`
+DISTRIB_NAME="${DISTRIB_ID_LOWERCASE}_${DISTRIB_RELEASE}"
+
+NAME="${PROJECT}_${VERSION_NO_SUFFIX}-${RELEASE}-${DISTRIB_NAME}_amd64"
 
 if [ ${DISTRIB_RELEASE} = "16.04" ]; then
   RELEASE_SPECIFIC_DEPS="libssl1.0.0, libicu55"

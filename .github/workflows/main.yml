@@ -32,7 +32,7 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
-        run: | 
+        run: |
           ./.cicd/build.sh
           tar -pczf build.tar.gz build
         env:
@@ -60,7 +60,7 @@ jobs:
         with:
           name: amazon_linux-2-build
       - name: Parallel Test
-        run: | 
+        run: |
           tar -xzf amazon_linux-2-build/build.tar.gz
           ./.cicd/test.sh scripts/parallel-test.sh
         env:
@@ -83,7 +83,7 @@ jobs:
         with:
           name: amazon_linux-2-build
       - name: WASM Spec Test
-        run: | 
+        run: |
           tar -xzf amazon_linux-2-build/build.tar.gz
           ./.cicd/test.sh scripts/wasm-spec-test.sh
         env:
@@ -106,7 +106,7 @@ jobs:
         with:
           name: amazon_linux-2-build
       - name: Serial Test
-        run: | 
+        run: |
           tar -xzf amazon_linux-2-build/build.tar.gz
           ./.cicd/test.sh scripts/serial-test.sh
         env:
@@ -126,7 +126,7 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
-        run: | 
+        run: |
           ./.cicd/build.sh
           tar -pczf build.tar.gz build
         env:
@@ -154,7 +154,7 @@ jobs:
         with:
           name: centos-77-build
       - name: Parallel Test
-        run: | 
+        run: |
           tar -xzf centos-77-build/build.tar.gz
           ./.cicd/test.sh scripts/parallel-test.sh
         env:
@@ -177,7 +177,7 @@ jobs:
         with:
           name: centos-77-build
       - name: WASM Spec Test
-        run: | 
+        run: |
           tar -xzf centos-77-build/build.tar.gz
           ./.cicd/test.sh scripts/wasm-spec-test.sh
         env:
@@ -200,7 +200,7 @@ jobs:
         with:
           name: centos-77-build
       - name: Serial Test
-        run: | 
+        run: |
           tar -xzf centos-77-build/build.tar.gz
           ./.cicd/test.sh scripts/serial-test.sh
         env:
@@ -220,7 +220,7 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
-        run: | 
+        run: |
           ./.cicd/build.sh
           tar -pczf build.tar.gz build
         env:
@@ -248,7 +248,7 @@ jobs:
         with:
           name: ubuntu-1604-build
       - name: Parallel Test
-        run: | 
+        run: |
           tar -xzf ubuntu-1604-build/build.tar.gz
           ./.cicd/test.sh scripts/parallel-test.sh
         env:
@@ -271,7 +271,7 @@ jobs:
         with:
           name: ubuntu-1604-build
       - name: WASM Spec Test
-        run: | 
+        run: |
           tar -xzf ubuntu-1604-build/build.tar.gz
           ./.cicd/test.sh scripts/wasm-spec-test.sh
         env:
@@ -294,7 +294,7 @@ jobs:
         with:
           name: ubuntu-1604-build
       - name: Serial Test
-        run: | 
+        run: |
           tar -xzf ubuntu-1604-build/build.tar.gz
           ./.cicd/test.sh scripts/serial-test.sh
         env:
@@ -314,7 +314,7 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
-        run: | 
+        run: |
           ./.cicd/build.sh
           tar -pczf build.tar.gz build
         env:
@@ -342,7 +342,7 @@ jobs:
         with:
           name: ubuntu-1804-build
       - name: Parallel Test
-        run: | 
+        run: |
           tar -xzf ubuntu-1804-build/build.tar.gz
           ./.cicd/test.sh scripts/parallel-test.sh
         env:
@@ -365,7 +365,7 @@ jobs:
         with:
           name: ubuntu-1804-build
       - name: WASM Spec Test
-        run: | 
+        run: |
           tar -xzf ubuntu-1804-build/build.tar.gz
           ./.cicd/test.sh scripts/wasm-spec-test.sh
         env:
@@ -388,7 +388,7 @@ jobs:
         with:
           name: ubuntu-1804-build
       - name: Serial Test
-        run: | 
+        run: |
           tar -xzf ubuntu-1804-build/build.tar.gz
           ./.cicd/test.sh scripts/serial-test.sh
         env:
@@ -408,7 +408,7 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --force --recursive
       - name: Build
-        run: | 
+        run: |
           ./.cicd/platforms/unpinned/macos-10.14-unpinned.sh
           ./.cicd/build.sh
           tar -pczf build.tar.gz build
@@ -434,7 +434,7 @@ jobs:
         with:
           name: macos-1015-build
       - name: Parallel Test
-        run: | 
+        run: |
           ./.cicd/platforms/unpinned/macos-10.14-unpinned.sh
           tar -xzf macos-1015-build/build.tar.gz
           ./.cicd/test.sh scripts/parallel-test.sh
@@ -455,7 +455,7 @@ jobs:
         with:
           name: macos-1015-build
       - name: WASM Spec Test
-        run: | 
+        run: |
           ./.cicd/platforms/unpinned/macos-10.14-unpinned.sh
           tar -xzf macos-1015-build/build.tar.gz
           ./.cicd/test.sh scripts/wasm-spec-test.sh
@@ -476,7 +476,7 @@ jobs:
         with:
           name: macos-1015-build
       - name: Serial Test
-        run: | 
+        run: |
           ./.cicd/platforms/unpinned/macos-10.14-unpinned.sh
           tar -xzf macos-1015-build/build.tar.gz
           ./.cicd/test.sh scripts/serial-test.sh
